@@ -17,14 +17,33 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public const ROLE_ADMIN = 'admin';
+
+    public const STATUS_ACTIVE = 'active';
+
     protected function casts(): array
     {
         return ['password' => 'hashed'];
     }
 
+    public static function normalizeUsername(string $username): string
+    {
+        return strtolower(trim($username));
+    }
+
     public function setUsernameAttribute(string $value): void
     {
-        $this->attributes['username'] = strtolower(trim($value));
+        $this->attributes['username'] = self::normalizeUsername($value);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
     }
 
     public function sales(): HasMany

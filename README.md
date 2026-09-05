@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 1 data foundation
+## Current scope: Stage 2 authentication foundation
 
-Fresh Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Business workflows and authentication are not implemented. Supplier management is out of scope for Version 1; later restocking may have an optional supplier/invoice/reference field.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization are implemented with Laravel's native session guard. Business workflows are not implemented. Supplier management is out of scope for Version 1; later restocking may have an optional supplier/invoice/reference field.
 
 ## Requirements
 
@@ -38,6 +38,8 @@ npm run dev -- --host 127.0.0.1
 
 Open http://127.0.0.1:8000. `composer dev` starts only the local PHP server; run Vite separately. Assets use system fonts, with no remote font download.
 
+There is no public account registration or password-reset workflow. To create the first operational administrator, run `php artisan trackpro:create-admin` and confirm the displayed environment and database before entering the account details. The command prompts for the password privately and never accepts it as a command-line argument.
+
 ## Verification
 
 ```bash
@@ -52,7 +54,7 @@ git diff --check
 git status --short --branch
 ```
 
-Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. The users migration uses username/role/status; unused cache/jobs migrations were removed. The ten application migrations have been applied to the local development database, and the default seeder remains empty.
+Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. Authentication tests load only the existing users migration into that in-memory database; they do not execute the MySQL-specific business migrations. The users migration uses username/role/status; unused cache/jobs migrations were removed. The ten application migrations have been applied to the local development database, and the default seeder remains empty.
 
 Live schema tests use the named `mysql_testing` connection and credentials from the ignored `.env.mysql` file. `scripts/verify-mysql-schema` rejects any database, account, socket, engine, or environment other than the dedicated test configuration before it migrates or rolls back. Its default entry state is an empty schema; set `MYSQL_TEST_INITIAL_STATE=migrated` for a guarded rerun from the verified migrated state. The runner is destructive to that isolated test database and must never be configured with the normal local database.
 

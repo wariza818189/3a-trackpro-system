@@ -6,11 +6,11 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    public function test_landing_page_displays_the_application_identity(): void
+    public function test_login_page_displays_the_application_identity(): void
     {
         $this->withoutVite();
 
-        $this->get('/')
+        $this->get('/login')
             ->assertOk()
             ->assertSee('3A TrackPro')
             ->assertSee('Hardware Store Sales and Inventory Management System');
