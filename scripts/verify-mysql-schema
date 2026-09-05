@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+local_environment="$repository_root/.env.mysql"
+
+if [[ ! -f "$local_environment" ]]; then
+    echo 'Missing ignored .env.mysql test configuration.' >&2
+    exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$local_environment"
+set +a
+
+export APP_ENV=testing
+export DB_CONNECTION=mysql_testing
+
+run_guard() {
+    MYSQL_TEST_EXPECTED_STATE="$1" "$repository_root/vendor/bin/phpunit" \
+        --configuration "$repository_root/phpunit.mysql.xml" \
+        "$repository_root/tests/MySql/DatabaseIdentityTest.php"
+}
+
+run_integrity_suite() {
+    MYSQL_TEST_EXPECTED_STATE=migrated "$repository_root/vendor/bin/phpunit" \
+        --configuration "$repository_root/phpunit.mysql.xml" \
+        "$repository_root/tests/MySql/SchemaIntegrityTest.php"
+}
+
+cd "$repository_root"
+
+initial_state="${MYSQL_TEST_INITIAL_STATE:-empty}"
+
+case "$initial_state" in
+    empty)
+        run_guard empty
+        php artisan migrate --database=mysql_testing --force
+        run_guard migrated
+        run_integrity_suite
+        ;;
+    migrated)
+        run_guard migrated
+        run_integrity_suite
+        ;;
+    *)
+        echo 'MYSQL_TEST_INITIAL_STATE must be empty or migrated.' >&2
+        exit 1
+        ;;
+esac
+
+# Recheck the live database identity immediately before the destructive rollback.
+run_guard migrated
+php artisan migrate:rollback --database=mysql_testing --force
+run_guard rolled_back
+
+php artisan migrate --database=mysql_testing --force
+run_guard migrated
+run_integrity_suite
