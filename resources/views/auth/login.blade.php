@@ -1,11 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
-    <main class="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
-        <section class="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm" aria-labelledby="login-title">
-            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-700">3A TrackPro</p>
+    <main class="brand-login-page flex min-h-screen items-center justify-center px-4 py-8 sm:px-8 sm:py-12">
+        <div class="brand-shadow grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white lg:grid-cols-2">
+            <section class="brand-panel relative overflow-hidden p-7 sm:p-10 lg:flex lg:flex-col lg:justify-between lg:p-12" aria-label="3A TrackPro branding">
+                <div class="relative z-10">
+                    <x-brand-logo size="size-12 sm:size-16" wordmark-class="text-2xl sm:text-3xl" :inverse="true" />
+                    <p class="mt-5 max-w-xs text-sm leading-relaxed text-slate-300">Hardware Store Sales and Inventory Management System</p>
+                </div>
+                <p class="relative z-10 mt-8 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:my-20 lg:text-5xl">Track Today.<br><span class="text-amber-400">Build Tomorrow.</span></p>
+                <div class="brand-blocks" aria-hidden="true"><span></span><span></span><span></span></div>
+            </section>
+            <section class="p-7 sm:p-10 lg:self-center lg:p-12" aria-labelledby="login-title">
+            <div class="mb-6 h-1 w-10 rounded-full bg-amber-500" aria-hidden="true"></div>
             <h1 id="login-title" class="text-3xl font-bold tracking-tight">Sign in to TrackPro</h1>
-            <p class="mt-3 text-sm leading-relaxed text-slate-600">Hardware Store Sales and Inventory Management System</p>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">Use your assigned username and password.</p>
 
             <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5">
@@ -44,10 +52,11 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                <button type="submit" class="w-full rounded-xl bg-orange-700 px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-700 focus:ring-offset-2">
                     Sign in
                 </button>
             </form>
-        </section>
+            </section>
+        </div>
     </main>
 @endsection

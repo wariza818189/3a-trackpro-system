@@ -5,14 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="3A TrackPro hardware store sales and inventory management system.">
     <title>{{ config('app.name') }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('brand-mark.svg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
     @auth
         <header class="border-b border-slate-200 bg-white shadow-sm">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-6 py-4">
-                <a href="{{ route('home') }}" class="text-lg font-bold tracking-tight">3A TrackPro</a>
-                <nav class="flex flex-1 flex-wrap gap-1" aria-label="Primary navigation">
+            <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+                <a href="{{ route('home') }}" aria-label="3A TrackPro Home" class="shrink-0 whitespace-nowrap rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <x-brand-logo />
+                </a>
+                <nav class="flex min-w-0 flex-1 flex-wrap gap-1" aria-label="Primary navigation">
                     @foreach ([
                         'home' => 'Home',
                         'categories.index' => 'Categories',
@@ -30,7 +33,7 @@
                         </a>
                     @endcan
                 </nav>
-                <div class="text-right text-sm">
+                <div class="min-w-0 max-w-full break-words text-right text-sm sm:max-w-40">
                     <p class="font-semibold">{{ auth()->user()->name }}</p>
                     <p class="text-slate-500">{{ ucfirst(auth()->user()->role) }}</p>
                 </div>

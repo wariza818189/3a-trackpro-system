@@ -9,3 +9,42 @@
     --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.brand-shadow {
+    box-shadow: 0 20px 60px -24px rgb(15 23 42 / 25%);
+}
+
+.brand-login-page {
+    background: radial-gradient(ellipse at top left, #fef3c7 0, transparent 45%), #f8fafc;
+}
+
+.brand-panel {
+    background: linear-gradient(145deg, #0f172a, #1e293b);
+}
+
+.brand-blocks {
+    position: absolute;
+    right: -2rem;
+    bottom: -2rem;
+    display: flex;
+    align-items: end;
+    gap: 1rem;
+    transform: rotate(-12deg);
+    opacity: 0.12;
+    pointer-events: none;
+}
+
+.brand-blocks span {
+    width: 5rem;
+    height: 7rem;
+    border: 2px solid #f59e0b;
+    border-radius: 0.75rem;
+    background: #f59e0b;
+}
+
+.brand-blocks span:nth-child(2) { height: 11rem; }
+.brand-blocks span:nth-child(3) { height: 15rem; }
+
+.brand-home-hero {
+    background: radial-gradient(ellipse at top right, #fef3c7 0, transparent 50%), #ffffff;
+}
