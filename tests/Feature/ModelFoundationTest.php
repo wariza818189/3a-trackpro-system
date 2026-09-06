@@ -41,8 +41,8 @@ class ModelFoundationTest extends TestCase
             'unit' => ' KG ',
             'cost_price' => null,
             'selling_price' => '123.45',
-            'current_stock' => '0.125',
         ]);
+        $variant->current_stock = '0.125';
 
         $this->assertSame('2 x 3', $variant->size);
         $this->assertSame('', $variant->type_series);
@@ -126,6 +126,22 @@ class ModelFoundationTest extends TestCase
         foreach ([Sale::class, Product::class, ProductVariant::class, Category::class, User::class] as $class) {
             $this->assertArrayNotHasKey(ImmutableRecord::class, class_uses_recursive($class));
         }
+    }
+
+    public function test_catalog_mass_assignment_excludes_status_and_current_stock(): void
+    {
+        $category = new Category(['name' => 'Tools', 'status' => 'archived']);
+        $product = new Product(['name' => 'Hammer', 'status' => 'archived']);
+        $variant = new ProductVariant([
+            'selling_price' => '100.00',
+            'current_stock' => '9.000',
+            'status' => 'archived',
+        ]);
+
+        $this->assertNull($category->status);
+        $this->assertNull($product->status);
+        $this->assertSame('active', $variant->status);
+        $this->assertSame('0.000', $variant->current_stock);
     }
 
     public function test_audit_supports_entityless_events_and_structured_values(): void

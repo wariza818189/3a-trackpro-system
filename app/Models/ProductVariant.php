@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\NormalizesCatalogFields;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,9 +21,7 @@ class ProductVariant extends Model
         'quantity_mode',
         'cost_price',
         'selling_price',
-        'current_stock',
         'low_stock_threshold',
-        'status',
     ];
 
     protected function casts(): array
@@ -37,6 +36,12 @@ class ProductVariant extends Model
 
     public const SUPPORTED_UNITS = ['piece', 'sheet', 'roll', 'm', 'kg'];
 
+    public const QUANTITY_MODES = ['whole', 'fractional'];
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_ARCHIVED = 'archived';
+
     protected $attributes = [
         'size' => '',
         'type_series' => '',
@@ -46,6 +51,19 @@ class ProductVariant extends Model
         'low_stock_threshold' => '0.000',
         'status' => 'active',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function scopeInActiveHierarchy(Builder $query): Builder
+    {
+        return $query->active()->whereHas(
+            'product',
+            fn (Builder $product): Builder => $product->inActiveHierarchy(),
+        );
+    }
 
     public function product(): BelongsTo
     {

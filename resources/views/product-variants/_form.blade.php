@@ -1,0 +1,20 @@
+@csrf
+@if(isset($productVariant)) @method('PATCH') @endif
+@php
+    $variant = $productVariant ?? null;
+    $identityLocked = $identityLocked ?? false;
+    $costLocked = $costLocked ?? false;
+@endphp
+<p class="text-sm text-slate-600">Product: <span class="font-semibold text-slate-900">{{ ($product ?? $variant->product)->name }}</span></p>
+@if($identityLocked)<p class="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">Identity, unit, and quantity mode are locked because this variant has inventory or activity.</p>@endif
+<div class="mt-6 grid gap-5 sm:grid-cols-2">
+    @foreach(['size'=>'Size','type_series'=>'Type / series','thickness'=>'Thickness'] as $field=>$label)
+        <div><label for="{{ $field }}" class="block text-sm font-medium">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" value="{{ old($field,$variant?->{$field} ?? '') }}" maxlength="{{ $field === 'thickness' ? 40 : 80 }}" @readonly($identityLocked) class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100">@error($field)<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+    @endforeach
+    <div><label for="unit" class="block text-sm font-medium">Unit</label><select id="unit" name="unit" @disabled($identityLocked) required class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100">@foreach(\App\Models\ProductVariant::SUPPORTED_UNITS as $option)<option value="{{ $option }}" @selected(old('unit',$variant?->unit)===$option)>{{ $option }}</option>@endforeach</select>@if($identityLocked)<input type="hidden" name="unit" value="{{ $variant->unit }}">@endif @error('unit')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+    <div><label for="quantity_mode" class="block text-sm font-medium">Quantity mode</label><select id="quantity_mode" name="quantity_mode" @disabled($identityLocked) required class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100">@foreach(\App\Models\ProductVariant::QUANTITY_MODES as $option)<option value="{{ $option }}" @selected(old('quantity_mode',$variant?->quantity_mode ?? 'whole')===$option)>{{ ucfirst($option) }}</option>@endforeach</select>@if($identityLocked)<input type="hidden" name="quantity_mode" value="{{ $variant->quantity_mode }}">@endif @error('quantity_mode')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+    <div><label for="cost_price" class="block text-sm font-medium">Cost price (optional)</label><input id="cost_price" name="cost_price" type="number" min="0" max="9999999999.99" step="0.01" value="{{ old('cost_price',$variant?->cost_price) }}" @readonly($costLocked) class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2">@if($costLocked)<p class="mt-1 text-xs text-slate-500">Managed by restocking after the first restock.</p>@endif @error('cost_price')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+    <div><label for="selling_price" class="block text-sm font-medium">Selling price</label><input id="selling_price" name="selling_price" type="number" min="0.01" max="9999999999.99" step="0.01" value="{{ old('selling_price',$variant?->selling_price) }}" required class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2">@error('selling_price')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+    <div><label for="low_stock_threshold" class="block text-sm font-medium">Low-stock threshold</label><input id="low_stock_threshold" name="low_stock_threshold" type="number" min="0" max="99999999999.999" step="0.001" value="{{ old('low_stock_threshold',$variant?->low_stock_threshold ?? '0.000') }}" required class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2">@error('low_stock_threshold')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror</div>
+</div>
+<div class="mt-7 flex gap-3"><button class="rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white">Save variant</button><a href="{{ route('product-variants.index') }}" class="rounded-lg border px-4 py-2.5 font-semibold">Cancel</a></div>

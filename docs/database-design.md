@@ -134,3 +134,13 @@ Migrations use Laravel Schema plus explicit `ALTER TABLE ... ADD CONSTRAINT ... 
 Live verification covers generated DDL, ENUM/DECIMAL behavior, CHECK enforcement, FK restrictions, composite index lengths and collation behavior, uniqueness with NULLs, JSON persistence, and standard timestamp behavior with the Asia/Manila application timezone. A guarded rollback/reapply cycle also verifies migration reversibility. MySQL DDL can commit independently; an interrupted migration may leave a table created before its CHECK statements finish. Inspect and recover only in an explicitly identified project database; never retry against an unknown database.
 
 Foundation tests cover model normalization/casts, derived public numbers, relationships, username factory/hashing/serialization, nullable audit entities, and instance history guards without PDO access. The dedicated MySQL suite supplies the live schema evidence. Concurrency, opening uniqueness, quantity validation, and atomic workflow tests belong to the later service implementation.
+
+## Stage 3A catalog application rules
+
+Catalog management is implemented with Blade controllers and FormRequests; it does not change this schema. Active Staff can browse only the active Category → Product → Product Variant hierarchy and cannot see cost prices. Active Admins manage the catalog through the existing `access-admin` Gate. Catalog records have no hard-delete routes.
+
+Names and identity fields are trimmed and have internal whitespace collapsed before validation and again by model mutation. Display casing is preserved except for lowercase units. Optional identity fields persist as empty strings. Friendly case-insensitive duplicate checks precede writes, while the existing `utf8mb4_unicode_ci` unique constraints remain authoritative under races.
+
+Category archive is blocked by active Products. Product archive is blocked by active Variants, and category moves are blocked by any Variant history or nonzero stock. Variant identity/unit/quantity mode are frozen after any sale item, restock item, stock movement, or nonzero stock. Cost price is editable until the first restock item; later restock workflows own its updates. Variants with positive stock cannot be archived. Reactivation requires active parents. These cross-record transitions use short transactions and Category → Product → Product Variant lock ordering.
+
+`current_stock` and catalog `status` are excluded from ordinary model mass assignment. FormRequests prohibit submitted stock, status, and route-owned parent identifiers. Trusted controller code assigns lifecycle status explicitly. Variant creation relies on the `0.000` stock default and Stage 3A never writes `stock_movements`.

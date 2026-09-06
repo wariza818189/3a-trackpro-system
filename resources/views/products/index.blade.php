@@ -1,0 +1,15 @@
+@extends('layouts.app')
+@section('content')
+<main class="mx-auto max-w-7xl px-6 py-10">
+    <h1 class="text-3xl font-bold">Products</h1><p class="mt-1 text-slate-600">Browse products by category.</p>
+    <form method="GET" action="{{ route('products.index') }}" class="mt-6 grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-4">
+        <label><span class="text-sm font-medium">Search</span><input name="search" value="{{ $search }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></label>
+        <label><span class="text-sm font-medium">Category</span><select name="category" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"><option value="">All</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected($categoryId === $category->id)>{{ $category->name }}</option>@endforeach</select></label>
+        @if($admin)<label><span class="text-sm font-medium">Status</span><select name="status" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">@foreach(['active'=>'Active','archived'=>'Archived','all'=>'All'] as $value=>$label)<option value="{{ $value }}" @selected($status===$value)>{{ $label }}</option>@endforeach</select></label>@endif
+        <div class="flex items-end"><button class="w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white">Apply filters</button></div>
+    </form>
+    <div class="mt-6 overflow-hidden rounded-xl border bg-white shadow-sm"><div class="overflow-x-auto"><table class="min-w-full divide-y divide-slate-200"><thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left text-sm">Product</th><th class="px-4 py-3 text-left text-sm">Category</th><th class="px-4 py-3 text-left text-sm">Variants</th>@if($admin)<th class="px-4 py-3 text-left text-sm">Status</th><th class="px-4 py-3 text-right text-sm">Actions</th>@endif</tr></thead><tbody class="divide-y">
+        @forelse($products as $product)<tr><td class="px-4 py-3 font-medium">{{ $product->name }}</td><td class="px-4 py-3">{{ $product->category->name }}</td><td class="px-4 py-3">{{ $product->variants_count }}</td>@if($admin)<td class="px-4 py-3 capitalize">{{ $product->status }}</td><td class="px-4 py-3"><div class="flex justify-end gap-2">@if($product->status==='active')<a href="{{ route('products.edit',$product) }}" class="rounded border px-3 py-1.5 text-sm">Edit</a><a href="{{ route('product-variants.create',$product) }}" class="rounded border px-3 py-1.5 text-sm">Add variant</a><form method="POST" action="{{ route('products.archive',$product) }}">@csrf @method('PATCH')<button class="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700">Archive</button></form>@else<form method="POST" action="{{ route('products.reactivate',$product) }}">@csrf @method('PATCH')<button class="rounded border border-emerald-300 px-3 py-1.5 text-sm text-emerald-700">Reactivate</button></form>@endif</div></td>@endif</tr>@empty<tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No products found.</td></tr>@endforelse
+        </tbody></table></div></div><div class="mt-6">{{ $products->links() }}</div>
+</main>
+@endsection

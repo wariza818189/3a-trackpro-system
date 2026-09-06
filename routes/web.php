@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductVariantController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -10,5 +13,32 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/', fn () => view('welcome'))->name('home');
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/product-variants', [ProductVariantController::class, 'index'])->name('product-variants.index');
+
+    Route::middleware('can:access-admin')->group(function (): void {
+        Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
+        Route::patch('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::patch('/categories/{category}/archive', [CategoryController::class, 'archive'])->name('categories.archive');
+        Route::patch('/categories/{category}/reactivate', [CategoryController::class, 'reactivate'])->name('categories.reactivate');
+
+        Route::get('/categories/{category}/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('/categories/{category}/products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+        Route::patch('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::patch('/products/{product}/archive', [ProductController::class, 'archive'])->name('products.archive');
+        Route::patch('/products/{product}/reactivate', [ProductController::class, 'reactivate'])->name('products.reactivate');
+
+        Route::get('/products/{product}/variants/create', [ProductVariantController::class, 'create'])->name('product-variants.create');
+        Route::post('/products/{product}/variants', [ProductVariantController::class, 'store'])->name('product-variants.store');
+        Route::get('/product-variants/{productVariant}/edit', [ProductVariantController::class, 'edit'])->name('product-variants.edit');
+        Route::patch('/product-variants/{productVariant}', [ProductVariantController::class, 'update'])->name('product-variants.update');
+        Route::patch('/product-variants/{productVariant}/archive', [ProductVariantController::class, 'archive'])->name('product-variants.archive');
+        Route::patch('/product-variants/{productVariant}/reactivate', [ProductVariantController::class, 'reactivate'])->name('product-variants.reactivate');
+    });
+
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

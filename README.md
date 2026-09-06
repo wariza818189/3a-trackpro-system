@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 2 authentication foundation
+## Current scope: Stage 3A product catalog management
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization are implemented with Laravel's native session guard. Business workflows are not implemented. Supplier management is out of scope for Version 1; later restocking may have an optional supplier/invoice/reference field.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A adds server-rendered Category, Product, and Product Variant browsing plus Admin-only catalog management with explicit archive/reactivate transitions. Stock-changing, sales, restocking, and supplier workflows are not implemented.
 
 ## Requirements
 
@@ -54,7 +54,7 @@ git diff --check
 git status --short --branch
 ```
 
-Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. Authentication tests load only the existing users migration into that in-memory database; they do not execute the MySQL-specific business migrations. The users migration uses username/role/status; unused cache/jobs migrations were removed. The ten application migrations have been applied to the local development database, and the default seeder remains empty.
+Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. Authentication tests load only the existing users migration. Catalog feature tests load the portable users/categories/products migrations and construct a clearly labeled test-only Product Variant/history-marker schema for HTTP behavior; they never execute the MySQL-specific Product Variant migration. Production CHECK and collation behavior remains the responsibility of the guarded MySQL suite. The default seeder remains empty.
 
 Live schema tests use the named `mysql_testing` connection and credentials from the ignored `.env.mysql` file. `scripts/verify-mysql-schema` rejects any database, account, socket, engine, or environment other than the dedicated test configuration before it migrates or rolls back. Its default entry state is an empty schema; set `MYSQL_TEST_INITIAL_STATE=migrated` for a guarded rerun from the verified migrated state. The runner is destructive to that isolated test database and must never be configured with the normal local database.
 
@@ -73,3 +73,9 @@ See [Stage 0 notes](docs/stage-0.md) for implementation boundaries and follow-up
 See [database-design.md](docs/database-design.md) for the implemented fields, relationships, checks, and deferred workflow controls. Quantity fields use DECIMAL(14,3); supported units are piece, sheet, roll, m, kg, with no conversion system. Costs are reference/purchase values only, with no COGS or profit accounting. Standard Laravel timestamps are retained and application timezone remains Asia/Manila.
 
 The explicit CHECK statements target MySQL and were verified on MySQL 8.0.46; do not execute these migrations on SQLite. Schema/constraint integration tests require the isolated, guarded MySQL test connection. Model decimal casts do not replace input validation or transactional stock services.
+
+## Catalog behavior
+
+Active Staff may browse only active Categories, active Products under active Categories, and active Variants in that hierarchy. Cost prices and catalog mutation controls are Admin-only. Admins can create, edit, archive, and reactivate catalog records subject to active-parent, child-state, history, and stock-safety rules.
+
+Catalog forms never accept `current_stock`; new variants begin at `0.000`. Variant identity is frozen after stock or transaction activity, cost price becomes restock-owned after the first restock item, and a variant with positive stock cannot be archived. Stage 3A creates no stock movements and provides no hard-delete catalog routes.
