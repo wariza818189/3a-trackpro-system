@@ -23,6 +23,11 @@
                             {{ $label }}
                         </a>
                     @endforeach
+                    @can('access-admin')
+                        <a href="{{ route('opening-inventory.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('opening-inventory.*') ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                            Opening Inventory
+                        </a>
+                    @endcan
                 </nav>
                 <div class="text-right text-sm">
                     <p class="font-semibold">{{ auth()->user()->name }}</p>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/product-variants', [ProductVariantController::class, 'index'])->name('product-variants.index');
 
     Route::middleware('can:access-admin')->group(function (): void {
+        Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');
+        Route::get('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'create'])->name('opening-inventory.create');
+        Route::post('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'store'])->name('opening-inventory.store');
+
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');

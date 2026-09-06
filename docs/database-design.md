@@ -112,12 +112,11 @@ Monetary and quantity casts return fixed-scale decimal strings. JSON casts retur
 
 Sale items, restocks, restock items, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Future services, authorization, and database privileges must enforce history preservation. No edit/delete UI or workflow exists. Sales themselves remain mutable for the later full-void operation; future policies must prohibit deleting completed sales.
 
-## Required later workflow controls — not implemented here
+## Required later workflow controls
 
-- Transactions and ordered variant locks for checkout, restock, opening stock, corrections, and voids.
+- Transactions and ordered variant locks for checkout, restock, corrections, and voids.
 - Server-authoritative pricing; cash-only sales; no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
 - Unique checkout/submission token retries return the existing result only for the same actor and equivalent submitted operation; reject conflicting reuse. No request_hash is stored.
-- Admin-only opening count, exactly once and before normal activity; allow zero physical count. Later differences are corrections. Lock the variant, inspect prior movements, and insert opening/update balance atomically.
 - Whole/fractional validation, at most three decimal places, supported units, and immutable unit/mode after activity.
 - Variant/source-item consistency, exact movement-to-item quantity agreement, and header totals equal to summed immutable lines.
 - Admin-only full void with sale lock and atomic stock restoration; reject second void; check void time chronology.
@@ -144,3 +143,13 @@ Names and identity fields are trimmed and have internal whitespace collapsed bef
 Category archive is blocked by active Products. Product archive is blocked by active Variants, and category moves are blocked by any Variant history or nonzero stock. Variant identity/unit/quantity mode are frozen after any sale item, restock item, stock movement, or nonzero stock. Cost price is editable until the first restock item; later restock workflows own its updates. Variants with positive stock cannot be archived. Reactivation requires active parents. These cross-record transitions use short transactions and Category → Product → Product Variant lock ordering.
 
 `current_stock` and catalog `status` are excluded from ordinary model mass assignment. FormRequests prohibit submitted stock, status, and route-owned parent identifiers. Trusted controller code assigns lifecycle status explicitly. Variant creation relies on the `0.000` stock default and Stage 3A never writes `stock_movements`.
+
+## Stage 3B opening inventory rules
+
+Opening inventory is the first authorized stock-changing workflow. An active Admin may record exactly one physical starting count for an active Variant whose Product and Category are also active. The operation is unavailable after any stock movement, sale item, restock item, or nonzero stock balance. A zero count is valid: it leaves `current_stock` at `0.000` but appends an `INITIAL_STOCK` movement, so history—not a positive balance—is the initialization source of truth.
+
+The service snapshots hierarchy identifiers, then transactionally locks Category → Product → Product Variant and rechecks parent IDs and all statuses. After the Variant lock serializes competing attempts, authoritative history checks use locking/current reads rather than repeatable-read snapshot queries. This ensures a request waiting behind a concurrent zero opening observes the newly committed movement and rejects the replay. Stock assignment and immutable movement insertion commit or roll back together.
+
+Opening quantities use explicit decimal-string parsing and canonical `DECIMAL(14,3)` formatting, never binary floating point. Whole-mode quantities require a zero fractional component; fractional mode permits up to three input decimal places. The service assigns the Variant, actor, movement type, before/change/after quantities, null source-item references, and normalized required reason from trusted values. An additional audit-log row is intentionally omitted because the immutable movement already records the complete opening event.
+
+Stage 3B does not add restock, correction, sale, sale-void, supplier, import, or other inventory mutation behavior, and it requires no schema change.

@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 3A product catalog management
+## Current scope: Stage 3B opening inventory
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A adds server-rendered Category, Product, and Product Variant browsing plus Admin-only catalog management with explicit archive/reactivate transitions. Stock-changing, sales, restocking, and supplier workflows are not implemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered Category, Product, and Product Variant management. Stage 3B adds the first stock mutation: an Admin-only, exactly-once opening physical count recorded as an immutable `INITIAL_STOCK` movement. Sales, restocking, corrections, and supplier workflows are not implemented.
 
 ## Requirements
 
@@ -78,4 +78,10 @@ The explicit CHECK statements target MySQL and were verified on MySQL 8.0.46; do
 
 Active Staff may browse only active Categories, active Products under active Categories, and active Variants in that hierarchy. Cost prices and catalog mutation controls are Admin-only. Admins can create, edit, archive, and reactivate catalog records subject to active-parent, child-state, history, and stock-safety rules.
 
-Catalog forms never accept `current_stock`; new variants begin at `0.000`. Variant identity is frozen after stock or transaction activity, cost price becomes restock-owned after the first restock item, and a variant with positive stock cannot be archived. Stage 3A creates no stock movements and provides no hard-delete catalog routes.
+Catalog forms never accept `current_stock`; new variants begin at `0.000`. Variant identity is frozen after stock or transaction activity, cost price becomes restock-owned after the first restock item, and a variant with positive stock cannot be archived. Catalog management provides no hard-delete routes.
+
+## Opening inventory behavior
+
+An active Admin can record one opening physical count for a Variant in an active Category → Product → Variant hierarchy. Zero is a valid opening count and still creates the `INITIAL_STOCK` evidence that permanently marks the Variant initialized. Quantity input is handled as a canonical three-decimal string and validated against the Variant's whole/fractional mode; the required reason is trimmed and whitespace-normalized.
+
+The operation locks Category → Product → Product Variant, rechecks the hierarchy and status, and uses locking reads for movement, sale, and restock history before updating stock and appending the movement in one transaction. Opening inventory is rejected after any stock/transaction history or when a zero-stock invariant is not satisfied. It does not implement restocking, corrections, sales, or other later inventory workflows.

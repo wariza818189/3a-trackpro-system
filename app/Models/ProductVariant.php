@@ -84,4 +84,9 @@ class ProductVariant extends Model
     {
         return $this->hasMany(StockMovement::class, 'product_variant_id');
     }
+
+    public function openingInventoryMovements(): HasMany
+    {
+        return $this->stockMovements()->where('movement_type', StockMovement::TYPE_INITIAL_STOCK);
+    }
 }

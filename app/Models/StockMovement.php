@@ -10,6 +10,8 @@ class StockMovement extends Model
 {
     use ImmutableRecord;
 
+    public const TYPE_INITIAL_STOCK = 'INITIAL_STOCK';
+
     public const UPDATED_AT = null;
 
     protected $fillable = [

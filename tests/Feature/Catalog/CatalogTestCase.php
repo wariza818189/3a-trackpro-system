@@ -46,16 +46,30 @@ abstract class CatalogTestCase extends TestCase
             $table->unique(['product_id', 'size', 'type_series', 'thickness', 'unit']);
         });
 
-        // Minimal history markers for catalog behavior tests, not production-schema proof.
-        foreach (['sale_items', 'restock_items', 'stock_movements'] as $tableName) {
-            Schema::create($tableName, function (Blueprint $table) use ($tableName): void {
+        // Minimal sale/restock history markers for behavior tests, not production-schema proof.
+        foreach (['sale_items', 'restock_items'] as $tableName) {
+            Schema::create($tableName, function (Blueprint $table): void {
                 $table->id();
                 $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
-                if ($tableName === 'stock_movements') {
-                    $table->string('movement_type')->default('CORRECTION');
-                }
             });
         }
+
+        // Opening-inventory behavior scaffolding only. Production StockMovement
+        // ENUM/CHECK/index DDL remains exclusively covered by the guarded MySQL suite.
+        Schema::create('stock_movements', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+            $table->string('movement_type')->default('CORRECTION');
+            $table->decimal('quantity_before', 14, 3)->default(0);
+            $table->decimal('quantity_change', 14, 3)->default(0);
+            $table->decimal('quantity_after', 14, 3)->default(0);
+            $table->foreignId('performed_by')->nullable()->constrained('users')->restrictOnDelete();
+            $table->foreignId('sale_item_id')->nullable()->constrained('sale_items')->restrictOnDelete();
+            $table->foreignId('restock_item_id')->nullable()->constrained('restock_items')->restrictOnDelete();
+            $table->text('reason')->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->index(['product_variant_id', 'movement_type']);
+        });
     }
 
     protected function category(array $attributes = []): Category
