@@ -6,6 +6,7 @@ use App\Models\Concerns\ImmutableRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class RestockItem extends Model
 {
@@ -48,5 +49,10 @@ class RestockItem extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'restock_item_id');
+    }
+
+    public function stockMovement(): HasOne
+    {
+        return $this->hasOne(StockMovement::class, 'restock_item_id');
     }
 }

@@ -2,13 +2,13 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 3B opening inventory
+## Current scope: Stage 3C normal Stock In
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered Category, Product, and Product Variant management. Stage 3B adds the first stock mutation: an Admin-only, exactly-once opening physical count recorded as an immutable `INITIAL_STOCK` movement. Sales, restocking, corrections, and supplier workflows are not implemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, and Stage 3B provides Admin-only opening inventory. Stage 3C adds normal multi-item Stock In for Admin and Staff, with immutable receipt history, exact purchase-cost recording, latest-cost references, durable submission idempotency, and `RESTOCK` movements. Sales, corrections, and supplier workflows are not implemented.
 
 ## Requirements
 
-- PHP 8.4 with Laravel-required extensions and PDO MySQL; PDO SQLite for isolated tests.
+- PHP 8.4 with Laravel-required extensions, BCMath, and PDO MySQL; PDO SQLite for isolated tests.
 - Composer 2.
 - Node compatible with the locked Vite dependencies. This setup uses installed Node 20.20.2; Node 24 LTS is preferred when safe version management is available. Node 20 is end-of-life.
 - MySQL 8.0.46 with InnoDB for the application schema and guarded integration tests.
@@ -84,4 +84,10 @@ Catalog forms never accept `current_stock`; new variants begin at `0.000`. Varia
 
 An active Admin can record one opening physical count for a Variant in an active Category → Product → Variant hierarchy. Zero is a valid opening count and still creates the `INITIAL_STOCK` evidence that permanently marks the Variant initialized. Quantity input is handled as a canonical three-decimal string and validated against the Variant's whole/fractional mode; the required reason is trimmed and whitespace-normalized.
 
-The operation locks Category → Product → Product Variant, rechecks the hierarchy and status, and uses locking reads for movement, sale, and restock history before updating stock and appending the movement in one transaction. Opening inventory is rejected after any stock/transaction history or when a zero-stock invariant is not satisfied. It does not implement restocking, corrections, sales, or other later inventory workflows.
+The operation locks Category → Product → Product Variant, rechecks the hierarchy and status, and uses locking reads for movement, sale, and restock history before updating stock and appending the movement in one transaction. Opening inventory is rejected after any stock/transaction history or when a zero-stock invariant is not satisfied. The opening workflow itself does not perform recurring Stock In, corrections, sales, or other later inventory operations.
+
+## Stock In behavior
+
+Active Admin and Staff users can record a receipt containing one to 100 distinct active, initialized Variants. The operation locks all Categories, Products, then Product Variants in ascending ID order, rechecks hierarchy and initialization with current locking reads, and atomically appends one RestockItem and one `RESTOCK` movement per Variant. Quantities, costs, line totals, header totals, and stock arithmetic use canonical decimal strings and BCMath; received cost becomes the Variant's latest cost reference without average-cost or accounting calculations.
+
+The server-generated `submission_token` is a hidden durable idempotency key. Database uniqueness arbitrates concurrent duplicates, while canonical actor/header/item comparison distinguishes a safe replay from token misuse. `RST-` numbers derived from immutable IDs remain the human-facing identifiers. Staff enter the current receipt's purchase costs but do not receive existing catalog costs or historical cost values in Stock In or catalog responses.

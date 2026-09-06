@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
+use App\Http\Controllers\StockInController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -17,6 +18,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/product-variants', [ProductVariantController::class, 'index'])->name('product-variants.index');
+    Route::get('/stock-in', [StockInController::class, 'index'])->name('stock-in.index');
+    Route::get('/stock-in/create', [StockInController::class, 'create'])->name('stock-in.create');
+    Route::post('/stock-in', [StockInController::class, 'store'])->name('stock-in.store');
+    Route::get('/stock-in/{restock}', [StockInController::class, 'show'])->name('stock-in.show');
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');

@@ -112,16 +112,26 @@ Monetary and quantity casts return fixed-scale decimal strings. JSON casts retur
 
 Sale items, restocks, restock items, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Future services, authorization, and database privileges must enforce history preservation. No edit/delete UI or workflow exists. Sales themselves remain mutable for the later full-void operation; future policies must prohibit deleting completed sales.
 
+## Implemented Stock In workflow controls
+
+- A Stock In receipt contains one to 100 distinct Variants under one immutable Restock header.
+- Active Admin and Staff may receive stock only after an `INITIAL_STOCK` movement exists and while the complete Category → Product → Variant hierarchy is active.
+- Multi-item receipts lock all Categories, Products, and Product Variants in ascending ID order and recheck hierarchy mappings before writing.
+- Quantity and money inputs are canonical decimal strings. BCMath supplies exact stock addition, line multiplication with half-up two-decimal rounding, and header summation with explicit DECIMAL overflow checks.
+- Every item snapshots locked catalog identity, updates current stock and the latest cost reference, and creates exactly one linked `RESTOCK` movement in the same transaction.
+- `submission_token` uniqueness is the concurrent replay arbiter. Equivalent same-actor retries return immutable history; conflicting token reuse is rejected. Post-race recovery uses current locking reads under MySQL REPEATABLE READ.
+- Staff may enter new receipt cost but ordinary catalog and Stock In history responses do not expose existing or historical costs. Admin may view cost history.
+
 ## Required later workflow controls
 
-- Transactions and ordered variant locks for checkout, restock, corrections, and voids.
+- Transactions and ordered variant locks for checkout, corrections, and voids.
 - Server-authoritative pricing; cash-only sales; no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
-- Unique checkout/submission token retries return the existing result only for the same actor and equivalent submitted operation; reject conflicting reuse. No request_hash is stored.
+- Unique checkout-token retries must return the existing result only for the same actor and equivalent submitted operation; Restock submission-token behavior is implemented. No request_hash is stored.
 - Whole/fractional validation, at most three decimal places, supported units, and immutable unit/mode after activity.
 - Variant/source-item consistency, exact movement-to-item quantity agreement, and header totals equal to summed immutable lines.
 - Admin-only full void with sale lock and atomic stock restoration; reject second void; check void time chronology.
 - Archive products/variants and disable users with history; preserve the last active Admin.
-- Optional latest-cost update on successful restock, without FIFO, weighted average, COGS, or profit calculations.
+- Restock latest-cost updates are implemented without FIFO, weighted average, COGS, or profit calculations.
 - Audit sensitive actions, reconcile ledger balances, and prevent direct stock editing.
 
 ## Database safety and live verification

@@ -96,9 +96,11 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('voided_by', (new Sale)->voidedBy()->getForeignKeyName());
         $this->assertSame('sale_id', (new SaleItem)->sale()->getForeignKeyName());
         $this->assertSame('restock_id', (new RestockItem)->restock()->getForeignKeyName());
+        $this->assertSame('restock_item_id', (new RestockItem)->stockMovement()->getForeignKeyName());
         $this->assertSame('sale_item_id', (new StockMovement)->saleItem()->getForeignKeyName());
         $this->assertSame('restock_item_id', (new StockMovement)->restockItem()->getForeignKeyName());
         $this->assertSame('performed_by', (new StockMovement)->performedBy()->getForeignKeyName());
+        $this->assertSame('RESTOCK', StockMovement::TYPE_RESTOCK);
         $this->assertSame('user_id', (new AuditLog)->user()->getForeignKeyName());
     }
 
