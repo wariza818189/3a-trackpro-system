@@ -10,13 +10,13 @@ Branch:
 
 Latest completed application/code checkpoint:
 
-`e3cdb0858af110afce70619c421d85a1d8a4c73a`
+`f55406bd6cc5931a611dac3a518664ac719a9b1a`
 
 Commit:
 
-`Add admin stock correction workflow`
+`Add point of sale checkout workflow`
 
-This is the completed Stage 3D application baseline. Documentation-only updates
+This is the completed Tracker #12 POS / Sales application baseline. Documentation-only updates
 may follow without changing this latest completed application checkpoint.
 
 For the repository's actual current HEAD, use:
@@ -54,19 +54,36 @@ Completed:
 - Stage 3C — Normal Stock In / RESTOCK
 - Branding mini-checkpoint — TrackPro branding
 - Stage 3D — Admin Stock Correction / CORRECTION — COMPLETED
+- Tracker #12 — Sales / POS Module — COMPLETED
 
 Latest completed engineering stage:
 
-Stage 3D — Admin Stock Correction / CORRECTION
+Tracker #12 — Sales / POS Module
 
 Status:
 
-COMPLETED — implementation review, ordinary tests, MySQL concurrency proofs,
-manual browser smoke, and application commit/push approved.
+COMPLETED — implementation review, focused ordinary SQLite tests, full ordinary
+regression, four real MySQL concurrency proofs, manual browser smoke, and the
+application Git checkpoint and normal push are complete and approved.
 
 ## Current Team Tracker Position
 
 Tracker item:
+
+#12 — Sales / POS Module
+
+Status:
+
+COMPLETED
+
+All required completion gates listed above passed. The POS provides a one-time
+post-checkout confirmation only; it does not implement Receipt & Sales History.
+
+Next tracker:
+
+#13 — Receipt & Sales History — NOT STARTED
+
+Previously completed tracker (unchanged):
 
 #14 — Stock-In & Stock Movements
 
@@ -115,6 +132,9 @@ and are intentionally not included in this application checkpoint chain.
 8. `e3cdb0858af110afce70619c421d85a1d8a4c73a`
    - Add admin stock correction workflow
 
+9. `f55406bd6cc5931a611dac3a518664ac719a9b1a`
+   - Add point of sale checkout workflow
+
 ## Current Application Scope
 
 Implemented:
@@ -140,16 +160,21 @@ Implemented:
 - Admin Stock Correction
 - immutable CORRECTION movements
 - read-only correction history
+- POS / Sales for active Admin and Staff
+- cash-only sales checkout and durable checkout-token idempotency
+- immutable Sale / SaleItem / SALE stock movement history
+- one-time post-checkout confirmation
 
 Not yet implemented:
 
-- POS / Sales
-- sales checkout
-- SALE stock movements
-- receipt workflow
-- sales history
+- Tracker #13 — Receipt & Sales History
+- persistent receipt/detail page and Sales History index
+- receipt reprint and historical sale browsing/filtering UI
 - Admin full-sale void
 - SALE_VOID
+- returns
+- discounts
+- credit / utang
 - Dashboard
 - Reports
 - User Management UI
@@ -198,7 +223,7 @@ Known examples include:
 - quantity mode: whole
 - selling price: 150.00
 - latest cost price: 110.00
-- current stock: 4.000
+- current stock: 2.000 (final POS browser-smoke observation)
 - low-stock threshold: 5.000
 - status: active
 - INITIAL_STOCK movement recorded at zero
@@ -206,6 +231,13 @@ Known examples include:
 - Stock In reference: DR-STAGE3C-001
 - Restock quantity: 5.000
 - historical Restock unit cost: 110.00
+- Sale TRX-000001: quantity 1, total/cash 150.00, change 0.00
+- Sale TRX-000002: quantity 1, total 150.00, cash 200.00, change 50.00
+
+The two legitimate immutable local Sales reduced stock from 4.000 to 2.000.
+An intervening underpayment attempt did not deduct stock. Cost remained 110.00
+and selling price remained 150.00; POS did not expose purchase cost. These are
+historical manual observations, not database access during this update.
 
 Do not delete or reset this data.
 
@@ -357,6 +389,110 @@ Browser UI evidence:
 - Cost remained 110.00 and selling price remained 150.00, unchanged by correction.
 - Final low-stock threshold was 5.000 and Variant status was active.
 
+## Tracker #12 POS / Sales Evidence
+
+Tracker #12 — Sales / POS Module is COMPLETED. All results in this section are
+historical completed evidence. No database, test, build, or browser execution
+was performed for this documentation checkpoint.
+
+Ordinary verification:
+
+- PosAuthorizationTest: 5 tests / 45 assertions
+- PosCheckoutTest: 15 tests / 305 assertions
+- Full ordinary suite: 154 tests / 1,508 assertions
+- Existing requested regression groups: 103 tests / 951 assertions
+- Application routes: 37 from `php artisan route:list --except-vendor`
+- Pint, Vite production build, and `git diff --check`: passed
+- POS routes: `GET /pos` (`pos.index`) and
+  `POST /pos/checkout` (`pos.checkout`)
+
+### Historical real MySQL proofs
+
+Dedicated connection `mysql_testing`, database `trackpro_test`, MySQL
+`8.0.46-0ubuntu0.24.04.4`, isolation `REPEATABLE-READ`.
+
+Test A — `test_concurrent_distinct_sales_serialize_and_prevent_overselling`:
+
+- 1 test / 20 assertions; passed
+- Initial/stale stock 5.000; competing Sale blocked while winner sold 4.000.
+- After winner commit, loser reread authoritative availability 1.000 and was
+  rejected; its temporary Sale rolled back.
+- Final stock 1.000, one winning Sale/SaleItem/SALE movement, no oversell or
+  partial loser; fixture cleanup returned all domain counts to baseline.
+
+Test B — `test_identical_same_token_race_recovers_winner_after_stale_snapshot`:
+
+- 1 test / 22 assertions; passed
+- Loser's REPEATABLE READ snapshot saw token count 0 and stock 10.000; loser
+  blocked until winner committed.
+- Unique checkout-token collision occurred; losing transaction scope rolled
+  back and fresh/current locking recovery saw the winner despite the stale
+  ordinary snapshot.
+- Both callers resolved to the same Sale ID. Captured stale evidence remained
+  token count 0 / stock 10.000; final business stock was 6.000 with exactly one
+  Sale/SaleItem/SALE movement and one deduction.
+- Fixture cleanup returned all domain counts to baseline.
+
+Test C — `test_reversed_multi_variant_browser_order_uses_global_hierarchy_order_without_deadlock`:
+
+- 1 test / 19 assertions; passed
+- Opposing browser/cart order used deterministic hierarchy locking; waiter
+  blocked, no deadlock occurred, and both Sales succeeded.
+- Final stocks 7.000 and 3.000; two Sales, four SaleItems, and two SALE movements
+  per Variant. Each ledger preserved first quantity_after == second quantity_before.
+- Fixture cleanup returned all domain counts to baseline.
+
+Test D — `test_same_token_disjoint_inventory_blocks_on_unique_arbitration_and_rejects_semantic_reuse`:
+
+- 1 test / 18 assertions; passed
+- Transactions used disjoint Category/Product/Variant rows; child still blocked
+  at shared checkout-token arbitration until winner committed.
+- Fresh recovery read the winner; the different Variant set was rejected as
+  semantic token reuse.
+- One winning Sale/SaleItem/SALE movement; winner stock 9.000, losing Variant
+  stock 10.000, no losing SaleItem/SALE movement or partial Sale, and no deadlock.
+- Fixture cleanup returned all domain counts to baseline.
+
+Pre-test, after every proof, and final counts were zero for all ten domain
+tables: users, categories, products, product_variants, sales, sale_items,
+restocks, restock_items, stock_movements, and audit_logs. Table count remained
+11 and migration records remained 10; schema was unchanged. No external cleanup
+was used to manufacture this state. No migration/reset/seed/DDL ran, and
+`trackpro_local` was not accessed during MySQL proof execution.
+
+### Historical actual manual POS browser smoke
+
+Manual browser smoke used legitimate `trackpro_local` data: Test Tools / Test
+Hammer / 16oz · Claw, unit piece, quantity mode whole. Before POS smoke, stock
+was 4.000, cost 110.00, selling price 150.00, low-stock threshold 5.000, and status
+active. Admin POS navigation was visible; Test Hammer, stock 4.000, and selling
+price 150.00 appeared. Purchase cost was not exposed in POS.
+
+Two successful Sales occurred, with an underpayment validation between them:
+
+| Event | Quantity | Total | Cash | Change | Stock |
+| --- | --- | --- | --- | --- | --- |
+| TRX-000001 | 1 | 150.00 | 150.00 | 0.00 | 4.000 → 3.000 |
+| Underpayment attempt (not a Sale) | 1 | 150.00 | Below total | — | Remained 3.000 |
+| TRX-000002 | 1 | 150.00 | 200.00 | 50.00 | 3.000 → 2.000 |
+
+Both successful Sales were for Test Hammer / 16oz · Claw and displayed the
+one-time confirmation `Sale completed.` The underpayment attempt displayed
+`The tendered cash is less than the sale total.` No successful Sale confirmation
+or stock deduction occurred; the cart remained available for review/retry.
+
+The normal Variants page visually confirmed Test Hammer / 16oz · Claw · piece,
+Whole, final stock 2.000, cost 110.00, selling price 150.00, low-stock threshold
+5.000, and active status. The two Sales reduced stock from 4.000 to 2.000; cost
+and selling price remained unchanged, and underpayment did not deduct stock.
+These two local Sales are legitimate immutable historical data; do not delete
+or alter them.
+
+TRX-000001 and TRX-000002 are human-readable Sale receipt-number representations
+used in checkout confirmation only. They do not mean Tracker #13 is implemented.
+Persistent receipt/detail, Sales History index, receipt reprint, historical sale
+browsing/filtering, and related UI remain deferred to #13.
+
 ## Branding Status
 
 Branding checkpoint is complete.
@@ -387,13 +523,14 @@ No:
 
 ## Current Test Baseline
 
-Verified final Stage 3D ordinary suite (historical; not rerun for this update):
+Verified final Tracker #12 ordinary suite (historical; not rerun for this update):
 
-`134 tests / 1,152 assertions`
+`154 tests / 1,508 assertions`
 
-Current application route count from `php artisan route:list --except-vendor`:
+Current application route count from the completed historical
+`php artisan route:list --except-vendor` verification:
 
-`35`
+`37`
 
 Before accepting a later stage, compare new results against the current code and
 explain legitimate changes in counts.
@@ -436,14 +573,40 @@ Stock Correction:
 - no-op rejected before stale-version check
 - read-only correction history
 
+Sales / POS:
+
+- Active Admin and Staff; cash-only; initialized active catalog hierarchy only;
+  no purchase-cost exposure.
+- One to 100 submitted cart components; duplicate Variants consolidate
+  server-side while original whole/fractional quantity rules remain authoritative.
+- Exact BCMath arithmetic; zero-rounded lines and line/header overflow rejected;
+  cash sufficiency enforced.
+- Locked ProductVariant selling price is authoritative; `expected_unit_price`
+  is only a stale-price precondition, and changed prices require cashier review.
+- Deterministic Category → Product → ProductVariant lock order and current/locking
+  historical INITIAL_STOCK checks.
+- Unique Sale checkout token provides durable idempotency; no missing-token
+  locking lookup before insertion. Unique Sale insertion precedes stock
+  sufficiency, and transactional rollback protects temporary Sale headers.
+- Completed equivalent replay resolves from immutable historical Sale evidence,
+  including historical SaleItem prices; collision recovery uses current locks.
+- Stock cannot become negative; one completed Sale, one SaleItem per distinct
+  Variant, and one SALE StockMovement per SaleItem; no normal-checkout AuditLog.
+- Completed Sale/SaleItem/StockMovement records are currently immutable, with no
+  Sale edit/delete route and no SALE_VOID workflow.
+
+Implemented application movement workflows: INITIAL_STOCK, RESTOCK, CORRECTION,
+and SALE. SALE_VOID is schema-supported but not implemented.
+
 ## Current Next Step
 
-The next substantive application work is the POS / Sales module.
+The next substantive project tracker item is #13 — Receipt & Sales History.
 
-Status: NOT STARTED / not implemented.
+Status: NOT STARTED.
 
-POS / Sales requires separate explicit approval. No POS design or implementation
-is part of this documentation checkpoint.
+Tracker #13 requires separate explicit inspection/design approval before
+implementation. No receipt/history design or implementation is part of this
+documentation checkpoint. SALE_VOID remains unimplemented and is not started.
 
 ## Documentation Maintenance Rule
 
