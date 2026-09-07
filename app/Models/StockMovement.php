@@ -14,6 +14,8 @@ class StockMovement extends Model
 
     public const TYPE_RESTOCK = 'RESTOCK';
 
+    public const TYPE_CORRECTION = 'CORRECTION';
+
     public const UPDATED_AT = null;
 
     protected $fillable = [

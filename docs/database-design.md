@@ -122,9 +122,17 @@ Sale items, restocks, restock items, stock movements, and audit logs reject Eloq
 - `submission_token` uniqueness is the concurrent replay arbiter. Equivalent same-actor retries return immutable history; conflicting token reuse is rejected. Post-race recovery uses current locking reads under MySQL REPEATABLE READ.
 - Staff may enter new receipt cost but ordinary catalog and Stock In history responses do not expose existing or historical costs. Admin may view cost history.
 
+## Implemented Stock Correction workflow controls
+
+- Only an active Admin may correct stock for an initialized Variant in an active Category → Product → Variant hierarchy.
+- The Admin submits a nonnegative physical stock target and a required normalized reason; the backend derives the signed change with exact BCMath arithmetic.
+- The form carries the latest StockMovement ID. After locking Category → Product → Product Variant, the service uses current locking reads for initialization and latest movement history, rejects no-ops first, then rejects a stale movement version.
+- The operation updates only `ProductVariant.current_stock` and appends one source-less immutable `CORRECTION` movement in the same transaction. It does not update cost or write a duplicate AuditLog row.
+- Correction history is read-only and uses current catalog identity because StockMovement has no identity snapshot columns.
+
 ## Required later workflow controls
 
-- Transactions and ordered variant locks for checkout, corrections, and voids.
+- Transactions and ordered variant locks for checkout and voids; correction locking is implemented.
 - Server-authoritative pricing; cash-only sales; no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
 - Unique checkout-token retries must return the existing result only for the same actor and equivalent submitted operation; Restock submission-token behavior is implemented. No request_hash is stored.
 - Whole/fractional validation, at most three decimal places, supported units, and immutable unit/mode after activity.
@@ -163,3 +171,11 @@ The service snapshots hierarchy identifiers, then transactionally locks Category
 Opening quantities use explicit decimal-string parsing and canonical `DECIMAL(14,3)` formatting, never binary floating point. Whole-mode quantities require a zero fractional component; fractional mode permits up to three input decimal places. The service assigns the Variant, actor, movement type, before/change/after quantities, null source-item references, and normalized required reason from trusted values. An additional audit-log row is intentionally omitted because the immutable movement already records the complete opening event.
 
 Stage 3B does not add restock, correction, sale, sale-void, supplier, import, or other inventory mutation behavior, and it requires no schema change.
+
+## Stage 3D stock correction rules
+
+Stock Correction is an Admin-only reconciliation workflow for an already initialized active Variant. The submitted quantity is the corrected physical target, not a signed delta. Zero is valid; negative values, excess precision, nonordinary decimal syntax, whole-mode fractions, overflow, and no-op targets are rejected.
+
+The form versions inventory state with the latest StockMovement ID rather than the displayed stock value. The service locks Category → Product → Product Variant, checks initialization and current latest movement with locking reads, compares the target to authoritative locked stock for the no-op rule, then rejects a mismatched movement version. The movement ID detects stale activity across an ABA stock-value cycle.
+
+The service calculates `quantity_change = quantity_after - quantity_before` with BCMath, changes only `current_stock`, and appends one `CORRECTION` movement with null item sources and the normalized required reason. The movement supplies the complete immutable audit evidence, so no duplicate AuditLog row is written. No schema change is required.

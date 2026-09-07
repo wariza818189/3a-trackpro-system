@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 3C normal Stock In
+## Current scope: Stage 3D Admin Stock Correction
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, and Stage 3B provides Admin-only opening inventory. Stage 3C adds normal multi-item Stock In for Admin and Staff, with immutable receipt history, exact purchase-cost recording, latest-cost references, durable submission idempotency, and `RESTOCK` movements. Sales, corrections, and supplier workflows are not implemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, and Stage 3C adds normal multi-item Stock In for Admin and Staff. Stage 3D adds Admin-only physical-target Stock Correction with immutable `CORRECTION` movements and movement-version stale-form protection. Sales and supplier workflows are not implemented.
 
 ## Requirements
 
@@ -91,3 +91,9 @@ The operation locks Category → Product → Product Variant, rechecks the hiera
 Active Admin and Staff users can record a receipt containing one to 100 distinct active, initialized Variants. The operation locks all Categories, Products, then Product Variants in ascending ID order, rechecks hierarchy and initialization with current locking reads, and atomically appends one RestockItem and one `RESTOCK` movement per Variant. Quantities, costs, line totals, header totals, and stock arithmetic use canonical decimal strings and BCMath; received cost becomes the Variant's latest cost reference without average-cost or accounting calculations.
 
 The server-generated `submission_token` is a hidden durable idempotency key. Database uniqueness arbitrates concurrent duplicates, while canonical actor/header/item comparison distinguishes a safe replay from token misuse. `RST-` numbers derived from immutable IDs remain the human-facing identifiers. Staff enter the current receipt's purchase costs but do not receive existing catalog costs or historical cost values in Stock In or catalog responses.
+
+## Stock Correction behavior
+
+An active Admin can reconcile an initialized active Variant to a verified physical stock target. The service locks Category → Product → Product Variant, reads current initialization and movement history after the Variant lock, rejects no-op corrections, and compares the form's latest-movement ID with the authoritative latest movement before writing. This detects stale forms even when intervening inventory activity returns stock to the same numeric value.
+
+The backend derives the signed change from exact three-decimal strings, updates only `current_stock`, and appends one immutable `CORRECTION` movement with the actor and normalized required reason. Correction does not update cost, accept signed deltas, create AuditLog rows, or provide history edits.

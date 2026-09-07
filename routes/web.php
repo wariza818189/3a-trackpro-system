@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
+use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');
         Route::get('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'create'])->name('opening-inventory.create');
         Route::post('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'store'])->name('opening-inventory.store');
+
+        Route::get('/stock-corrections', [StockCorrectionController::class, 'index'])->name('stock-corrections.index');
+        Route::get('/product-variants/{productVariant}/stock-correction', [StockCorrectionController::class, 'create'])->name('stock-corrections.create');
+        Route::post('/product-variants/{productVariant}/stock-correction', [StockCorrectionController::class, 'store'])->name('stock-corrections.store');
 
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');

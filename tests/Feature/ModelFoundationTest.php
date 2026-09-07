@@ -101,6 +101,7 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('restock_item_id', (new StockMovement)->restockItem()->getForeignKeyName());
         $this->assertSame('performed_by', (new StockMovement)->performedBy()->getForeignKeyName());
         $this->assertSame('RESTOCK', StockMovement::TYPE_RESTOCK);
+        $this->assertSame('CORRECTION', StockMovement::TYPE_CORRECTION);
         $this->assertSame('user_id', (new AuditLog)->user()->getForeignKeyName());
     }
 

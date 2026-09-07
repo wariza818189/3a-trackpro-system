@@ -148,11 +148,11 @@ Implemented application workflows create these movement types:
 
 - INITIAL_STOCK
 - RESTOCK
+- CORRECTION
 
 The schema also supports these movement types, whose application workflows are
 not yet implemented:
 
-- CORRECTION
 - SALE
 - SALE_VOID
 
@@ -182,6 +182,16 @@ Normal Stock In:
 - historical received unit cost is immutable
 - ProductVariant.cost_price becomes the latest received-cost reference
 - durable submission idempotency is required
+
+Stock Correction:
+
+- Admin-only
+- uses a corrected physical stock target
+- requires prior INITIAL_STOCK and an active catalog hierarchy
+- requires an Admin-supplied reason
+- changes quantity only and never updates cost
+- creates an immutable CORRECTION StockMovement
+- uses the latest StockMovement ID as its stale-form version
 
 Do not rewrite immutable historical inventory transactions.
 

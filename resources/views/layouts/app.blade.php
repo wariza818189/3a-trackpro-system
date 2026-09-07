@@ -31,6 +31,9 @@
                         <a href="{{ route('opening-inventory.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('opening-inventory.*') ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                             Opening Inventory
                         </a>
+                        <a href="{{ route('stock-corrections.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('stock-corrections.*') ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                            Stock Correction
+                        </a>
                     @endcan
                 </nav>
                 <div class="min-w-0 max-w-full break-words text-right text-sm sm:max-w-40">
