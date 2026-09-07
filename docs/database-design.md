@@ -59,7 +59,7 @@ All quantities use DECIMAL(14,3). Whole-unit rules and rejection of inputs excee
 - id; sale_id FK sales; product_variant_id FK product_variants.
 - product_name_snapshot VARCHAR(150); size_snapshot VARCHAR(80), type_series_snapshot VARCHAR(80), thickness_snapshot VARCHAR(40), optional attributes default empty string; unit_snapshot VARCHAR(30).
 - quantity DECIMAL(14,3); unit_price DECIMAL(12,2); line_total DECIMAL(16,2); created_at.
-- UNIQUE(sale_id, product_variant_id): future checkout consolidates repeated variant lines.
+- UNIQUE(sale_id, product_variant_id): implemented checkout consolidates repeated Variant components.
 - CHECK: quantity and unit price positive; line total positive and equals ROUND(quantity * unit_price, 2).
 
 ### restocks
@@ -110,7 +110,7 @@ Category has products; Product belongs to category and has variants. Variants ha
 
 Monetary and quantity casts return fixed-scale decimal strings. JSON casts return arrays; voided_at is a datetime. User passwords use Laravel's hashed cast and are hidden in serialization along with remember tokens. The updated factory produces only synthetic username-based staff records, with admin/disabled states. DatabaseSeeder remains empty.
 
-Sale items, restocks, restock items, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Future services, authorization, and database privileges must enforce history preservation. No edit/delete UI or workflow exists. Sales themselves remain mutable for the later full-void operation; future policies must prohibit deleting completed sales.
+Sales, sale items, restocks, restock items, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Services, authorization, and database privileges must enforce history preservation. No Sale edit/delete UI or workflow exists. A later explicitly approved full-void workflow may replace Sale's blanket model guard with a narrowly controlled transition; no such transition exists now.
 
 ## Implemented Stock In workflow controls
 
@@ -132,9 +132,9 @@ Sale items, restocks, restock items, stock movements, and audit logs reject Eloq
 
 ## Required later workflow controls
 
-- Transactions and ordered variant locks for checkout and voids; correction locking is implemented.
-- Server-authoritative pricing; cash-only sales; no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
-- Unique checkout-token retries must return the existing result only for the same actor and equivalent submitted operation; Restock submission-token behavior is implemented. No request_hash is stored.
+- Transactions and deterministic Category → Product → Product Variant locks are implemented for checkout and correction; void locking remains deferred.
+- Server-authoritative pricing and cash-only sales are implemented; there are no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
+- Unique checkout-token retries return existing Sales only for the same persisted actor and canonically equivalent tender, Variant set, consolidated quantities, and stored historical prices. Restock submission-token behavior is also implemented. No request_hash is stored.
 - Whole/fractional validation, at most three decimal places, supported units, and immutable unit/mode after activity.
 - Variant/source-item consistency, exact movement-to-item quantity agreement, and header totals equal to summed immutable lines.
 - Admin-only full void with sale lock and atomic stock restoration; reject second void; check void time chronology.
@@ -179,3 +179,13 @@ Stock Correction is an Admin-only reconciliation workflow for an already initial
 The form versions inventory state with the latest StockMovement ID rather than the displayed stock value. The service locks Category → Product → Product Variant, checks initialization and current latest movement with locking reads, compares the target to authoritative locked stock for the no-op rule, then rejects a mismatched movement version. The movement ID detects stale activity across an ABA stock-value cycle.
 
 The service calculates `quantity_change = quantity_after - quantity_before` with BCMath, changes only `current_stock`, and appends one `CORRECTION` movement with null item sources and the normalized required reason. The movement supplies the complete immutable audit evidence, so no duplicate AuditLog row is written. No schema change is required.
+
+## Tracker #12 POS / Sales rules
+
+POS checkout is available to active Admin and Staff and is cash-only. The finder selects only safe identity, unit, quantity-mode, stock, status, and selling-price fields for active Variants in an active hierarchy with historical `INITIAL_STOCK`; purchase costs are neither selected nor displayed. Initialized zero-stock Variants remain visible but unavailable to add.
+
+The checkout service validates every original cart component as an ordinary unsigned decimal string, consolidates duplicate Variant quantities with BCMath, and retains the original components for locked whole-mode validation. Submitted expected prices are positive canonical two-decimal stale-price preconditions only. After globally ordered Category, Product, and Product Variant locks, current initialization evidence and hierarchy state are rechecked, and each expected price is compared with the locked authoritative selling price.
+
+Each line uses positive half-up rounding of `quantity × unit_price`, and the Sale total is the exact sum of rounded lines. Zero-rounded lines, line/header overflow, underpayment, and insufficient stock are controlled validation failures. The unique Sale insert is the checkout-token race arbiter and occurs before locked stock sufficiency checks; transaction rollback removes the temporary Sale on failure. A committed equivalent replay is validated from immutable SaleItem and linked `SALE` movement history without consulting current catalog price, name, status, or stock.
+
+Successful checkout creates one completed Sale, one SaleItem and one negative `SALE` movement per distinct Variant, and updates only authoritative `current_stock`. Sale, SaleItem, and StockMovement records are currently immutable, and ordinary checkout produces no AuditLog row. Receipt detail/printing, Sales History, returns, discounts, credit, and `SALE_VOID` remain unimplemented.

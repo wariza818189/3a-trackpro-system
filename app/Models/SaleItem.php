@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\ImmutableRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SaleItem extends Model
 {
@@ -45,8 +45,9 @@ class SaleItem extends Model
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 
-    public function stockMovements(): HasMany
+    public function saleMovement(): HasOne
     {
-        return $this->hasMany(StockMovement::class, 'sale_item_id');
+        return $this->hasOne(StockMovement::class, 'sale_item_id')
+            ->where('movement_type', StockMovement::TYPE_SALE);
     }
 }

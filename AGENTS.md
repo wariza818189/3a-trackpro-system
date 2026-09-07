@@ -149,11 +149,11 @@ Implemented application workflows create these movement types:
 - INITIAL_STOCK
 - RESTOCK
 - CORRECTION
-
-The schema also supports these movement types, whose application workflows are
-not yet implemented:
-
 - SALE
+
+The schema also supports this movement type, whose application workflow is not
+yet implemented:
+
 - SALE_VOID
 
 Do not implement future movement workflows unless they belong to the explicitly
@@ -192,6 +192,21 @@ Stock Correction:
 - changes quantity only and never updates cost
 - creates an immutable CORRECTION StockMovement
 - uses the latest StockMovement ID as its stale-form version
+
+Sales / POS:
+
+- Admin and Staff
+- cash only
+- backend stock, selling prices, line totals, Sale total, payment sufficiency,
+  and change are authoritative
+- submitted expected_unit_price is only a stale-price precondition
+- multi-Variant checkout uses deterministic Category → Product → ProductVariant
+  lock ordering
+- stock never becomes negative
+- checkout-token uniqueness provides durable idempotency
+- completed Sale, SaleItem, and SALE movement history is immutable
+- exactly one SALE movement is created per SaleItem
+- POS never exposes purchase cost
 
 Do not rewrite immutable historical inventory transactions.
 

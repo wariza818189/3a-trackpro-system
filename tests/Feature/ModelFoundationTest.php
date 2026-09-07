@@ -95,6 +95,7 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('recorded_by', (new Sale)->recordedBy()->getForeignKeyName());
         $this->assertSame('voided_by', (new Sale)->voidedBy()->getForeignKeyName());
         $this->assertSame('sale_id', (new SaleItem)->sale()->getForeignKeyName());
+        $this->assertSame('sale_item_id', (new SaleItem)->saleMovement()->getForeignKeyName());
         $this->assertSame('restock_id', (new RestockItem)->restock()->getForeignKeyName());
         $this->assertSame('restock_item_id', (new RestockItem)->stockMovement()->getForeignKeyName());
         $this->assertSame('sale_item_id', (new StockMovement)->saleItem()->getForeignKeyName());
@@ -102,12 +103,15 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('performed_by', (new StockMovement)->performedBy()->getForeignKeyName());
         $this->assertSame('RESTOCK', StockMovement::TYPE_RESTOCK);
         $this->assertSame('CORRECTION', StockMovement::TYPE_CORRECTION);
+        $this->assertSame('SALE', StockMovement::TYPE_SALE);
+        $this->assertSame('completed', Sale::STATUS_COMPLETED);
+        $this->assertSame('voided', Sale::STATUS_VOIDED);
         $this->assertSame('user_id', (new AuditLog)->user()->getForeignKeyName());
     }
 
     public function test_history_uses_created_at_only_and_rejects_instance_edits_and_deletes(): void
     {
-        foreach ([SaleItem::class, Restock::class, RestockItem::class, StockMovement::class, AuditLog::class] as $class) {
+        foreach ([Sale::class, SaleItem::class, Restock::class, RestockItem::class, StockMovement::class, AuditLog::class] as $class) {
             $record = new $class;
             $record->id = 1;
             $record->exists = true;
@@ -126,7 +130,7 @@ class ModelFoundationTest extends TestCase
 
     public function test_nonhistorical_models_remain_mutable(): void
     {
-        foreach ([Sale::class, Product::class, ProductVariant::class, Category::class, User::class] as $class) {
+        foreach ([Product::class, ProductVariant::class, Category::class, User::class] as $class) {
             $this->assertArrayNotHasKey(ImmutableRecord::class, class_uses_recursive($class));
         }
     }

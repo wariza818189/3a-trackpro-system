@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Stage 3D Admin Stock Correction
+## Current scope: Tracker #12 POS / Sales implementation review
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, and Stage 3C adds normal multi-item Stock In for Admin and Staff. Stage 3D adds Admin-only physical-target Stock Correction with immutable `CORRECTION` movements and movement-version stale-form protection. Sales and supplier workflows are not implemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 now implements cash-only POS checkout with immutable SaleItem and `SALE` movement evidence; its dedicated MySQL concurrency proofs and browser checkpoint remain pending. Receipt/Sales History, `SALE_VOID`, and supplier workflows are not implemented.
 
 ## Requirements
 
@@ -97,3 +97,9 @@ The server-generated `submission_token` is a hidden durable idempotency key. Dat
 An active Admin can reconcile an initialized active Variant to a verified physical stock target. The service locks Category → Product → Product Variant, reads current initialization and movement history after the Variant lock, rejects no-op corrections, and compares the form's latest-movement ID with the authoritative latest movement before writing. This detects stale forms even when intervening inventory activity returns stock to the same numeric value.
 
 The backend derives the signed change from exact three-decimal strings, updates only `current_stock`, and appends one immutable `CORRECTION` movement with the actor and normalized required reason. Correction does not update cost, accept signed deltas, create AuditLog rows, or provide history edits.
+
+## POS / Sales behavior
+
+Active Admin and Staff users can perform cash-only checkout for one to 100 cart components. Duplicate Variant components are independently validated and consolidated into one SaleItem. The service locks all Categories, then Products, then Product Variants in ascending ID order, rechecks the active initialized hierarchy, and uses exact BCMath quantity and money calculations. Locked catalog selling prices are authoritative; submitted `expected_unit_price` values only detect a price changed since the cashier reviewed the cart.
+
+Each successful checkout atomically creates one completed immutable Sale, one immutable SaleItem per distinct Variant, one stock deduction per Variant, and one linked immutable `SALE` movement per SaleItem. A unique checkout token arbitrates durable idempotent retries, including concurrent collisions, while canonical actor, tender, Variant, quantity, and stored historical price comparison rejects semantic token reuse. The POS selects and displays no purchase-cost fields. Receipt detail/printing, Sales History, and all void behavior remain deferred to later trackers.

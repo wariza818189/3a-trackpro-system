@@ -18,12 +18,13 @@
                 <nav class="flex min-w-0 flex-1 flex-wrap gap-1" aria-label="Primary navigation">
                     @foreach ([
                         'home' => 'Home',
+                        'pos.index' => 'POS',
                         'categories.index' => 'Categories',
                         'products.index' => 'Products',
                         'product-variants.index' => 'Variants',
                         'stock-in.index' => 'Stock In',
                     ] as $routeName => $label)
-                        <a href="{{ route($routeName) }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs($routeName === 'stock-in.index' ? 'stock-in.*' : $routeName) ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <a href="{{ route($routeName) }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs($routeName === 'stock-in.index' ? 'stock-in.*' : ($routeName === 'pos.index' ? 'pos.*' : $routeName)) ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                             {{ $label }}
                         </a>
                     @endforeach

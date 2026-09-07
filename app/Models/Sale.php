@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ImmutableRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
+    use ImmutableRecord;
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_VOIDED = 'voided';
+
+    public const UPDATED_AT = null;
+
     protected $fillable = [
         'checkout_token',
         'recorded_by',
