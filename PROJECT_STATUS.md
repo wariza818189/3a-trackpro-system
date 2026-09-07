@@ -10,14 +10,14 @@ Branch:
 
 Latest completed application/code checkpoint:
 
-`ac154a2dda2e955ea849669120e86c9cbcf425ac`
+`e3cdb0858af110afce70619c421d85a1d8a4c73a`
 
 Commit:
 
-`Add TrackPro branding`
+`Add admin stock correction workflow`
 
-This is the application baseline immediately before the repository-guidance
-documentation checkpoint.
+This is the completed Stage 3D application baseline. Documentation-only updates
+may follow without changing this latest completed application checkpoint.
 
 For the repository's actual current HEAD, use:
 
@@ -53,14 +53,16 @@ Completed:
 - Stage 3B — Opening Inventory / INITIAL_STOCK
 - Stage 3C — Normal Stock In / RESTOCK
 - Branding mini-checkpoint — TrackPro branding
+- Stage 3D — Admin Stock Correction / CORRECTION — COMPLETED
 
-Current next engineering stage:
+Latest completed engineering stage:
 
 Stage 3D — Admin Stock Correction / CORRECTION
 
 Status:
 
-Planning / not yet implemented
+COMPLETED — implementation review, ordinary tests, MySQL concurrency proofs,
+manual browser smoke, and application commit/push approved.
 
 ## Current Team Tracker Position
 
@@ -70,27 +72,19 @@ Tracker item:
 
 Status:
 
-IN PROGRESS
+COMPLETED
 
 Completed within tracker #14:
 
-- Opening Inventory
-- Normal Stock In / Restock
-- RESTOCK StockMovement
+- Opening Inventory / INITIAL_STOCK
+- Normal Stock In / RESTOCK
+- Admin Stock Correction / CORRECTION
 - historical purchase-cost recording
 - latest Variant cost reference
 
-Remaining within tracker #14:
-
-- Admin-controlled Stock Correction
-- CORRECTION StockMovement
-- final Stage 3D tests
-- Stage 3D MySQL integrity proof
-- Stage 3D Git checkpoint
-- Stage 3D manual browser smoke
-
-Tracker #14 may become COMPLETED only after the remaining Stock Correction work
-is implemented and verified.
+Stage 3D completed the previously remaining controlled Stock Correction
+requirement. Implementation review, ordinary tests, MySQL integrity proofs,
+manual browser smoke, and the application Git checkpoint/push are complete.
 
 ## Completed Application Checkpoint Chain
 
@@ -118,6 +112,9 @@ and are intentionally not included in this application checkpoint chain.
 7. `ac154a2dda2e955ea849669120e86c9cbcf425ac`
    - Add TrackPro branding
 
+8. `e3cdb0858af110afce70619c421d85a1d8a4c73a`
+   - Add admin stock correction workflow
+
 ## Current Application Scope
 
 Implemented:
@@ -140,12 +137,13 @@ Implemented:
 - durable Stock In idempotency
 - Stock In history/detail
 - TrackPro branding
+- Admin Stock Correction
+- immutable CORRECTION movements
+- read-only correction history
 
 Not yet implemented:
 
-- Admin Stock Correction
-- CORRECTION movements
-- POS
+- POS / Sales
 - sales checkout
 - SALE stock movements
 - receipt workflow
@@ -200,7 +198,9 @@ Known examples include:
 - quantity mode: whole
 - selling price: 150.00
 - latest cost price: 110.00
-- current stock: 5.000
+- current stock: 4.000
+- low-stock threshold: 5.000
+- status: active
 - INITIAL_STOCK movement recorded at zero
 - Stock In receipt: RST-000001
 - Stock In reference: DR-STAGE3C-001
@@ -257,12 +257,12 @@ Ordinary Stock In tests:
 - Authorization: 5 tests / 54 assertions
 - Management: 15 tests / 167 assertions
 
-Current complete ordinary suite baseline:
+Historical complete ordinary suite at Stage 3C completion:
 
 - 112 tests
 - 952 assertions
 
-Current application route count (explicit routes in `routes/web.php`, excluding
+Historical Stage 3C application route count (explicit routes in `routes/web.php`, excluding
 framework routes such as `/up`):
 
 - 32 routes
@@ -289,6 +289,73 @@ Real MySQL idempotency Test B:
 Both test fixtures cleaned successfully.
 
 `trackpro_test` ended with all domain tables empty.
+
+## Stage 3D Evidence
+
+Stage 3D — Admin Stock Correction / CORRECTION is COMPLETED.
+The following results are historical completed evidence; no tests, database
+queries, or browser smoke were performed during this documentation update.
+
+Ordinary Stock Correction tests:
+
+- Authorization: 5 tests / 52 assertions
+- Management: 17 tests / 147 assertions
+- Full ordinary suite: 134 tests / 1,152 assertions
+- Application routes: 35
+- Pint, build, and diff checks passed
+
+Real MySQL Test A — concurrent different correction targets:
+
+- 1 test / 16 assertions
+- loser blocked behind winner
+- current/locking reread after commit rejected the stale movement version
+- final stock 7.000; exactly one CORRECTION
+
+Real MySQL Test B — concurrent same target:
+
+- 1 test / 13 assertions
+- loser blocked, then reread authoritative stock 7.000
+- no-op rejected before stale-version check
+- exactly one CORRECTION
+
+Real MySQL Test C — real Restock versus stale Correction:
+
+- 1 test / 17 assertions
+- Correction waited behind real Restock
+- Restock changed 10.000 -> 15.000
+- stale movement version rejected; received stock was not overwritten
+- zero CORRECTION movements
+
+Historical final test-database cleanup:
+
+- all 10 domain tables = 0 rows
+- table count = 11
+- migration records = 10
+- schema unchanged
+
+Completed manual browser smoke used Test Tools / Test Hammer / 16oz · Claw,
+unit piece, quantity mode whole. The existing Stage 3C receipt RST-000001,
+reference DR-STAGE3C-001, retained quantity 5.000 and unit cost 110.00.
+
+- Initial stock before correction: 5.000
+- No-op target 5 rejected with: `No stock change is required.`
+- No stock mutation resulted from that no-op.
+- Successful correction by Admin: before 5.000, change -1.000, after 4.000
+- Exact persisted reason: `Stage 3D no-op browser smoke`
+
+The reason was reused for the successful correction. Its wording is semantically
+imperfect but is legitimate immutable historical data; do not rewrite it.
+
+Browser UI evidence:
+
+- Admin navigation exposed Stock Correction.
+- The correction form showed Test Hammer and current stock.
+- No-op rejection and successful correction both worked.
+- Read-only correction history showed before/change/after/actor/reason.
+- No Edit/Delete history controls were present.
+- Variant catalog reflected current stock 4.000.
+- Cost remained 110.00 and selling price remained 150.00, unchanged by correction.
+- Final low-stock threshold was 5.000 and Variant status was active.
 
 ## Branding Status
 
@@ -320,13 +387,13 @@ No:
 
 ## Current Test Baseline
 
-Recent ordinary suite:
+Verified final Stage 3D ordinary suite (historical; not rerun for this update):
 
-`112 tests / 952 assertions`
+`134 tests / 1,152 assertions`
 
-Recent application route count (`routes/web.php`, excluding framework routes):
+Current application route count from `php artisan route:list --except-vendor`:
 
-`32`
+`35`
 
 Before accepting a later stage, compare new results against the current code and
 explain legitimate changes in counts.
@@ -359,30 +426,24 @@ Normal Stock In:
 
 Stock Correction:
 
-- NOT YET IMPLEMENTED
-- intended to be Admin-only
-- intended movement type: CORRECTION
-- final design pending Stage 3D inspection
+- Admin-only physical-target stock correction
+- requires historical INITIAL_STOCK and active Category/Product/Variant hierarchy
+- required normalized reason
+- exact decimal-string / BCMath arithmetic
+- quantity-only mutation; cost and selling price unchanged
+- one immutable CORRECTION StockMovement; no AuditLog duplication
+- latest StockMovement ID used as the stale-form version
+- no-op rejected before stale-version check
+- read-only correction history
 
 ## Current Next Step
 
-Stage 3D read-only architecture/design inspection:
+The next substantive application work is the POS / Sales module.
 
-Admin Stock Correction / CORRECTION
+Status: NOT STARTED / not implemented.
 
-Important design questions to resolve before implementation:
-
-1. corrected target stock versus delta input
-2. no-op correction policy
-3. required reason
-4. stale-form protection
-5. concurrency between two corrections
-6. concurrency between Correction and Restock
-7. AuditLog duplication decision
-8. exact CORRECTION database constraints
-9. MySQL concurrency proof strategy
-
-Do not implement Stage 3D until its inspection/design is explicitly approved.
+POS / Sales requires separate explicit approval. No POS design or implementation
+is part of this documentation checkpoint.
 
 ## Documentation Maintenance Rule
 
