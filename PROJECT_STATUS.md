@@ -1,6 +1,6 @@
 # 3A TrackPro — Project Status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 ## Latest Completed Application Checkpoint
 
@@ -10,13 +10,13 @@ Branch:
 
 Latest completed application/code checkpoint:
 
-`f55406bd6cc5931a611dac3a518664ac719a9b1a`
+`2fc45125bb1876b49b8a501b8896801fa709b727`
 
 Commit:
 
-`Add point of sale checkout workflow`
+`Add receipt and sales history`
 
-This is the completed Tracker #12 POS / Sales application baseline. Documentation-only updates
+This is the completed Tracker #13 Receipt & Sales History application baseline. Documentation-only updates
 may follow without changing this latest completed application checkpoint.
 
 For the repository's actual current HEAD, use:
@@ -55,33 +55,55 @@ Completed:
 - Branding mini-checkpoint — TrackPro branding
 - Stage 3D — Admin Stock Correction / CORRECTION — COMPLETED
 - Tracker #12 — Sales / POS Module — COMPLETED
+- Tracker #13 — Receipt & Sales History — COMPLETED
 
 Latest completed engineering stage:
 
-Tracker #12 — Sales / POS Module
+Tracker #13 — Receipt & Sales History
 
 Status:
 
-COMPLETED — implementation review, focused ordinary SQLite tests, full ordinary
-regression, four real MySQL concurrency proofs, manual browser smoke, and the
-application Git checkpoint and normal push are complete and approved.
+COMPLETED — explicit design/authorization approval, implementation, focused
+ordinary SQLite tests, full ordinary regression, security/privacy review, route
+audit, Pint/build/diff checks, manual browser smoke, read-only inventory
+confirmation, and the application Git checkpoint and normal push are complete
+and approved. Tracker #13 required no dedicated MySQL concurrency proof.
 
 ## Current Team Tracker Position
 
 Tracker item:
 
-#12 — Sales / POS Module
+#13 — Receipt & Sales History
 
 Status:
 
 COMPLETED
 
-All required completion gates listed above passed. The POS provides a one-time
-post-checkout confirmation only; it does not implement Receipt & Sales History.
+All required completion gates listed above passed. Tracker #12 remains COMPLETED;
+its one-time completed/replayed POS confirmation now links to the receipt.
 
-Next tracker:
+Overall completed tracker count: **9 / 23**.
 
-#13 — Receipt & Sales History — NOT STARTED
+Completed tracker items:
+
+- #1 Create Tracking Document
+- #2 Project Scope Planning
+- #6 Workflow & Business Rules
+- #9 Database & System Design
+- #10 Authentication & User Roles
+- #11 Product & Inventory Module
+- #12 Sales / POS Module
+- #13 Receipt & Sales History
+- #14 Stock-In & Stock Movements
+
+All other tracker statuses remain unchanged. #15 Functional Testing retains its
+existing pending/in-progress status; module tests do not formally complete it.
+#17 Edge Case & Permission Testing is not marked complete by these feature tests.
+
+Next major unimplemented application tracker, after the separate planned
+responsive-navigation UI mini-checkpoint:
+
+#16 — Dashboard & Reports — NOT STARTED
 
 Previously completed tracker (unchanged):
 
@@ -135,6 +157,9 @@ and are intentionally not included in this application checkpoint chain.
 9. `f55406bd6cc5931a611dac3a518664ac719a9b1a`
    - Add point of sale checkout workflow
 
+10. `2fc45125bb1876b49b8a501b8896801fa709b727`
+    - Add receipt and sales history
+
 ## Current Application Scope
 
 Implemented:
@@ -163,22 +188,24 @@ Implemented:
 - POS / Sales for active Admin and Staff
 - cash-only sales checkout and durable checkout-token idempotency
 - immutable Sale / SaleItem / SALE stock movement history
-- one-time post-checkout confirmation
+- one-time completed/replayed post-checkout confirmation with View receipt link
+- Tracker #13 — Receipt & Sales History for active Admin and Staff
+- persistent receipt/detail page and Sales History index
+- browser receipt reprint and historical sale browsing/filtering with pagination
 
 Not yet implemented:
 
-- Tracker #13 — Receipt & Sales History
-- persistent receipt/detail page and Sales History index
-- receipt reprint and historical sale browsing/filtering UI
 - Admin full-sale void
 - SALE_VOID
-- returns
+- returns/refunds
 - discounts
 - credit / utang
 - Dashboard
 - Reports
 - User Management UI
 - final integration
+- remaining documentation/testing/presentation work
+- responsive sidebar/hamburger navigation (separate planned UI mini-checkpoint)
 
 ## Database Foundation
 
@@ -223,7 +250,7 @@ Known examples include:
 - quantity mode: whole
 - selling price: 150.00
 - latest cost price: 110.00
-- current stock: 2.000 (final POS browser-smoke observation)
+- current stock: 2.000 (reconfirmed after Tracker #13 receipt/history browser smoke)
 - low-stock threshold: 5.000
 - status: active
 - INITIAL_STOCK movement recorded at zero
@@ -238,6 +265,11 @@ The two legitimate immutable local Sales reduced stock from 4.000 to 2.000.
 An intervening underpayment attempt did not deduct stock. Cost remained 110.00
 and selling price remained 150.00; POS did not expose purchase cost. These are
 historical manual observations, not database access during this update.
+
+Tracker #13 browsing, receipt filters, receipt GETs/reloads, and Print Preview
+did not change inventory: the normal Product Variants page still showed stock
+2.000, cost 110.00, and selling price 150.00. No local data is queried or modified
+for this documentation checkpoint.
 
 Do not delete or reset this data.
 
@@ -488,10 +520,129 @@ and selling price remained unchanged, and underpayment did not deduct stock.
 These two local Sales are legitimate immutable historical data; do not delete
 or alter them.
 
-TRX-000001 and TRX-000002 are human-readable Sale receipt-number representations
-used in checkout confirmation only. They do not mean Tracker #13 is implemented.
-Persistent receipt/detail, Sales History index, receipt reprint, historical sale
-browsing/filtering, and related UI remain deferred to #13.
+At the Tracker #12 checkpoint, TRX-000001 and TRX-000002 were human-readable Sale
+receipt-number representations used in checkout confirmation only. Persistent
+receipt/detail, Sales History, reprint, and filtering were subsequently completed
+in Tracker #13, as recorded below.
+
+## Tracker #13 Receipt & Sales History Evidence
+
+Tracker #13 — Receipt & Sales History is COMPLETED. All test, route, build, and
+browser results below are historical approved evidence, not executions during
+this documentation checkpoint. The application checkpoint and normal push are
+complete: `2fc45125bb1876b49b8a501b8896801fa709b727`,
+`Add receipt and sales history`.
+
+### Completed behavior and route surface
+
+Active Admin and Staff may browse all Sales and view/reprint all receipts.
+Guests and disabled authenticated users are denied. History is read-only and
+uses immutable Sale and SaleItem evidence; current Product/ProductVariant values
+are not historical receipt sources. Purchase costs, checkout tokens, and
+StockMovement internals are not exposed.
+
+The index provides exact canonical receipt-number filtering, lowercase TRX
+prefix normalization, fail-closed malformed receipt filters, cashier filtering,
+and strict Asia/Manila calendar-date filtering (inclusive start, exclusive next
+day end). It uses 20-row server-side pagination and deterministic newest-first
+ordering by created_at DESC, then id DESC.
+
+- `GET /sales` — `sales.index`
+- `GET /sales/{sale}` — `sales.show`, with a numeric parameter constraint
+
+Both routes are under `auth` and `active`; neither is Admin-only. There is no
+separate receipt/reprint/edit/update/delete/void route or Sales mutation route.
+The one `sales.show` page serves detail, receipt, and reprint, with SaleItems in
+ID ascending order. Browser printing uses `window.print()` and hides application
+chrome. Viewing, reloading, and printing create no AuditLog or other write.
+There is no PDF generation or SALE_VOID workflow.
+
+Completed and replayed POS confirmations provide View receipt links to the
+correct `sales.show` page. RecordSale remained unchanged; checkout transaction,
+pricing, stock, and idempotency semantics were not changed by Tracker #13.
+
+### Historical ordinary verification
+
+All ordinary tests used isolated in-memory SQLite only.
+
+| Suite | Tests | Assertions |
+| --- | --- | --- |
+| SalesHistoryAuthorizationTest | 6 | 49 |
+| SalesHistoryTest | 7 | 141 |
+| Combined new Tracker #13 suites | 13 | 190 |
+| Updated PosAuthorizationTest | 5 | 43 |
+| Updated PosCheckoutTest | 15 | 311 |
+| ModelFoundationTest | 9 | 66 |
+| Full ordinary suite | 167 | 1,702 |
+
+PHP syntax, Blade compilation, Pint, Vite production build, and
+`git diff --check` passed. Application route count was 39 from the historical
+`php artisan route:list --except-vendor` verification.
+
+No dedicated MySQL concurrency test was required, created, or run for #13:
+it adds read-only queries/rendering, with no mutation transaction, locks, DDL,
+or MySQL-specific concurrency invariant. Neither test nor local databases are
+accessed during this documentation checkpoint.
+
+Historical ordinary privacy/accuracy tests verified that SaleItem snapshots
+survive current catalog changes, later stock activity does not change old
+receipt output, and current Product/ProductVariant values are not substituted.
+Unique current purchase cost, unique historical restock cost, and the checkout
+token were absent. Two consecutive receipt GETs caused no database-state change
+and created no AuditLog.
+
+### Historical manual Sales History and filter smoke
+
+Manual UI smoke used the existing legitimate local Admin account and Sales
+TRX-000001 and TRX-000002. Sales History navigation was visible/active, and the
+initial page showed TRX-000002 before TRX-000001. Both rows showed cashier Admin,
+status Completed, and 1 distinct item.
+
+| Receipt | Total | Cash received | Change |
+| --- | --- | --- | --- |
+| TRX-000001 | 150.00 | 150.00 | 0.00 |
+| TRX-000002 | 150.00 | 200.00 | 50.00 |
+
+- Exact filter `TRX-000001` showed only TRX-000001.
+- Lowercase filter `trx-000002` normalized to `TRX-000002` and showed only
+  TRX-000002.
+- Malformed filter `TRX-2` showed the controlled message
+  `Enter a receipt number such as TRX-000002.` and `No Sales found.`
+  There was no crash and no broad all-Sales fallback.
+
+### Historical receipt and Print Preview smoke
+
+Both receipt pages displayed Test Hammer, Variant 16oz · Claw, unit piece,
+quantity 1.000, unit price 150.00, and line total 150.00. Both displayed status
+Completed and cashier Admin, with their respective receipt numbers and payments:
+
+| Receipt | Total | Cash received | Change |
+| --- | --- | --- | --- |
+| TRX-000001 | 150.00 | 150.00 | 0.00 |
+| TRX-000002 | 150.00 | 200.00 | 50.00 |
+
+TRX-000001 exposed no purchase cost, checkout token, StockMovement internals,
+Edit, Delete, or Void control. The Print receipt control was visible.
+
+Firefox Print Preview was opened for TRX-000002. TrackPro branding, receipt
+number, status, cashier, historical item, quantity, prices, and totals remained
+visible/readable. Application navigation, Back to Sales History, and the Print
+receipt button were hidden. The receipt fit on one printed sheet. Firefox's
+generated header/footer metadata is browser UI, not application receipt content;
+no physical print was required.
+
+### Historical read-only inventory and Staff boundary
+
+After Sales History browsing, receipt filters, receipt GETs/reloads, and Print
+Preview, the normal Product Variants page still showed Test Hammer,
+16oz · Claw · piece, Whole, stock 2.000, cost 110.00, selling price 150.00,
+low-stock threshold 5.000, and Active status. Receipt/history use did not change
+inventory: stock remained 2.000, cost remained 110.00, and selling price remained
+150.00. This is recorded browser evidence, not a fresh database query.
+
+A new local Staff user was deliberately not created for browser smoke. Manual
+Staff browser smoke was not performed; Staff all-Sales access is covered by
+SalesHistoryAuthorizationTest (6 tests / 49 assertions).
 
 ## Branding Status
 
@@ -523,14 +674,14 @@ No:
 
 ## Current Test Baseline
 
-Verified final Tracker #12 ordinary suite (historical; not rerun for this update):
+Verified final Tracker #13 ordinary suite (historical; not rerun for this update):
 
-`154 tests / 1,508 assertions`
+`167 tests / 1,702 assertions`
 
 Current application route count from the completed historical
 `php artisan route:list --except-vendor` verification:
 
-`37`
+`39`
 
 Before accepting a later stage, compare new results against the current code and
 explain legitimate changes in counts.
@@ -600,13 +751,22 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-The next substantive project tracker item is #13 — Receipt & Sales History.
+Tracker #13 is COMPLETED. A separate responsive-navigation UI mini-checkpoint is
+PLANNED after its closure: desktop fixed/sidebar navigation, a mobile
+hamburger/off-canvas drawer, grouped navigation sections, responsive behavior,
+preserved role visibility, preserved POST+CSRF logout, and print-hidden
+application chrome. This redesign is not part of Tracker #13 and is not
+implemented yet.
 
-Status: NOT STARTED.
+After that separate UI mini-checkpoint, the next major unimplemented application
+tracker is #16 — Dashboard & Reports. Status: NOT STARTED. It is not started or
+completed during this documentation turn.
 
-Tracker #13 requires separate explicit inspection/design approval before
-implementation. No receipt/history design or implementation is part of this
-documentation checkpoint. SALE_VOID remains unimplemented and is not started.
+#15 Functional Testing retains its current pending/in-progress tracker status;
+ongoing module tests do not formally complete it. Other remaining tracker work
+is unchanged. SALE_VOID / Admin full-sale void, returns/refunds, discounts,
+credit / utang, Dashboard & Reports, User Management UI, and remaining
+documentation/testing/presentation work remain future scope.
 
 ## Documentation Maintenance Rule
 
