@@ -114,7 +114,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-POS-05 | Prevent duplicate effects on equivalent retry. | Admin, Staff | Equivalent checkout-token replay returns the existing Sale without another deduction. | Implemented; #12 |
 | FR-POS-06 | Preserve successful checkout evidence. | Admin, Staff | One immutable Sale and one SaleItem plus SALE movement per distinct variant are recorded. | Implemented; #12 |
 | FR-POS-07 | Require sufficient cash and exact change. | Admin, Staff | Underpayment is rejected; change equals cash less authoritative total. | Implemented; #12 |
-| FR-SALES-01 | Allow browsing of completed Sale history. | Admin, Staff | Both roles can find completed Sales regardless of recording user. | Implemented; #13 |
+| FR-SALES-01 | Allow browsing of Sale history. | Admin, Staff | Both roles can browse Sales regardless of the recording user, with historical status preserved. | Implemented; #13 |
 | FR-SALES-02 | Filter Sales History by receipt, user recording the sale, and Manila date. | Admin, Staff | Receipt, cashier, and date filters narrow results; invalid filters fail closed. | Implemented; #13 |
 | FR-SALES-03 | Display immutable historical receipt evidence. | Admin, Staff | Later catalog changes do not alter stored receipt identity, units, quantities, or prices. | Implemented; #13 |
 | FR-SALES-04 | Support browser receipt reprinting. | Admin, Staff | The same receipt can be printed again without a new Sale or stock change. | Implemented; #13 |
