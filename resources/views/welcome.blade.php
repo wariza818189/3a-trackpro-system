@@ -13,7 +13,7 @@
                 Signed in as <span class="font-semibold text-slate-900">{{ auth()->user()->name }}</span>
                 ({{ ucfirst(auth()->user()->role) }}).
             </p>
-            <p class="mt-3 leading-relaxed text-slate-600">Browse the product catalog or use the navigation above to manage it.</p>
+            <p class="mt-3 leading-relaxed text-slate-600">Browse the product catalog or use the navigation to manage it.</p>
             <div class="mt-10 grid gap-4 border-t border-slate-200 pt-8 sm:grid-cols-3">
                 @foreach ([['categories.index', 'Categories'], ['products.index', 'Products'], ['product-variants.index', 'Variants']] as [$routeName, $label])
                     <a href="{{ route($routeName) }}" class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 font-bold shadow-sm transition-colors hover:border-orange-700 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-700 focus:ring-offset-2">{{ $label }}<span class="text-orange-700" aria-hidden="true">→</span></a>

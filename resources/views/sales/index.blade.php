@@ -8,7 +8,7 @@
         <p class="mt-2 text-slate-600">Find immutable sale records and reprint their receipts.</p>
     </div>
 
-    <form method="GET" action="{{ route('sales.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-5">
+    <form method="GET" action="{{ route('sales.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 xl:grid-cols-5">
         <label>
             <span class="text-sm font-medium">Receipt number</span>
             <input name="receipt" value="{{ $receipt }}" placeholder="TRX-000002" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">

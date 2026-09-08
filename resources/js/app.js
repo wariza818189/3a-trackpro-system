@@ -1,3 +1,59 @@
+const navToggle = document.querySelector('[data-nav-toggle]');
+const navDrawer = document.querySelector('[data-nav-drawer]');
+const navBackdrop = document.querySelector('[data-nav-backdrop]');
+const navClose = document.querySelector('[data-nav-close]');
+const navMobileBar = document.querySelector('[data-nav-mobile-bar]');
+const appContent = document.querySelector('[data-app-content]');
+
+if (navToggle && navDrawer && navBackdrop && navClose) {
+    const desktopMedia = window.matchMedia('(min-width: 64rem)');
+
+    const closeDrawer = (returnFocus = true) => {
+        navDrawer.classList.add('-translate-x-full');
+        navDrawer.setAttribute('aria-hidden', 'true');
+        navDrawer.inert = true;
+        navBackdrop.classList.add('pointer-events-none', 'opacity-0');
+        navToggle.setAttribute('aria-expanded', 'false');
+        navToggle.setAttribute('aria-label', 'Open navigation');
+        document.body.classList.remove('overflow-hidden');
+        if (navMobileBar) navMobileBar.inert = false;
+        if (appContent) appContent.inert = false;
+        if (returnFocus && !desktopMedia.matches) navToggle.focus();
+    };
+
+    const openDrawer = () => {
+        if (desktopMedia.matches) return;
+        navDrawer.classList.remove('-translate-x-full');
+        navDrawer.setAttribute('aria-hidden', 'false');
+        navDrawer.inert = false;
+        navBackdrop.classList.remove('pointer-events-none', 'opacity-0');
+        navToggle.setAttribute('aria-expanded', 'true');
+        navToggle.setAttribute('aria-label', 'Close navigation');
+        document.body.classList.add('overflow-hidden');
+        if (appContent) appContent.inert = true;
+        if (navMobileBar) navMobileBar.inert = true;
+        navClose.focus();
+    };
+
+    navToggle.addEventListener('click', () => {
+        if (navToggle.getAttribute('aria-expanded') === 'true') closeDrawer();
+        else openDrawer();
+    });
+    navClose.addEventListener('click', () => closeDrawer());
+    navBackdrop.addEventListener('click', () => closeDrawer());
+    navDrawer.querySelectorAll('[data-nav-link]').forEach((link) => {
+        link.addEventListener('click', () => closeDrawer(false));
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && navToggle.getAttribute('aria-expanded') === 'true') {
+            closeDrawer();
+        }
+    });
+    desktopMedia.addEventListener('change', (event) => {
+        if (event.matches) closeDrawer(false);
+    });
+}
+
 document.querySelectorAll('[data-stock-in-form]').forEach((form) => {
     const items = form.querySelector('[data-stock-in-items]');
     const template = form.querySelector('[data-stock-in-template]');

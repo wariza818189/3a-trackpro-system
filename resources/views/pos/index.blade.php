@@ -43,13 +43,13 @@
         <p class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">{{ $notice }}</p>
     @endforeach
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_25rem]" data-pos>
+    <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" data-pos>
         <section aria-labelledby="catalog-title">
             <h2 id="catalog-title" class="text-xl font-bold">Available catalog</h2>
             @if ($variants->isEmpty())
                 <p class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900">No active initialized variants are available.</p>
             @else
-                <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-pos-catalog>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 2xl:grid-cols-3" data-pos-catalog>
                     @foreach ($variants as $variant)
                         @php($identity = collect([$variant->size, $variant->type_series, $variant->thickness])->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard')
                         @php($outOfStock = bccomp((string) $variant->current_stock, '0.000', 3) <= 0)
@@ -80,7 +80,7 @@
             @endif
         </section>
 
-        <aside class="h-fit rounded-xl border bg-white p-5 shadow-sm lg:sticky lg:top-6" aria-labelledby="cart-title">
+        <aside class="h-fit rounded-xl border bg-white p-5 shadow-sm xl:sticky xl:top-6" aria-labelledby="cart-title">
             <h2 id="cart-title" class="text-xl font-bold">Cart</h2>
             <form method="POST" action="{{ route('pos.checkout') }}" class="mt-4" data-pos-form>
                 @csrf

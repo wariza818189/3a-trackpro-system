@@ -10,65 +10,101 @@
 </head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
     @auth
-        <header class="border-b border-slate-200 bg-white shadow-sm print:hidden">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <a href="{{ route('home') }}" aria-label="3A TrackPro Home" class="shrink-0 whitespace-nowrap rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
+        @php
+            $navigationAdmin = auth()->user()->can('access-admin');
+            $navigationSections = [
+                [
+                    'label' => 'Main',
+                    'items' => [
+                        ['label' => 'Home', 'route' => 'home', 'active' => 'home'],
+                    ],
+                ],
+                [
+                    'label' => 'Sales',
+                    'items' => [
+                        ['label' => 'POS', 'route' => 'pos.index', 'active' => 'pos.*'],
+                        ['label' => 'Sales History', 'route' => 'sales.index', 'active' => 'sales.*'],
+                    ],
+                ],
+                [
+                    'label' => 'Catalog',
+                    'items' => [
+                        ['label' => 'Categories', 'route' => 'categories.index', 'active' => 'categories.*'],
+                        ['label' => 'Products', 'route' => 'products.index', 'active' => 'products.*'],
+                        ['label' => 'Variants', 'route' => 'product-variants.index', 'active' => 'product-variants.*'],
+                    ],
+                ],
+                [
+                    'label' => 'Inventory',
+                    'items' => [
+                        ['label' => 'Stock In', 'route' => 'stock-in.index', 'active' => 'stock-in.*'],
+                        ...($navigationAdmin ? [
+                            ['label' => 'Opening Inventory', 'route' => 'opening-inventory.index', 'active' => 'opening-inventory.*'],
+                            ['label' => 'Stock Correction', 'route' => 'stock-corrections.index', 'active' => 'stock-corrections.*'],
+                        ] : []),
+                    ],
+                ],
+            ];
+        @endphp
+
+        <aside data-nav-sidebar class="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-white shadow-sm lg:flex print:hidden">
+            <div class="shrink-0 border-b border-slate-200 px-5 py-5">
+                <a href="{{ route('home') }}" aria-label="3A TrackPro Home" class="inline-flex rounded focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                     <x-brand-logo />
                 </a>
-                <nav class="flex min-w-0 flex-1 flex-wrap gap-1" aria-label="Primary navigation">
-                    @foreach ([
-                        'home' => 'Home',
-                        'pos.index' => 'POS',
-                        'sales.index' => 'Sales History',
-                        'categories.index' => 'Categories',
-                        'products.index' => 'Products',
-                        'product-variants.index' => 'Variants',
-                        'stock-in.index' => 'Stock In',
-                    ] as $routeName => $label)
-                        <a href="{{ route($routeName) }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs(match ($routeName) { 'stock-in.index' => 'stock-in.*', 'pos.index' => 'pos.*', 'sales.index' => 'sales.*', default => $routeName }) ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                            {{ $label }}
-                        </a>
-                    @endforeach
-                    @can('access-admin')
-                        <a href="{{ route('opening-inventory.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('opening-inventory.*') ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                            Opening Inventory
-                        </a>
-                        <a href="{{ route('stock-corrections.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('stock-corrections.*') ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                            Stock Correction
-                        </a>
-                    @endcan
-                </nav>
-                <div class="min-w-0 max-w-full break-words text-right text-sm sm:max-w-40">
-                    <p class="font-semibold">{{ auth()->user()->name }}</p>
-                    <p class="text-slate-500">{{ ucfirst(auth()->user()->role) }}</p>
-                </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">Sign out</button>
-                </form>
             </div>
+            <x-app-navigation :sections="$navigationSections" label="Primary navigation" mode="desktop" />
+        </aside>
+
+        <header data-nav-mobile-bar class="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden print:hidden">
+            <button type="button" data-nav-toggle aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation" class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <svg viewBox="0 0 24 24" class="size-6" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+            <a href="{{ route('home') }}" aria-label="3A TrackPro Home" class="min-w-0 rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <x-brand-logo />
+            </a>
         </header>
+
+        <div data-nav-backdrop aria-hidden="true" class="pointer-events-none fixed inset-0 z-40 bg-slate-950/60 opacity-0 transition-opacity duration-200 lg:hidden print:hidden"></div>
+
+        <aside id="mobile-navigation" data-nav-drawer aria-hidden="true" inert class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col bg-white shadow-2xl transition-transform duration-200 ease-out lg:hidden print:hidden">
+            <div class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <a href="{{ route('home') }}" data-nav-link aria-label="3A TrackPro Home" class="min-w-0 rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <x-brand-logo />
+                </a>
+                <button type="button" data-nav-close aria-label="Close navigation" class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <svg viewBox="0 0 24 24" class="size-6" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                </button>
+            </div>
+            <x-app-navigation :sections="$navigationSections" label="Mobile primary navigation" mode="mobile" />
+        </aside>
     @endauth
 
-    @if (session('success'))
-        <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="status">
-            <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</p>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="alert">
-            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                <p class="font-semibold">Please correct the following:</p>
-                <ul class="mt-2 list-disc space-y-1 pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+    <div data-app-content @class(['min-w-0', 'lg:pl-60 print:pl-0' => auth()->check()])>
+        @if (session('success'))
+            <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="status">
+                <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</p>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @yield('content')
+        @if ($errors->any())
+            <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="alert">
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    <p class="font-semibold">Please correct the following:</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        @endif
+
+        @yield('content')
+    </div>
 </body>
 </html>
