@@ -10,14 +10,15 @@ Branch:
 
 Latest completed application/code checkpoint:
 
-`2fc45125bb1876b49b8a501b8896801fa709b727`
+`deb3cbdfe4ad46ee62efa8c19f18b54ff1551466`
 
 Commit:
 
-`Add receipt and sales history`
+`Add responsive application navigation`
 
-This is the completed Tracker #13 Receipt & Sales History application baseline. Documentation-only updates
-may follow without changing this latest completed application checkpoint.
+This is the completed Responsive Navigation UI mini-checkpoint application
+baseline. Documentation-only updates may follow without changing this latest
+completed application checkpoint.
 
 For the repository's actual current HEAD, use:
 
@@ -56,8 +57,9 @@ Completed:
 - Stage 3D — Admin Stock Correction / CORRECTION — COMPLETED
 - Tracker #12 — Sales / POS Module — COMPLETED
 - Tracker #13 — Receipt & Sales History — COMPLETED
+- Responsive Navigation UI mini-checkpoint — IMPLEMENTED / VERIFIED; committed and pushed
 
-Latest completed engineering stage:
+Latest completed formal engineering stage:
 
 Tracker #13 — Receipt & Sales History
 
@@ -68,6 +70,12 @@ ordinary SQLite tests, full ordinary regression, security/privacy review, route
 audit, Pint/build/diff checks, manual browser smoke, read-only inventory
 confirmation, and the application Git checkpoint and normal push are complete
 and approved. Tracker #13 required no dedicated MySQL concurrency proof.
+
+Latest completed application work: Responsive Navigation UI mini-checkpoint.
+Implementation, ordinary verification, source/security audit, desktop/mobile/
+tablet and exact-breakpoint browser smoke, receipt Print Preview regression,
+application commit, and normal push are complete. This UI mini-checkpoint does
+not complete an additional formal tracker item.
 
 ## Current Team Tracker Position
 
@@ -98,9 +106,10 @@ Completed tracker items:
 
 All other tracker statuses remain unchanged. #15 Functional Testing retains its
 existing pending/in-progress status; module tests do not formally complete it.
-#17 Edge Case & Permission Testing is not marked complete by these feature tests.
+#17 Edge Case & Permission Testing retains its pending/in-progress status and is
+not marked complete by these feature tests.
 
-Next major unimplemented application tracker, after the separate planned
+Next major unimplemented application tracker, after the completed
 responsive-navigation UI mini-checkpoint:
 
 #16 — Dashboard & Reports — NOT STARTED
@@ -160,6 +169,9 @@ and are intentionally not included in this application checkpoint chain.
 10. `2fc45125bb1876b49b8a501b8896801fa709b727`
     - Add receipt and sales history
 
+11. `deb3cbdfe4ad46ee62efa8c19f18b54ff1551466`
+    - Add responsive application navigation
+
 ## Current Application Scope
 
 Implemented:
@@ -192,6 +204,7 @@ Implemented:
 - Tracker #13 — Receipt & Sales History for active Admin and Staff
 - persistent receipt/detail page and Sales History index
 - browser receipt reprint and historical sale browsing/filtering with pagination
+- responsive desktop sidebar and mobile hamburger/drawer navigation — implemented and verified
 
 Not yet implemented:
 
@@ -205,7 +218,6 @@ Not yet implemented:
 - User Management UI
 - final integration
 - remaining documentation/testing/presentation work
-- responsive sidebar/hamburger navigation (separate planned UI mini-checkpoint)
 
 ## Database Foundation
 
@@ -644,6 +656,131 @@ A new local Staff user was deliberately not created for browser smoke. Manual
 Staff browser smoke was not performed; Staff all-Sales access is covered by
 SalesHistoryAuthorizationTest (6 tests / 49 assertions).
 
+## Responsive Navigation UI Mini-checkpoint Evidence
+
+Status: IMPLEMENTED / VERIFIED — application commit and normal push complete:
+`deb3cbdfe4ad46ee62efa8c19f18b54ff1551466`,
+`Add responsive application navigation`.
+
+All automated and browser results below are historical approved evidence. No
+tests, builds, browser smoke, or database access occur in this documentation
+checkpoint. The formal completed tracker count remains **9 / 23**.
+
+### Completed navigation and security
+
+Desktop uses a fixed left sidebar at Tailwind `lg` (64rem / 1024px) and above,
+with `w-60` (approximately 240px), TrackPro branding, grouped navigation,
+active-page highlighting, an independently scrollable navigation area, and
+account/secure logout at the bottom. The `min-w-0` content shell uses `lg:pl-60`
+and resets its print offset with `print:pl-0`.
+
+Below `lg`, a compact sticky top bar and hamburger open a left off-canvas drawer
+with `w-72 max-w-[85vw]`, a translucent backdrop, and account/logout within the
+drawer. The permanent desktop sidebar is hidden. All application navigation
+chrome is `print:hidden`.
+
+One local grouped Blade structure is reused by the desktop and mobile navigation
+component; there is no empty ADMIN section or future route.
+
+| Group | Destinations |
+| --- | --- |
+| Main | Home |
+| Sales | POS, Sales History |
+| Catalog | Categories, Products, Variants |
+| Inventory | Stock In, Opening Inventory, Stock Correction |
+
+Admin sees nine destinations; Staff sees seven. Opening Inventory and Stock
+Correction remain Admin-only. Backend authorization remains authoritative.
+Both navigation renderings preserve POST logout with CSRF protection. No GET
+logout route/link was introduced; AuthenticatedSessionController and logout
+route semantics remain unchanged.
+
+The hamburger uses `aria-controls` and `aria-expanded`; the drawer uses
+`aria-hidden` and native `inert`; active links use `aria-current="page"`.
+The explicit close button has an accessible label. Close button, backdrop,
+Escape, and navigation-link selection close the drawer. Body scrolling locks
+while open; background content and the mobile top bar become inert. Focus moves
+to the close button on open and returns to the hamburger when appropriate,
+after the top bar is restored to non-inert. Crossing into `lg` resets mobile
+drawer state and restores background interaction. Only vanilla JavaScript is
+used; no frontend framework or dependency was added.
+
+### Limited page adjustments and feature boundary
+
+- POS catalog/cart split and sticky cart moved from `lg` to `xl`; its three-card
+  catalog grid moved from `xl` to `2xl`. Checkout/business behavior is unchanged.
+- Sales History's five-column filter grid moved from `lg` to `xl`; filtering,
+  queries, pagination, and receipt behavior are unchanged.
+- Home received only direction-neutral navigation wording. Home remains Home;
+  no Dashboard implementation was added.
+
+Application routes remain 39; no route, migration, Composer dependency, npm
+dependency, or controller/service/model change was introduced. The navigation
+feature requires no database access. No MySQL gate or concurrency proof was
+required: it adds no DB mutation, transaction, lock, schema, or concurrency
+behavior.
+
+### Historical automated verification
+
+Ordinary tests used isolated SQLite `:memory:` only.
+
+| Suite | Tests | Assertions |
+| --- | --- | --- |
+| ResponsiveNavigationTest | 3 | 156 |
+| AuthenticationTest | 18 | 119 |
+| PosAuthorizationTest | 5 | 43 |
+| SalesHistoryAuthorizationTest | 6 | 49 |
+| RestockAuthorizationTest | 5 | 54 |
+| OpeningInventoryAuthorizationTest | 5 | 37 |
+| StockCorrectionAuthorizationTest | 5 | 52 |
+| Full ordinary suite | 170 | 1,858 |
+
+Final full-suite duration: 25.886 seconds. PHP syntax, Blade compilation, Pint,
+Vite production build, and `git diff --check` passed. Historical route audit
+confirmed 39 application routes. The mobile-top-bar inert correction also
+passed the Vite build and diff check before approved browser smoke.
+
+### Historical manual browser smoke
+
+- Mobile, approximately 414 × 846: compact top bar, hamburger, and branding
+  visible; desktop sidebar hidden. Drawer opening and translucent backdrop
+  worked. X, backdrop, Escape, and navigation-link closure worked. Body scroll
+  lock, keyboard/focus behavior, and focus return behaved correctly. Account
+  and Sign out were reachable; active Home state was visible; no obvious
+  application horizontal overflow was observed.
+- Narrow/tablet, 900 × 1024, Sales History: mobile top bar/hamburger shown and
+  desktop sidebar hidden; content unobstructed. Filters stacked cleanly, Apply
+  filters/Clear remained usable, historical rows remained readable, and no
+  obvious application horizontal overflow was observed.
+- Desktop, approximately 1366 × 768: fixed sidebar visible and mobile top
+  bar/hamburger hidden. Content was correctly offset; grouped navigation and
+  active state were correct. Navigation scrolled independently at constrained
+  height; account/Sign out remained reachable, with no sidebar/content overlap.
+  POS catalog/cart split remained usable, catalog was not visibly compressed,
+  cart did not overlap, and existing POS data/UI was preserved.
+- Exact boundary, 1023 × 768: mobile shell/hamburger shown, desktop sidebar
+  hidden. At 1024 × 768: desktop sidebar shown, mobile top bar/hamburger hidden,
+  and content offset beside the sidebar. This matches Tailwind `lg` =
+  64rem / 1024px.
+
+### Historical receipt print regression
+
+Firefox Print Preview opened TRX-000002 from desktop sidebar mode. The printed
+sheet contained no desktop sidebar, mobile top bar, hamburger, drawer/backdrop,
+or account/navigation chrome, and no residual 240px left margin. Receipt content
+started normally; TrackPro receipt branding, TRX-000002, Completed status, Admin
+cashier, Test Hammer historical item, and quantity/prices/totals were visible.
+The receipt fit one sheet. Firefox-generated headers/URL metadata are browser
+print UI, not TrackPro application chrome.
+
+### Home and future Dashboard boundary
+
+Manual UI review identified Home as a temporary/simple landing page visually
+weaker than the new application shell. This is a future design observation,
+not a bug. Its proper replacement belongs to #16 Dashboard & Reports, after
+metrics, authorization, date semantics, queries, and tests are explicitly
+designed. Home remains Home; #16 remains NOT STARTED.
+
 ## Branding Status
 
 Branding checkpoint is complete.
@@ -651,7 +788,7 @@ Branding checkpoint is complete.
 Current branding includes:
 
 - TrackPro SVG brand mark
-- navbar logo/wordmark
+- sidebar/mobile top-bar logo and wordmark
 - SVG favicon
 - split branded Login page
 - orange Sign In CTA
@@ -674,9 +811,11 @@ No:
 
 ## Current Test Baseline
 
-Verified final Tracker #13 ordinary suite (historical; not rerun for this update):
+Verified final Responsive Navigation ordinary suite (historical; not rerun for this update):
 
-`167 tests / 1,702 assertions`
+`170 tests / 1,858 assertions`
+
+Historical final full-suite duration: 25.886 seconds.
 
 Current application route count from the completed historical
 `php artisan route:list --except-vendor` verification:
@@ -751,19 +890,19 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #13 is COMPLETED. A separate responsive-navigation UI mini-checkpoint is
-PLANNED after its closure: desktop fixed/sidebar navigation, a mobile
-hamburger/off-canvas drawer, grouped navigation sections, responsive behavior,
-preserved role visibility, preserved POST+CSRF logout, and print-hidden
-application chrome. This redesign is not part of Tracker #13 and is not
-implemented yet.
+Tracker #13 is COMPLETED. The separate Responsive Navigation UI mini-checkpoint
+is IMPLEMENTED / VERIFIED, manually browser-smoked, committed, and pushed.
+It adds no formal tracker completion; the completed count remains 9 / 23.
 
-After that separate UI mini-checkpoint, the next major unimplemented application
-tracker is #16 — Dashboard & Reports. Status: NOT STARTED. It is not started or
-completed during this documentation turn.
+The next major unimplemented application tracker is #16 — Dashboard & Reports.
+Status: NOT STARTED. Future #16 may replace the simple Home landing page with a
+useful Dashboard after explicit design of metrics, authorization, date semantics,
+queries, and tests. Home remains Home; no redesign or #16 implementation occurs
+in this documentation checkpoint.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
-ongoing module tests do not formally complete it. Other remaining tracker work
+ongoing module tests do not formally complete it. #17 Edge Case & Permission
+Testing also remains pending/in progress. Other remaining tracker work
 is unchanged. SALE_VOID / Admin full-sale void, returns/refunds, discounts,
 credit / utang, Dashboard & Reports, User Management UI, and remaining
 documentation/testing/presentation work remain future scope.
