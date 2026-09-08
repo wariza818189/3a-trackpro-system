@@ -1,6 +1,6 @@
 # 3A TrackPro — Project Status
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 ## Latest Completed Application Checkpoint
 
@@ -59,6 +59,7 @@ Completed:
 - Tracker #13 — Receipt & Sales History — COMPLETED
 - Responsive Navigation UI mini-checkpoint — IMPLEMENTED / VERIFIED; committed and pushed
 - Tracker #16 — Dashboard & Reports — COMPLETED; committed and pushed
+- Tracker #3 — Client Problem & Requirements — COMPLETED; documentation reviewed, corrected, committed, and pushed
 
 Latest completed formal engineering stage:
 
@@ -82,21 +83,24 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#16 — Dashboard & Reports
+#3 — Client Problem & Requirements
 
 Status:
 
 COMPLETED
 
-All required completion gates listed above passed. Tracker #12 remains COMPLETED;
+Tracker #3 is formally closed on the team-approved/project-derived requirements
+baseline recorded below. Tracker #16 remains the latest completed application
+stage. Tracker #12 remains COMPLETED;
 its one-time completed/replayed POS confirmation now links to the receipt.
 
-Overall completed tracker count: **10 / 23**.
+Overall completed tracker count: **11 / 23**.
 
 Completed tracker items:
 
 - #1 Create Tracking Document
 - #2 Project Scope Planning
+- #3 Client Problem & Requirements
 - #6 Workflow & Business Rules
 - #9 Database & System Design
 - #10 Authentication & User Roles
@@ -108,7 +112,6 @@ Completed tracker items:
 
 All other tracker statuses remain unchanged. These remain pending/in progress:
 
-- #3 Client Problem & Requirements
 - #4 Product Data Planning
 - #5 UI/UX Planning
 - #7 Test Case Preparation
@@ -137,6 +140,116 @@ Completed within tracker #14:
 Stage 3D completed the previously remaining controlled Stock Correction
 requirement. Implementation review, ordinary tests, MySQL integrity proofs,
 manual browser smoke, and the application Git checkpoint/push are complete.
+
+## Tracker #3 Client Problem & Requirements Closeout
+
+Status: COMPLETED — formal documentation closeout on 2026-09-09.
+
+The approved baseline is [docs/requirements.md](docs/requirements.md), linked
+from README.md. It is a **TEAM-APPROVED / PROJECT-DERIVED REQUIREMENTS BASELINE**,
+reconciled with approved design and existing implementation/verification. It
+claims no client interview evidence, client quotation, formal client sign-off,
+exact prior manual tools, quantified business losses/errors, or employee/job-title
+mapping. No client evidence was fabricated; unverified client-specific facts
+remain explicitly open.
+
+The document contains project context, a project-derived problem statement,
+assumptions, Admin/Staff responsibilities, functional requirements with observable
+acceptance outcomes, non-functional/quality requirements, business rules,
+implemented/planned/excluded scope, acceptance/traceability mapping,
+open/unverified client-specific facts, and a review record. Stable IDs comprise
+53 functional requirements, 13 non-functional/quality requirements, 14 business
+rules, and 7 assumptions: **87 unique IDs**.
+
+### Problem direction and application roles
+
+3A TrackPro addresses the need for one controlled system coordinating hardware
+catalog information, product variants, stock quantities, Opening Inventory,
+Stock In, Stock Correction, cash sales, receipts/history, low-stock visibility,
+and management summaries. Its purpose is centralized, authorized, traceable
+operational records. This project-derived direction does not assert client
+reports of notebook, Excel, manual-receipt problems, or quantified losses.
+
+Primary roles are Admin and Staff. These define application permissions only;
+Admin does not imply owner, Staff does not imply cashier, and no named employee
+assignment is established.
+
+### Requirements coverage and corrected history semantics
+
+Functional coverage includes Authentication/roles, Categories, Products,
+Variants, Opening Inventory, Stock In, Stock Correction, POS/checkout, Sales
+receipts, Sales History, responsive navigation, Dashboard, and Reports.
+
+FR-SALES-01 permits active Admin and Staff to browse historical Sales regardless
+of the recording user. Sales History is status-neutral, preserves historical
+status, and is not restricted to completed-only browsing. Dashboard/Reports
+analytics explicitly require `status = completed` only. SALE_VOID remains
+future/unimplemented; the application has no void transition or stock-restoration
+workflow and does not currently generate voided Sales through such a workflow.
+
+Quality and integrity requirements capture nonnegative stock, StockMovement
+evidence, atomic/concurrency-safe stock-changing workflows, server-authoritative
+checkout values, role/backend authorization, privacy and internal-token
+protection, historical immutability, decimal-safe arithmetic, Asia/Manila
+reporting semantics, responsive navigation, accessibility/focus behavior,
+browser receipt printing, and the approved Laravel/Blade/Tailwind architecture.
+Business boundaries retain cash-only v1 with no discounts, credit/utang,
+returns/refunds, partial void, unit conversion, FIFO/weighted-average COGS,
+or formal profit calculation.
+
+### Scope classification
+
+- **Current implemented baseline:** Authentication/roles, Catalog (Categories
+  and Products), Variants, Opening Inventory, Stock In, Stock Correction, POS,
+  receipt/reprint, Sales History, responsive navigation, Dashboard, and Sales
+  Summary Reports.
+- **Planned current-project future work:** SALE_VOID / Admin full-sale void,
+  User Management UI, and final integration/testing/documentation/presentation
+  work. These remain unimplemented or unfinished and require their own scope.
+- **Deferred / excluded current v1:** supplier management/purchase orders,
+  customer accounts, credit/utang, returns/refunds, discounts, partial void,
+  unit conversion, accounting integration, FIFO/weighted-average COGS, profit
+  reporting, CSV/PDF report export, and advanced additional reports. Exclusion
+  is not a promise that all items will be delivered in Phase 2.
+
+### Traceability, verification, and tracker boundaries
+
+Requirements map to completed #10 Authentication, #11 Catalog/Product/Inventory,
+#12 POS, #13 Receipt & Sales History, #14 Stock workflows, #16 Dashboard & Reports,
+and the Responsive Navigation mini-checkpoint. Navigation remains outside the
+formal 23-item count. These references link requirements to existing
+implementation and verification evidence.
+
+The recorded ordinary software baseline remains **191 tests / 2,023 assertions**,
+27.576 seconds, isolated SQLite `:memory:`; the application route baseline is
+**40**. These are historical results, not rerun for this documentation closeout.
+Tests prove software behavior, not client interviews. No tests, builds, or
+database access occurred for this closeout.
+
+Tracker #3 establishes why, what, for whom, constraints, acceptance outcomes,
+and scope. It does not complete or start the following pending/in-progress work:
+
+- #4 Product Data Planning: actual product/item data, variants, units, and pricing
+  preparation.
+- #5 UI/UX Planning: screen, user-flow, and design planning evidence.
+- #7 Test Case Preparation: formal detailed test cases, procedures, and expected
+  results.
+
+#15 Functional Testing and #17 Edge Case & Permission Testing also retain their
+pending/in-progress status. Completed #13, #14, and #16 statuses are unchanged.
+
+### Requirements documentation checkpoints
+
+- `2bdbd227c4c7b46ded5ef84c5be1c00796b2641b` — Document client problem and requirements.
+- `04ae3edba272d9d4fbf11884567133223ec3fd95` — Clarify sales history requirement.
+
+Both are committed and pushed documentation checkpoints, separate from the
+completed application checkpoint chain below. README.md links the baseline,
+reflects scope through Tracker #16, and corrects stale SQLite fixture descriptions.
+The latest completed application checkpoint remains
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846` — Add dashboard and sales reports.
+Use `git rev-parse HEAD` for actual repository HEAD; this closeout does not
+predict its own documentation commit hash.
 
 ## Completed Application Checkpoint Chain
 
@@ -677,7 +790,7 @@ Status: IMPLEMENTED / VERIFIED — application commit and normal push complete:
 All automated and browser results below are historical approved evidence. No
 tests, builds, browser smoke, or database access occur in this documentation
 checkpoint. The formal completed tracker count at that historical checkpoint was
-**9 / 23**; the current count after Tracker #16 is **10 / 23**.
+**9 / 23**; the current count after Tracker #3 closeout is **11 / 23**.
 
 ### Completed navigation and security
 
@@ -1098,11 +1211,16 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #16 — Dashboard & Reports is COMPLETED, automatically verified,
-manually browser-smoked, committed, and pushed. Trackers #13 and #14 remain
+Tracker #3 — Client Problem & Requirements is COMPLETED on the approved
+requirements baseline; its documentation is reviewed, corrected, committed, and
+pushed. Tracker #16 remains the latest completed application stage, automatically
+verified, manually browser-smoked, committed, and pushed. Trackers #13 and #14 remain
 COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
 IMPLEMENTED / VERIFIED and adds no formal tracker item. The completed count
-is **10 / 23**. Stop for review; no next application tracker is authorized here.
+is **11 / 23**. Stop for review; no next tracker is authorized here.
+
+#4 Product Data Planning, #5 UI/UX Planning, and #7 Test Case Preparation remain
+pending/in progress and are not started by this closeout.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
 ongoing module tests do not formally complete it. #17 Edge Case & Permission
