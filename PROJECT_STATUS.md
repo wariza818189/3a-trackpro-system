@@ -10,13 +10,13 @@ Branch:
 
 Latest completed application/code checkpoint:
 
-`deb3cbdfe4ad46ee62efa8c19f18b54ff1551466`
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846`
 
 Commit:
 
-`Add responsive application navigation`
+`Add dashboard and sales reports`
 
-This is the completed Responsive Navigation UI mini-checkpoint application
+This is the completed Tracker #16 — Dashboard & Reports application
 baseline. Documentation-only updates may follow without changing this latest
 completed application checkpoint.
 
@@ -58,10 +58,11 @@ Completed:
 - Tracker #12 — Sales / POS Module — COMPLETED
 - Tracker #13 — Receipt & Sales History — COMPLETED
 - Responsive Navigation UI mini-checkpoint — IMPLEMENTED / VERIFIED; committed and pushed
+- Tracker #16 — Dashboard & Reports — COMPLETED; committed and pushed
 
 Latest completed formal engineering stage:
 
-Tracker #13 — Receipt & Sales History
+Tracker #16 — Dashboard & Reports
 
 Status:
 
@@ -69,19 +70,19 @@ COMPLETED — explicit design/authorization approval, implementation, focused
 ordinary SQLite tests, full ordinary regression, security/privacy review, route
 audit, Pint/build/diff checks, manual browser smoke, read-only inventory
 confirmation, and the application Git checkpoint and normal push are complete
-and approved. Tracker #13 required no dedicated MySQL concurrency proof.
+and approved. Tracker #16 required no dedicated MySQL concurrency proof.
 
-Latest completed application work: Responsive Navigation UI mini-checkpoint.
-Implementation, ordinary verification, source/security audit, desktop/mobile/
-tablet and exact-breakpoint browser smoke, receipt Print Preview regression,
-application commit, and normal push are complete. This UI mini-checkpoint does
-not complete an additional formal tracker item.
+Latest completed application work: Tracker #16 — Dashboard & Reports.
+Implementation, ordinary verification, source/security audit, desktop/mobile
+browser smoke, receipt integration, application commit, and normal push are
+complete. Responsive Navigation remains a completed, separately verified UI
+mini-checkpoint outside the formal 23-item tracker count.
 
 ## Current Team Tracker Position
 
 Tracker item:
 
-#13 — Receipt & Sales History
+#16 — Dashboard & Reports
 
 Status:
 
@@ -90,7 +91,7 @@ COMPLETED
 All required completion gates listed above passed. Tracker #12 remains COMPLETED;
 its one-time completed/replayed POS confirmation now links to the receipt.
 
-Overall completed tracker count: **9 / 23**.
+Overall completed tracker count: **10 / 23**.
 
 Completed tracker items:
 
@@ -103,16 +104,19 @@ Completed tracker items:
 - #12 Sales / POS Module
 - #13 Receipt & Sales History
 - #14 Stock-In & Stock Movements
+- #16 Dashboard & Reports
 
-All other tracker statuses remain unchanged. #15 Functional Testing retains its
-existing pending/in-progress status; module tests do not formally complete it.
-#17 Edge Case & Permission Testing retains its pending/in-progress status and is
-not marked complete by these feature tests.
+All other tracker statuses remain unchanged. These remain pending/in progress:
 
-Next major unimplemented application tracker, after the completed
-responsive-navigation UI mini-checkpoint:
+- #3 Client Problem & Requirements
+- #4 Product Data Planning
+- #5 UI/UX Planning
+- #7 Test Case Preparation
+- #15 Functional Testing
+- #17 Edge Case & Permission Testing
 
-#16 — Dashboard & Reports — NOT STARTED
+Module verification does not formally complete these trackers. Tracker #13
+remains COMPLETED. No next tracker is started by this documentation checkpoint.
 
 Previously completed tracker (unchanged):
 
@@ -172,6 +176,9 @@ and are intentionally not included in this application checkpoint chain.
 11. `deb3cbdfe4ad46ee62efa8c19f18b54ff1551466`
     - Add responsive application navigation
 
+12. `31b5b95f8d4de3136c15924bc541b52a6d2fa846`
+    - Add dashboard and sales reports
+
 ## Current Application Scope
 
 Implemented:
@@ -205,6 +212,8 @@ Implemented:
 - persistent receipt/detail page and Sales History index
 - browser receipt reprint and historical sale browsing/filtering with pagination
 - responsive desktop sidebar and mobile hamburger/drawer navigation — implemented and verified
+- operational Dashboard at GET / for active Admin and Staff
+- Admin-only Sales Summary at GET /reports
 
 Not yet implemented:
 
@@ -213,8 +222,11 @@ Not yet implemented:
 - returns/refunds
 - discounts
 - credit / utang
-- Dashboard
-- Reports
+- formal profit / COGS
+- CSV/PDF report exports
+- sales-by-cashier ranking
+- top-selling variant report
+- general stock-movement report
 - User Management UI
 - final integration
 - remaining documentation/testing/presentation work
@@ -664,7 +676,8 @@ Status: IMPLEMENTED / VERIFIED — application commit and normal push complete:
 
 All automated and browser results below are historical approved evidence. No
 tests, builds, browser smoke, or database access occur in this documentation
-checkpoint. The formal completed tracker count remains **9 / 23**.
+checkpoint. The formal completed tracker count at that historical checkpoint was
+**9 / 23**; the current count after Tracker #16 is **10 / 23**.
 
 ### Completed navigation and security
 
@@ -689,7 +702,9 @@ component; there is no empty ADMIN section or future route.
 | Catalog | Categories, Products, Variants |
 | Inventory | Stock In, Opening Inventory, Stock Correction |
 
-Admin sees nine destinations; Staff sees seven. Opening Inventory and Stock
+At that checkpoint Admin saw nine destinations; Staff saw seven. Tracker #16
+subsequently changed Home to Dashboard and added Admin-only Reports (10 / 7).
+Opening Inventory and Stock
 Correction remain Admin-only. Backend authorization remains authoritative.
 Both navigation renderings preserve POST logout with CSRF protection. No GET
 logout route/link was introduced; AuthenticatedSessionController and logout
@@ -711,10 +726,10 @@ used; no frontend framework or dependency was added.
   catalog grid moved from `xl` to `2xl`. Checkout/business behavior is unchanged.
 - Sales History's five-column filter grid moved from `lg` to `xl`; filtering,
   queries, pagination, and receipt behavior are unchanged.
-- Home received only direction-neutral navigation wording. Home remains Home;
-  no Dashboard implementation was added.
+- Home received only direction-neutral navigation wording at that checkpoint;
+  Tracker #16 subsequently replaced it with Dashboard.
 
-Application routes remain 39; no route, migration, Composer dependency, npm
+Application routes at that checkpoint were 39; no route, migration, Composer dependency, npm
 dependency, or controller/service/model change was introduced. The navigation
 feature requires no database access. No MySQL gate or concurrency proof was
 required: it adds no DB mutation, transaction, lock, schema, or concurrency
@@ -773,13 +788,206 @@ cashier, Test Hammer historical item, and quantity/prices/totals were visible.
 The receipt fit one sheet. Firefox-generated headers/URL metadata are browser
 print UI, not TrackPro application chrome.
 
-### Home and future Dashboard boundary
+### Historical Home observation, resolved by Tracker #16
 
-Manual UI review identified Home as a temporary/simple landing page visually
-weaker than the new application shell. This is a future design observation,
-not a bug. Its proper replacement belongs to #16 Dashboard & Reports, after
-metrics, authorization, date semantics, queries, and tests are explicitly
-designed. Home remains Home; #16 remains NOT STARTED.
+The prior manual UI review identified the former simple Home landing page as
+visually weaker than the application shell. Tracker #16 has now replaced it
+with the operational Dashboard after approved design and verification. The
+route name remains `home`; the page and navigation label are Dashboard.
+
+## Tracker #16 Dashboard & Reports Evidence
+
+Tracker #16 — Dashboard & Reports is COMPLETED. Application checkpoint:
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846`,
+`Add dashboard and sales reports`. Implementation, automated verification,
+manual browser smoke, commit, and normal push are complete. All results below
+are recorded prior evidence; no tests, builds, browser requests, or database
+access occur during this documentation-only update.
+
+### Dashboard behavior and access
+
+The existing `GET|HEAD /` route, named `home`, uses `DashboardController@index`.
+Active Admin and Staff may access it; guests remain denied through auth and
+disabled authenticated users through active-user middleware. Shared content is
+Today's Sales, Transactions Today, Low Stock, Out of Stock, five Recent
+Completed Sales, and five Low Stock Items. Staff does not receive the Admin-only
+Seven-day Completed Sales Trend. No cost information appears.
+
+All Dashboard sales analytics explicitly require `status = completed`. Today
+uses Asia/Manila and `created_at >= start of Manila day` with
+`created_at < start of next Manila day`, without `whereDate` or end-of-day
+23:59:59 logic. Completed-only analytics accommodate eventual SALE_VOID;
+SALE_VOID itself remains unimplemented.
+
+Operational stock counts/lists require active Category, Product, and
+ProductVariant rows. Low Stock remains `current_stock <= low_stock_threshold`;
+Out of Stock is `current_stock = 0.000`. Zero stock is also low stock. Archived
+hierarchy rows are excluded. Recent Completed Sales are limited to five, ordered
+`created_at DESC, id DESC`, with receipt link, cashier, distinct item count,
+and total. Sale history stays immutable; no checkout_token, cost, or
+StockMovement internals are exposed.
+
+The Admin trend covers today and the previous six Manila calendar days, includes
+completed Sales only, fills zero-sale dates, and displays oldest to newest.
+Blade/Tailwind bars introduce no chart dependency. BCMath handles exact decimal
+normalization and presentation-only bar width; exact monetary text remains
+authoritative.
+
+### Reports v1 and historical semantics
+
+Sales Summary is active Admin-only; Staff direct access receives 403. Staff
+Sales History access is unchanged. Exactly one report route was introduced:
+`GET|HEAD /reports`, `reports.index`, `ReportsController@index`, effective
+middleware `web`, `auth`, `active`, `can:access-admin`. There is no
+`reports.store`, `reports.export`, or `reports.print`.
+
+Filters are `date_from`, `date_to`, and `cashier`. The default covers today plus
+the previous six Manila calendar days. Explicit dates require both values in
+strict `YYYY-MM-DD` format. Missing submitted pairs, malformed/impossible dates,
+arrays/non-scalars, reversed ranges, and ranges over 366 inclusive calendar days
+fail closed. Blank cashier means all cashiers; otherwise a positive integer is
+required. Disabled historical cashiers with Sales remain selectable by name;
+usernames are not exposed.
+
+Output includes Completed Sales Total and Completed Transactions. Daily Sales
+shows every selected Manila date, completed transaction count and total,
+including zero-sale dates. Quantity Sold by Unit groups immutable
+`sale_items.unit_snapshot`, keeps unlike units separate, and normalizes quantities
+to three decimals. Reports use historical Sale/SaleItem evidence; current
+ProductVariant unit or catalog state never rewrites that evidence.
+
+User dates remain bound values in half-open predicates `>= start` and
+`< next-day start`. Static daily grouping uses `DATE(sales.created_at)`; database
+SUM/COUNT aggregates include `CAST(COALESCE(SUM(...), 0) AS CHAR)` for decimal-string
+normalization. This syntax was verified in ordinary SQLite tests and is valid
+for the intended MySQL 8 runtime. No user input is interpolated into raw SQL.
+Authoritative money/quantity calculations use no PHP/JavaScript floating point.
+
+### Accounting, navigation, and read-only boundary
+
+Tracker #16 does not calculate/display cost_price, restock unit cost, purchase
+cost, COGS, profit, gross profit, net profit, or margin. Current/latest cost
+references and historical restock costs exist, but no formal FIFO,
+weighted-average, or COGS engine exists; profit must not be inferred.
+Checkout tokens, StockMovement internals, passwords, and authentication fields
+are not exposed. No writes, AuditLog creation, transactions, locks, SALE_VOID,
+CSV/PDF export, or duplicate Sales History workflow were introduced.
+
+Admin's Main group contains Dashboard and Reports. Admin has 10 destinations;
+Staff has seven. Reports, Opening Inventory, and Stock Correction remain
+Admin-only. The responsive desktop/mobile shell and POST + CSRF logout are
+preserved. `resources/views/welcome.blade.php` was replaced by
+`resources/views/dashboard/index.blade.php`; no obsolete production welcome-view
+reference remains. Route name `home` is retained while the visible page and
+navigation label are Dashboard.
+
+Application routes total 40. No production migration, model, service, Composer
+dependency, npm dependency, JavaScript, or CSS change was introduced. Automated
+verification required only isolated SQLite, with no MySQL or persistent database
+access. No dedicated MySQL concurrency gate is required for read-only
+Dashboard/Reports. Prior manual browser smoke read existing local data through
+the application and performed no Sale/stock mutation; it is not fresh database
+access during this documentation turn.
+
+### SQLite fixture compatibility
+
+Three existing custom SQLite scaffolds needed behavior-only support because
+authenticated GET / now renders a data-backed Dashboard:
+
+- `tests/Feature/Auth/AuthTestCase.php`: beyond existing users, added categories,
+  products, product_variants, sales, and sale_items; no restock/movement/audit
+  tables added. AuthenticationTest.php and AuthorizationTest.php are unchanged.
+- `tests/Feature/Inventory/RestockTestCase.php`: added sales and sale_items.sale_id,
+  reusing its existing sale_items table.
+- `tests/Feature/Catalog/CatalogTestCase.php`: added sales and nullable
+  sale_items.sale_id, reusing the existing table. Nullability deliberately
+  preserves established headerless history-marker test rows.
+
+These are test-harness compatibility changes only. No production controller,
+route, or migration was weakened or changed as a fixture workaround. No assertion
+was removed or skipped. No table was duplicated and no fourth fixture path was
+needed; the final Home/custom-fixture audit found no unresolved dependency.
+
+### Approved automated verification
+
+All tests used isolated SQLite `:memory:`. Results are historical and not rerun
+for this documentation checkpoint.
+
+| Suite | Tests | Assertions |
+| --- | --- | --- |
+| DashboardAuthorizationTest | 4 | 17 |
+| DashboardTest | 6 | 39 |
+| ReportsAuthorizationTest | 5 | 23 |
+| ReportsTest | 6 | 77 |
+| Combined new Dashboard/Reports | 21 | 156 |
+| ResponsiveNavigationTest | 3 | 165 |
+| AuthorizationTest | 7 | 22 |
+| AuthenticationTest | 18 | 119 |
+| SalesHistoryAuthorizationTest | 6 | 49 |
+| SalesHistoryTest | 7 | 141 |
+| PosAuthorizationTest | 5 | 43 |
+| RestockAuthorizationTest | 5 | 54 |
+| CatalogAuthorizationTest | 4 | 43 |
+| OpeningInventoryAuthorizationTest | 5 | 37 |
+| StockCorrectionAuthorizationTest | 5 | 52 |
+| ProductManagementTest | 7 | 38 |
+| ProductVariantManagementTest | 12 | 95 |
+| OpeningInventoryManagementTest | 13 | 124 |
+| Full ordinary suite | 191 | 2,023 |
+
+Final full-suite duration: 27.576 seconds. PHP syntax, Blade compilation, Pint,
+Vite production build (2.47s), git diff --check, route/security/scope audits all
+passed. Application route count: 40. No MySQL concurrency proof was required.
+
+### Approved desktop Dashboard browser evidence
+
+Displayed date: Tuesday, September 8, 2026. Today's Sales was ₱0.00,
+Transactions Today 0, Low Stock 1, and Out of Stock 0. The Admin trend showed
+Sep 7 at ₱300.00 / 2 sales, with every other displayed date at ₱0.00 / 0 sales.
+
+Recent Completed Sales appeared in this order:
+
+| Receipt | Date/time | Cashier | Distinct items | Total |
+| --- | --- | --- | --- | --- |
+| TRX-000002 | Sep 7, 2026 10:47 PM | Admin | 1 | ₱150.00 |
+| TRX-000001 | Sep 7, 2026 10:46 PM | Admin | 1 | ₱150.00 |
+
+Low Stock Items showed Test Hammer, Test Tools, 16oz · Claw, piece,
+2.000 / 5.000. Dashboard navigation was active; Reports appeared under Main.
+Desktop sidebar/content layout was clean, with no cost/token/profit visible.
+
+### Approved Reports and receipt integration browser evidence
+
+Default Reports used 2026-09-02 through 2026-09-08, All cashiers, and showed
+Completed Sales Total ₱300.00 and Completed Transactions 2. Sep 7, 2026 showed
+2 transactions / ₱300.00; other selected dates showed 0 / ₱0.00. Quantity Sold
+by Unit showed piece / 2.000.
+
+Explicit filtering used date_from 2026-09-07, date_to 2026-09-07, cashier Admin.
+GET parameters were visible in the browser URL. The result was ₱300.00 / 2,
+one Sep 7 daily row at 2 / ₱300.00, and quantity piece / 2.000.
+
+Dashboard's TRX-000002 View receipt link navigated to /sales/2. The immutable
+receipt showed TRX-000002, Completed, Admin, Test Hammer, 16oz · Claw, piece,
+quantity 1.000, unit price ₱150.00, total ₱150.00, cash received ₱200.00,
+and change ₱50.00. No cost/token/internal data was visible and no local Sale
+or stock mutation was performed for smoke testing.
+
+### Approved mobile browser evidence (approximately 414 × 846)
+
+The compact mobile top bar appeared, desktop sidebar was hidden, and the drawer
+worked. Dashboard and Reports were visible for Admin; account and Sign out were
+reachable. Dashboard's four cards stacked; its seven-day trend, Sep 7 value/bar,
+and zero-sale days were readable. Recent Sales showed TRX-000002 and TRX-000001
+with usable receipt links. Low Stock Items showed Test Hammer 2.000 / 5.000.
+There was no obvious application horizontal overflow.
+
+Reports heading was readable; date/cashier inputs and summary cards stacked.
+Apply filters and Reset were usable. Summary showed ₱300.00 / 2; Daily Sales
+showed Sep 7 at 2 / ₱300.00 with readable zero days. Quantity Sold by Unit showed
+piece / 2.000. Tables were usable with no obvious application horizontal
+overflow. No Staff browser account was manufactured; automated authorization
+provides Staff coverage.
 
 ## Branding Status
 
@@ -792,7 +1000,7 @@ Current branding includes:
 - SVG favicon
 - split branded Login page
 - orange Sign In CTA
-- branded Home hero
+- branded application shell and operational Dashboard
 
 Authentication behavior was not changed.
 
@@ -811,16 +1019,16 @@ No:
 
 ## Current Test Baseline
 
-Verified final Responsive Navigation ordinary suite (historical; not rerun for this update):
+Verified final Tracker #16 ordinary suite (historical; not rerun for this update):
 
-`170 tests / 1,858 assertions`
+`191 tests / 2,023 assertions`
 
-Historical final full-suite duration: 25.886 seconds.
+Historical final full-suite duration: 27.576 seconds, isolated SQLite `:memory:`.
 
 Current application route count from the completed historical
 `php artisan route:list --except-vendor` verification:
 
-`39`
+`40`
 
 Before accepting a later stage, compare new results against the current code and
 explain legitimate changes in counts.
@@ -890,22 +1098,20 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #13 is COMPLETED. The separate Responsive Navigation UI mini-checkpoint
-is IMPLEMENTED / VERIFIED, manually browser-smoked, committed, and pushed.
-It adds no formal tracker completion; the completed count remains 9 / 23.
-
-The next major unimplemented application tracker is #16 — Dashboard & Reports.
-Status: NOT STARTED. Future #16 may replace the simple Home landing page with a
-useful Dashboard after explicit design of metrics, authorization, date semantics,
-queries, and tests. Home remains Home; no redesign or #16 implementation occurs
-in this documentation checkpoint.
+Tracker #16 — Dashboard & Reports is COMPLETED, automatically verified,
+manually browser-smoked, committed, and pushed. Trackers #13 and #14 remain
+COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
+IMPLEMENTED / VERIFIED and adds no formal tracker item. The completed count
+is **10 / 23**. Stop for review; no next application tracker is authorized here.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
 ongoing module tests do not formally complete it. #17 Edge Case & Permission
 Testing also remains pending/in progress. Other remaining tracker work
 is unchanged. SALE_VOID / Admin full-sale void, returns/refunds, discounts,
-credit / utang, Dashboard & Reports, User Management UI, and remaining
-documentation/testing/presentation work remain future scope.
+credit / utang, formal profit / COGS, CSV/PDF report exports, sales-by-cashier
+ranking, top-selling variant report, general stock-movement report, User
+Management UI, and remaining documentation/testing/presentation work remain
+future scope.
 
 ## Documentation Maintenance Rule
 
