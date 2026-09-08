@@ -2,9 +2,11 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Tracker #13 Receipt & Sales History implementation
+## Current scope: through Tracker #16 Dashboard & Reports
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 cash-only POS checkout, its dedicated MySQL concurrency proofs, browser smoke, and application checkpoint are complete. Tracker #13 now implements the working Receipt & Sales History feature; its remaining review, browser, and checkpoint gates are not yet complete. `SALE_VOID` and supplier workflows remain unimplemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 cash-only POS and Tracker #13 Receipt & Sales History are complete, including verification, browser smoke, and application checkpoints. Responsive navigation and Tracker #16 Dashboard & Reports are also implemented, verified, browser-smoked, committed, and pushed. Dashboard is shared by Admin and Staff; the seven-day trend and Sales Summary Reports are Admin-only. `SALE_VOID`, User Management UI, and supplier workflows remain unimplemented.
+
+See the [Client Problem and Requirements Baseline](docs/requirements.md) for the team-approved/project-derived requirements, assumptions, acceptance outcomes, and scope boundaries. [PROJECT_STATUS.md](PROJECT_STATUS.md) records current checkpoints and verification evidence.
 
 ## Requirements
 
@@ -54,7 +56,7 @@ git diff --check
 git status --short --branch
 ```
 
-Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. Authentication tests load only the existing users migration. Catalog feature tests load the portable users/categories/products migrations and construct a clearly labeled test-only Product Variant/history-marker schema for HTTP behavior; they never execute the MySQL-specific Product Variant migration. Production CHECK and collation behavior remains the responsibility of the guarded MySQL suite. The default seeder remains empty.
+Ordinary PHPUnit runs force an in-memory SQLite connection. Foundation tests do not migrate or seed anything and block PDO access. Authentication fixtures provide users, categories, products, product_variants, sales, and sale_items for authenticated Dashboard requests. Catalog and Restock fixtures also provide sales and sale_items.sale_id; the Catalog field is nullable to preserve headerless history-marker tests. These are behavior-only SQLite scaffolds, not production-schema proof; they never execute the MySQL-specific Product Variant migration. Production CHECK and collation behavior remains the responsibility of the guarded MySQL suite. The default seeder remains empty.
 
 Live schema tests use the named `mysql_testing` connection and credentials from the ignored `.env.mysql` file. `scripts/verify-mysql-schema` rejects any database, account, socket, engine, or environment other than the dedicated test configuration before it migrates or rolls back. Its default entry state is an empty schema; set `MYSQL_TEST_INITIAL_STATE=migrated` for a guarded rerun from the verified migrated state. The runner is destructive to that isolated test database and must never be configured with the normal local database.
 
