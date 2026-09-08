@@ -47,12 +47,28 @@ abstract class CatalogTestCase extends TestCase
         });
 
         // Minimal sale/restock history markers for behavior tests, not production-schema proof.
-        foreach (['sale_items', 'restock_items'] as $tableName) {
-            Schema::create($tableName, function (Blueprint $table): void {
-                $table->id();
-                $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
-            });
-        }
+        Schema::create('sales', function (Blueprint $table): void {
+            $table->id();
+            $table->uuid('checkout_token')->unique();
+            $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('status')->default('completed');
+            $table->decimal('total_amount', 16, 2);
+            $table->decimal('cash_received', 16, 2);
+            $table->decimal('change_amount', 16, 2);
+            $table->text('void_reason')->nullable();
+            $table->foreignId('voided_by')->nullable()->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->timestamp('voided_at')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('sale_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('sale_id')->nullable()->constrained('sales')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+        });
+        Schema::create('restock_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+        });
 
         // Opening-inventory behavior scaffolding only. Production StockMovement
         // ENUM/CHECK/index DDL remains exclusively covered by the guarded MySQL suite.

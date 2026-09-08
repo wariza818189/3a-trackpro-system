@@ -16,7 +16,10 @@
                 [
                     'label' => 'Main',
                     'items' => [
-                        ['label' => 'Home', 'route' => 'home', 'active' => 'home'],
+                        ['label' => 'Dashboard', 'route' => 'home', 'active' => 'home'],
+                        ...($navigationAdmin ? [
+                            ['label' => 'Reports', 'route' => 'reports.index', 'active' => 'reports.*'],
+                        ] : []),
                     ],
                 ],
                 [

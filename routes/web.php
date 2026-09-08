@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
@@ -17,7 +19,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware(['auth', 'active'])->group(function (): void {
-    Route::get('/', fn () => view('welcome'))->name('home');
+    Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
     Route::get('/sales', [SalesHistoryController::class, 'index'])->name('sales.index');
@@ -31,6 +33,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/stock-in/{restock}', [StockInController::class, 'show'])->name('stock-in.show');
 
     Route::middleware('can:access-admin')->group(function (): void {
+        Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');
         Route::get('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'create'])->name('opening-inventory.create');
         Route::post('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'store'])->name('opening-inventory.store');

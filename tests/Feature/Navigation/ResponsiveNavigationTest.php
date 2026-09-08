@@ -7,12 +7,13 @@ use Tests\Feature\Auth\AuthTestCase;
 
 class ResponsiveNavigationTest extends AuthTestCase
 {
-    public function test_admin_navigation_uses_all_nine_destinations_in_desktop_and_mobile_menus(): void
+    public function test_admin_navigation_uses_all_ten_destinations_in_desktop_and_mobile_menus(): void
     {
         $admin = User::factory()->admin()->create();
         $html = $this->actingAs($admin)->get(route('home'))->assertOk()->getContent();
         $expected = [
-            'home' => 'Home',
+            'home' => 'Dashboard',
+            'reports.index' => 'Reports',
             'pos.index' => 'POS',
             'sales.index' => 'Sales History',
             'categories.index' => 'Categories',
@@ -31,7 +32,7 @@ class ResponsiveNavigationTest extends AuthTestCase
         $staff = User::factory()->create();
         $html = $this->actingAs($staff)->get(route('home'))->assertOk()->getContent();
         $expected = [
-            'home' => 'Home',
+            'home' => 'Dashboard',
             'pos.index' => 'POS',
             'sales.index' => 'Sales History',
             'categories.index' => 'Categories',
@@ -45,6 +46,8 @@ class ResponsiveNavigationTest extends AuthTestCase
         $this->assertStringNotContainsString('data-nav-route="stock-corrections.index"', $html);
         $this->assertStringNotContainsString('Opening Inventory', $html);
         $this->assertStringNotContainsString('Stock Correction', $html);
+        $this->assertStringNotContainsString('data-nav-route="reports.index"', $html);
+        $this->assertStringNotContainsString('Reports', $html);
     }
 
     public function test_navigation_markup_is_accessible_print_hidden_active_and_uses_secure_logout_forms(): void
