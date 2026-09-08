@@ -208,6 +208,17 @@ Sales / POS:
 - exactly one SALE movement is created per SaleItem
 - POS never exposes purchase cost
 
+Receipt & Sales History:
+
+- read-only for active Admin and Staff
+- both roles may view and reprint all Sales
+- receipt/history display uses immutable Sale and SaleItem evidence
+- historical presentation must not substitute current catalog names, prices, or stock
+- purchase cost and checkout tokens must never be exposed
+- the printable `sales.show` page is the receipt and reprint surface
+- viewing, reloading, and printing create no AuditLog or other write
+- SALE_VOID remains a separate future workflow
+
 Do not rewrite immutable historical inventory transactions.
 
 ## Historical Data

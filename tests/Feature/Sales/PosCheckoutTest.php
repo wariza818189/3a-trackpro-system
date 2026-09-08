@@ -55,6 +55,8 @@ class PosCheckoutTest extends PosTestCase
         $response->assertSessionHas('sale_confirmation.message', 'Sale completed.');
 
         $sale = Sale::query()->with(['items.saleMovement'])->sole();
+        $response->assertSessionHas('sale_confirmation.sale_id', $sale->id);
+        $this->get(route('pos.index'))->assertOk()->assertSee(route('sales.show', $sale->id), false);
         $this->assertSame($token, $sale->checkout_token);
         $this->assertSame($actor->id, $sale->recorded_by);
         $this->assertSame(Sale::STATUS_COMPLETED, $sale->status);
@@ -415,11 +417,14 @@ class PosCheckoutTest extends PosTestCase
             ->assertSee('A fresh checkout token was generated. Review the cart before checking out.')
             ->assertDontSee('name="submission_token" value="'.$token.'"', false);
 
-        $this->actingAs($actor)->post(route('pos.checkout'), [
+        $response = $this->actingAs($actor)->post(route('pos.checkout'), [
             'submission_token' => $token,
             'amount_tendered' => '100.00',
             'items' => [['product_variant_id' => $variant->id, 'quantity' => '1.000', 'expected_unit_price' => '100.00']],
         ])->assertSessionHas('sale_confirmation.message', 'Sale was already recorded.');
+        $sale = Sale::query()->sole();
+        $response->assertSessionHas('sale_confirmation.sale_id', $sale->id);
+        $this->get(route('pos.index'))->assertOk()->assertSee(route('sales.show', $sale->id), false);
     }
 
     public function test_unavailable_old_cart_item_is_removed_with_review_notice(): void

@@ -2,9 +2,9 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: Tracker #12 POS / Sales implementation review
+## Current scope: Tracker #13 Receipt & Sales History implementation
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 now implements cash-only POS checkout with immutable SaleItem and `SALE` movement evidence; its dedicated MySQL concurrency proofs and browser checkpoint remain pending. Receipt/Sales History, `SALE_VOID`, and supplier workflows are not implemented.
+Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 cash-only POS checkout, its dedicated MySQL concurrency proofs, browser smoke, and application checkpoint are complete. Tracker #13 now implements the working Receipt & Sales History feature; its remaining review, browser, and checkpoint gates are not yet complete. `SALE_VOID` and supplier workflows remain unimplemented.
 
 ## Requirements
 
@@ -102,4 +102,10 @@ The backend derives the signed change from exact three-decimal strings, updates 
 
 Active Admin and Staff users can perform cash-only checkout for one to 100 cart components. Duplicate Variant components are independently validated and consolidated into one SaleItem. The service locks all Categories, then Products, then Product Variants in ascending ID order, rechecks the active initialized hierarchy, and uses exact BCMath quantity and money calculations. Locked catalog selling prices are authoritative; submitted `expected_unit_price` values only detect a price changed since the cashier reviewed the cart.
 
-Each successful checkout atomically creates one completed immutable Sale, one immutable SaleItem per distinct Variant, one stock deduction per Variant, and one linked immutable `SALE` movement per SaleItem. A unique checkout token arbitrates durable idempotent retries, including concurrent collisions, while canonical actor, tender, Variant, quantity, and stored historical price comparison rejects semantic token reuse. The POS selects and displays no purchase-cost fields. Receipt detail/printing, Sales History, and all void behavior remain deferred to later trackers.
+Each successful checkout atomically creates one completed immutable Sale, one immutable SaleItem per distinct Variant, one stock deduction per Variant, and one linked immutable `SALE` movement per SaleItem. A unique checkout token arbitrates durable idempotent retries, including concurrent collisions, while canonical actor, tender, Variant, quantity, and stored historical price comparison rejects semantic token reuse. The POS selects and displays no purchase-cost fields. All void behavior remains deferred to a later tracker.
+
+## Receipt & Sales History behavior
+
+Active Admin and Staff may browse all Sales and open the same read-only Sale detail page for receipt viewing and browser reprinting. The history index supports exact canonical receipt lookup, cashier filtering, and inclusive Asia/Manila calendar-date filtering with server-side pagination. Receipt numbers remain derived from immutable Sale IDs.
+
+History and receipt presentation selects only the Sale payment header and immutable SaleItem name, Variant identity, unit, quantity, selling-price, and line-total snapshots. It does not consult current catalog values or expose checkout tokens, purchase costs, inventory movements, or user authentication fields. Printing uses the normal authenticated page and `window.print()`; views, reloads, and prints create no writes or AuditLog entries. There is no PDF generation or `SALE_VOID` behavior.

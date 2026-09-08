@@ -54,7 +54,7 @@ class PosAuthorizationTest extends PosTestCase
         }
         $this->assertSame(['GET', 'HEAD'], Route::getRoutes()->getByName('pos.index')->methods());
         $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.checkout')->methods());
-        foreach (['sales.index', 'sales.show', 'sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.void'] as $name) {
+        foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.void'] as $name) {
             $this->assertNull(Route::getRoutes()->getByName($name));
         }
     }

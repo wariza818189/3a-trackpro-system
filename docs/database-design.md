@@ -188,4 +188,10 @@ The checkout service validates every original cart component as an ordinary unsi
 
 Each line uses positive half-up rounding of `quantity × unit_price`, and the Sale total is the exact sum of rounded lines. Zero-rounded lines, line/header overflow, underpayment, and insufficient stock are controlled validation failures. The unique Sale insert is the checkout-token race arbiter and occurs before locked stock sufficiency checks; transaction rollback removes the temporary Sale on failure. A committed equivalent replay is validated from immutable SaleItem and linked `SALE` movement history without consulting current catalog price, name, status, or stock.
 
-Successful checkout creates one completed Sale, one SaleItem and one negative `SALE` movement per distinct Variant, and updates only authoritative `current_stock`. Sale, SaleItem, and StockMovement records are currently immutable, and ordinary checkout produces no AuditLog row. Receipt detail/printing, Sales History, returns, discounts, credit, and `SALE_VOID` remain unimplemented.
+Successful checkout creates one completed Sale, one SaleItem and one negative `SALE` movement per distinct Variant, and updates only authoritative `current_stock`. Sale, SaleItem, and StockMovement records are currently immutable, and ordinary checkout produces no AuditLog row. Returns, discounts, credit, and `SALE_VOID` remain unimplemented.
+
+## Tracker #13 Receipt & Sales History rules
+
+Receipt & Sales History requires no schema change. Active Admin and Staff may browse all Sales and view the same read-only `sales.show` page as the receipt and browser-reprint surface. Receipt numbers remain derived from the immutable Sale ID through `receiptNumber()` and are not stored separately.
+
+The index reads only Sale payment headers, cashier names, and aggregate item counts. Receipt lines use the immutable SaleItem product-name, Variant-identity, unit, quantity, selling-price, and line-total snapshots; current Product and ProductVariant values are not historical display sources. Checkout tokens, purchase costs, StockMovement internals, and authentication data are not selected or displayed. Viewing, reloading, or printing creates no AuditLog or other database write. Browser printing uses `window.print()` without PDF generation, and no `SALE_VOID` transition or stock-restoration workflow is implemented.

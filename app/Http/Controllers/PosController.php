@@ -64,6 +64,7 @@ class PosController extends Controller
 
         return redirect()->route('pos.index')->with('sale_confirmation', [
             'message' => $sale->wasRecentlyCreated ? 'Sale completed.' : 'Sale was already recorded.',
+            'sale_id' => (int) $sale->getKey(),
             'receipt_number' => $sale->receiptNumber(),
             'total' => (string) $sale->total_amount,
             'cash' => (string) $sale->cash_received,

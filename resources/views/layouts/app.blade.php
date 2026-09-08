@@ -10,7 +10,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
     @auth
-        <header class="border-b border-slate-200 bg-white shadow-sm">
+        <header class="border-b border-slate-200 bg-white shadow-sm print:hidden">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
                 <a href="{{ route('home') }}" aria-label="3A TrackPro Home" class="shrink-0 whitespace-nowrap rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
                     <x-brand-logo />
@@ -19,12 +19,13 @@
                     @foreach ([
                         'home' => 'Home',
                         'pos.index' => 'POS',
+                        'sales.index' => 'Sales History',
                         'categories.index' => 'Categories',
                         'products.index' => 'Products',
                         'product-variants.index' => 'Variants',
                         'stock-in.index' => 'Stock In',
                     ] as $routeName => $label)
-                        <a href="{{ route($routeName) }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs($routeName === 'stock-in.index' ? 'stock-in.*' : ($routeName === 'pos.index' ? 'pos.*' : $routeName)) ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <a href="{{ route($routeName) }}" class="rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs(match ($routeName) { 'stock-in.index' => 'stock-in.*', 'pos.index' => 'pos.*', 'sales.index' => 'sales.*', default => $routeName }) ? 'bg-amber-100 text-amber-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                             {{ $label }}
                         </a>
                     @endforeach
@@ -50,13 +51,13 @@
     @endauth
 
     @if (session('success'))
-        <div class="mx-auto mt-6 max-w-7xl px-6" role="status">
+        <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="status">
             <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</p>
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="mx-auto mt-6 max-w-7xl px-6" role="alert">
+        <div class="mx-auto mt-6 max-w-7xl px-6 print:hidden" role="alert">
             <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                 <p class="font-semibold">Please correct the following:</p>
                 <ul class="mt-2 list-disc space-y-1 pl-5">

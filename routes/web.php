@@ -6,6 +6,7 @@ use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
+use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/', fn () => view('welcome'))->name('home');
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+    Route::get('/sales', [SalesHistoryController::class, 'index'])->name('sales.index');
+    Route::get('/sales/{sale}', [SalesHistoryController::class, 'show'])->whereNumber('sale')->name('sales.show');
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/product-variants', [ProductVariantController::class, 'index'])->name('product-variants.index');

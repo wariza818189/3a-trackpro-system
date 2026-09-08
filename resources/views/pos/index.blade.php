@@ -25,6 +25,7 @@
                 <div><dt class="text-emerald-700">Change</dt><dd class="font-semibold">₱{{ $confirmation['change'] }}</dd></div>
                 <div><dt class="text-emerald-700">Distinct items</dt><dd class="font-semibold">{{ $confirmation['item_count'] }}</dd></div>
             </dl>
+            <a href="{{ route('sales.show', $confirmation['sale_id']) }}" class="mt-4 inline-flex rounded-lg border border-emerald-400 px-3 py-2 text-sm font-semibold hover:bg-emerald-100">View receipt</a>
         </section>
     @endif
 
