@@ -60,6 +60,7 @@ Completed:
 - Responsive Navigation UI mini-checkpoint — IMPLEMENTED / VERIFIED; committed and pushed
 - Tracker #16 — Dashboard & Reports — COMPLETED; committed and pushed
 - Tracker #3 — Client Problem & Requirements — COMPLETED; documentation reviewed, corrected, committed, and pushed
+- Tracker #4 — Product Data Planning — COMPLETED; source reconciled, planning artifacts committed, and pushed
 
 Latest completed formal engineering stage:
 
@@ -83,24 +84,26 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#3 — Client Problem & Requirements
+#4 — Product Data Planning
 
 Status:
 
 COMPLETED
 
-Tracker #3 is formally closed on the team-approved/project-derived requirements
-baseline recorded below. Tracker #16 remains the latest completed application
-stage. Tracker #12 remains COMPLETED;
-its one-time completed/replayed POS confirmation now links to the receipt.
+Tracker #4 is formally closed as a product-data planning tracker on the approved
+source audit, normalization plan, and validated local staging dataset recorded
+below. Tracker #16 remains the latest completed application stage. Tracker #3
+and Tracker #12 remain COMPLETED; Tracker #12's one-time completed/replayed POS
+confirmation links to the receipt.
 
-Overall completed tracker count: **11 / 23**.
+Overall completed tracker count: **12 / 23**.
 
 Completed tracker items:
 
 - #1 Create Tracking Document
 - #2 Project Scope Planning
 - #3 Client Problem & Requirements
+- #4 Product Data Planning
 - #6 Workflow & Business Rules
 - #9 Database & System Design
 - #10 Authentication & User Roles
@@ -112,7 +115,6 @@ Completed tracker items:
 
 All other tracker statuses remain unchanged. These remain pending/in progress:
 
-- #4 Product Data Planning
 - #5 UI/UX Planning
 - #7 Test Case Preparation
 - #15 Functional Testing
@@ -227,10 +229,9 @@ Tests prove software behavior, not client interviews. No tests, builds, or
 database access occurred for this closeout.
 
 Tracker #3 establishes why, what, for whom, constraints, acceptance outcomes,
-and scope. It does not complete or start the following pending/in-progress work:
+and scope. At its closeout, it did not complete or start these separate trackers:
 
-- #4 Product Data Planning: actual product/item data, variants, units, and pricing
-  preparation.
+- #4 Product Data Planning: subsequently completed in the formal closeout below.
 - #5 UI/UX Planning: screen, user-flow, and design planning evidence.
 - #7 Test Case Preparation: formal detailed test cases, procedures, and expected
   results.
@@ -250,6 +251,172 @@ The latest completed application checkpoint remains
 `31b5b95f8d4de3136c15924bc541b52a6d2fa846` — Add dashboard and sales reports.
 Use `git rev-parse HEAD` for actual repository HEAD; this closeout does not
 predict its own documentation commit hash.
+
+## Tracker #4 Product Data Planning Closeout
+
+Status: COMPLETED — formal documentation closeout on 2026-09-09.
+
+Tracker #4 is a **PRODUCT-DATA PLANNING** tracker. Completion means the supplied
+real source is fully accounted for; its structure and ambiguities are
+reconciled; Category → Product → ProductVariant mapping, normalization, units,
+quantity modes, price interpretation, stock-pool risks, and entry-readiness
+criteria are documented; and a structured local staging dataset is created and
+validated. Missing and ambiguous evidence remains visible, unsupported values
+are not invented, and no database load occurred.
+
+Completion does not mean every source row is entry-ready, every missing price or
+threshold is resolved, opening stock is counted, or Products are loaded into the
+application. HOLD records do not invalidate this planning closeout.
+
+### Source, deliverables, and reconciliation
+
+The supplied source is `.local-source/3A-DURIAN-PRICING.pdf`, a local-only,
+ignored, untracked 22-page file with SHA-256
+`656355b98027a4c366ee48ecca2dc04d313d9ccb30a9d6b103d48650206de064`.
+The complete real price list is not reproduced in tracked documentation.
+
+Audited source distinctions:
+
+| Source measure | Count |
+| --- | ---: |
+| Source groups | 59 |
+| Printed item rows | 321 |
+| Printed price positions | 400 |
+| Numeric price positions | 312 |
+| Blank price positions | 88 |
+| Printed item rows with no numeric price anywhere | 31 |
+
+The 321 printed rows are not 321 Products, and the 400 price positions are not
+400 ProductVariants. Matrix columns and alternate selling bases create multiple
+price positions for some printed rows.
+
+Tracked deliverables:
+
+- `docs/product-data-plan.md` records the approved planning method,
+  normalization rules, source audit, category plan, stock-pool risks,
+  price/cost handling, ambiguity rules, and entry-readiness criteria.
+- `docs/product-data-staging-template.csv` contains the exact public 33-column
+  staging schema and header only.
+
+The complete derived dataset,
+`.local-source/3A-DURIAN-PRICING-staging.csv`, remains local-only, ignored, and
+untracked. Its 400 data records reconcile to 321 unique source rows, 312 numeric
+source-price records, 88 blank-price records, and 31 source rows with no numeric
+price anywhere. The real-price rows are not tracked.
+
+Initial local staging review results are **205 `normalized_pending_review`, 195
+`hold`, and 0 `approved_for_entry`**. The zero approved count is intentional:
+required catalog decisions such as low-stock thresholds are absent, and several
+source-unit and stock-pool questions remain. These 400 source positions are not
+described as ready for database entry.
+
+### Catalog, identity, category, and normalization plan
+
+Planning maps source data into Category → Product → ProductVariant. The exact
+ProductVariant identity remains `(product_id, size, type_series, thickness,
+unit)`. Price and `quantity_mode` do not create distinct identities by
+themselves. Archived Variants continue occupying their identities, and
+duplicate-looking records require review rather than automatic merging.
+
+The team/project planning categories, which are not source-authored categories,
+are:
+
+- Steel Pipes & Tubes
+- Steel Bars & Sections
+- Roofing & Sheet Metal
+- Wire, Screens & Netting
+- Ceiling & Framing
+- Insulation & Coverings
+- Rope
+- Drainage & Sanitary
+- Welding Supplies
+- Plumbing Pipes, Fittings & Valves
+- Nails & Fasteners
+- Boards & Panels
+
+Original source wording is preserved separately from normalized/proposed text.
+Spelling and formatting issues are documented instead of silently rewritten.
+Unlabelled 1.2, 1.5, 0.8, and 1.0 thickness-like values may be proposed as
+`thickness`, but remain review-sensitive because the source does not explicitly
+label their dimension unit. Composite dimensions remain intact when splitting
+would require an assumption.
+
+The initial tentative identity check found **10 collision groups covering 20
+P.E. fitting staging records**. Multiple printed source columns map toward the
+same proposed per-piece identities. All remain HOLD/review-required. No database
+collision query was performed.
+
+### Unit, price, currency, stock, and ambiguity rules
+
+Team-proposed unit and quantity-mode mappings are:
+
+| Source/item basis | Proposed unit | Proposed quantity mode |
+| --- | --- | --- |
+| Discrete or fixed item | piece | whole |
+| Sheet or board-type good | sheet | whole |
+| Explicit per-kilo | kg | fractional |
+| Explicit per-meter | m | fractional |
+| Explicit per-roll | roll | whole |
+
+These are planning mappings; a generic source PRICE does not prove its selling
+unit. TrackPro has no unit conversion. Different units are independent stock
+pools, so the same physical roll must not be counted as both roll stock and
+meter stock. Likely shared-stock or unclear families remain HOLD, including
+Thick Screen, Thin Screen, Insulation Foam, Tent Black, and other meter/roll
+screen, net, rope, and P.E. cases.
+
+The P.E. source table visually places fitting rows below a PER ROLL / PER METER
+header; review confirmed that this is source layout rather than an extraction
+error. P.E. fittings are proposed as `piece` / `whole`, while retaining the
+ambiguous header evidence and HOLD status. The plan does not claim that the
+source explicitly states "per piece."
+
+Numeric source PRICE values are treated as candidate selling prices. The PDF
+contains no explicit currency label. PHP / Philippine peso is a project and
+application assumption, while every source-currency field remains blank.
+Purchase cost is not supplied, so `cost_price` remains blank/nullable and is
+never derived from selling price.
+
+Blank source price positions remain blank with `missing_source_price` and HOLD.
+Zero, `0.00`, neighboring prices, averages, and interpolation are not substitutes.
+
+The source does not provide `current_stock`, an opening inventory quantity, or
+an approved low-stock threshold. No opening or current stock was staged, and
+thresholds remain `not_provided_by_source`. Actual Opening Inventory remains a
+separate physical-count workflow. Later catalog creation may require an approved
+threshold; Tracker #4 does not invent one.
+
+### Historical evidence, scope, and checkpoint boundaries
+
+Test Tools / Test Hammer / 16oz · Claw remains legitimate historical local
+development evidence. It is no longer the preferred representative product-data
+planning example. Tracker #4 did not delete, rename, repurpose, rewrite, or
+access it through the database, and its historical Sales/StockMovement evidence
+remains preserved. Future documentation and demonstrations should prefer
+approved real-source product families.
+
+Tracker #4 covers source catalog review, normalization, grouping, Variant
+mapping, unit/mode planning, price-source interpretation, and ambiguity/HOLD
+handling. #5 UI/UX Planning, #7 Test Case Preparation, #15 Functional Testing,
+and #17 Edge Case & Permission Testing remain pending/in progress. Opening
+Inventory remains a separate physical-count workflow. No other tracker is
+completed by this closeout.
+
+No schema, migration, model, controller, service, application source, or
+dependency changed. No product seed/import ran and no database was accessed.
+No test or build gate was required. The historical ordinary software baseline
+remains **191 tests / 2,023 assertions**, 27.576 seconds, isolated SQLite
+`:memory:`; the application route baseline remains **40**. These checks were not
+rerun for Tracker #4.
+
+The completed product-data planning/documentation checkpoint is
+`4358436085f51507d12bf178721bd875b4eb46a1` —
+`Plan product data from pricing source`. It is not an application/code
+checkpoint and is not added to the application checkpoint chain below. The
+latest completed application checkpoint remains
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
+`Add dashboard and sales reports`. Use `git rev-parse HEAD` for the repository's
+actual current HEAD; this closeout does not predict its own commit hash.
 
 ## Completed Application Checkpoint Chain
 
@@ -790,7 +957,8 @@ Status: IMPLEMENTED / VERIFIED — application commit and normal push complete:
 All automated and browser results below are historical approved evidence. No
 tests, builds, browser smoke, or database access occur in this documentation
 checkpoint. The formal completed tracker count at that historical checkpoint was
-**9 / 23**; the current count after Tracker #3 closeout is **11 / 23**.
+**9 / 23**; Tracker #3 later raised it to 11 / 23, and the current count after
+Tracker #4 closeout is **12 / 23**.
 
 ### Completed navigation and security
 
@@ -1211,16 +1379,19 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #3 — Client Problem & Requirements is COMPLETED on the approved
-requirements baseline; its documentation is reviewed, corrected, committed, and
-pushed. Tracker #16 remains the latest completed application stage, automatically
-verified, manually browser-smoked, committed, and pushed. Trackers #13 and #14 remain
-COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
-IMPLEMENTED / VERIFIED and adds no formal tracker item. The completed count
-is **11 / 23**. Stop for review; no next tracker is authorized here.
+Tracker #4 — Product Data Planning is COMPLETED on the approved source audit,
+normalization plan, and reconciled local staging dataset. Its planning artifacts
+are reviewed, committed, and pushed. Tracker #3 remains COMPLETED on the approved
+requirements baseline. Tracker #16 remains the latest completed application
+stage, automatically verified, manually browser-smoked, committed, and pushed;
+Trackers #13 and #14 also remain COMPLETED. The separate Responsive Navigation
+UI mini-checkpoint remains IMPLEMENTED / VERIFIED outside the formal tracker
+count. The completed count is **12 / 23**. Stop for review; no next tracker is
+authorized here.
 
-#4 Product Data Planning, #5 UI/UX Planning, and #7 Test Case Preparation remain
-pending/in progress and are not started by this closeout.
+#5 UI/UX Planning and #7 Test Case Preparation remain pending/in progress and
+are not started by this closeout. Opening Inventory remains a separate physical
+count workflow; no product data was loaded.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
 ongoing module tests do not formally complete it. #17 Edge Case & Permission
