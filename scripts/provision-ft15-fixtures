@@ -1,0 +1,453 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Dotenv\Dotenv;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use TrackPro\Ft15Support\FixturePlan;
+
+const EXPECTED_ACCOUNT = 'trackpro_test_user@localhost';
+const EXPECTED_SOCKET = '/var/run/mysqld/mysqld.sock';
+
+final class Ft15Failure extends RuntimeException {}
+
+$repositoryRoot = dirname(__DIR__);
+
+require $repositoryRoot.'/vendor/autoload.php';
+require __DIR__.'/ft15/FixturePlan.php';
+
+try {
+    $arguments = parseArguments(array_slice($argv, 1));
+    if ($arguments['help']) {
+        printHelp();
+        exit(0);
+    }
+
+    loadIgnoredEnvironment($repositoryRoot);
+    requireFunctionalMode();
+    $passwords = requireCredentialInputs();
+    $runId = $arguments['run_id'];
+    try {
+        FixturePlan::assertRunId($runId);
+    } catch (InvalidArgumentException $exception) {
+        throw new Ft15Failure($exception->getMessage());
+    }
+
+    $asOfManila = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+    $plan = FixturePlan::make($runId, $asOfManila);
+    $manifest = FixturePlan::manifest($plan);
+
+    if ($arguments['operation'] === 'preview') {
+        emitManifest($manifest + [
+            'operation' => 'preview',
+            'database_accessed' => false,
+            'identity_verified' => false,
+            'writes_performed' => false,
+            'next_gate' => 'Run --verify under separate approval before considering --apply.',
+        ]);
+        exit(0);
+    }
+
+    if ($arguments['operation'] === 'apply') {
+        $expectedConfirmation = FixturePlan::confirmationPhrase($runId);
+        if (! hash_equals($expectedConfirmation, $arguments['confirmation'])) {
+            throw new Ft15Failure('Apply refused: the destructive confirmation phrase is missing or incorrect.');
+        }
+    }
+
+    forceTestingEnvironment();
+    $app = require $repositoryRoot.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
+    $kernel->bootstrap();
+
+    $identity = guardLiveIdentity();
+
+    if ($arguments['operation'] === 'verify') {
+        emitManifest($manifest + [
+            'operation' => 'verify',
+            'database_accessed' => true,
+            'identity_verified' => true,
+            'verified_identity' => $identity,
+            'writes_performed' => false,
+            'next_gate' => 'Seek separate approval before --apply.',
+        ]);
+        exit(0);
+    }
+
+    // Re-prove server-side identity immediately before the whole-schema reset.
+    guardLiveIdentity();
+    $exitCode = Artisan::call('migrate:fresh', [
+        '--database' => FixturePlan::CONNECTION,
+        '--force' => true,
+    ]);
+    if ($exitCode !== 0) {
+        throw new Ft15Failure('The isolated schema reset did not complete.');
+    }
+
+    guardLiveIdentity();
+    guardExpectedMigratedSchema();
+    $identifiers = provisionFixtures($plan, $passwords);
+
+    emitManifest($manifest + [
+        'operation' => 'apply',
+        'database_accessed' => true,
+        'identity_verified' => true,
+        'writes_performed' => true,
+        'identifiers' => $identifiers,
+        'next_gate' => 'Execute the approved 30-case manual flow; do not selectively delete immutable history.',
+    ]);
+} catch (Throwable $exception) {
+    $message = $exception instanceof Ft15Failure
+        ? $exception->getMessage()
+        : 'FT15 provisioning failed safely; no connection details or underlying exception are shown.';
+    fwrite(STDERR, $message.PHP_EOL);
+    exit(1);
+}
+
+/** @return array{help: bool, operation: string, run_id: string, confirmation: string} */
+function parseArguments(array $arguments): array
+{
+    $result = ['help' => false, 'operation' => '', 'run_id' => '', 'confirmation' => ''];
+
+    foreach ($arguments as $argument) {
+        if ($argument === '--help') {
+            $result['help'] = true;
+        } elseif (in_array($argument, ['--preview', '--verify', '--apply'], true)) {
+            if ($result['operation'] !== '') {
+                throw new Ft15Failure('Choose exactly one operation: --preview, --verify, or --apply.');
+            }
+            $result['operation'] = substr($argument, 2);
+        } elseif (str_starts_with($argument, '--run-id=')) {
+            if ($result['run_id'] !== '') {
+                throw new Ft15Failure('Supply --run-id exactly once.');
+            }
+            $result['run_id'] = substr($argument, strlen('--run-id='));
+        } elseif (str_starts_with($argument, '--confirm=')) {
+            if ($result['confirmation'] !== '') {
+                throw new Ft15Failure('Supply --confirm at most once.');
+            }
+            $result['confirmation'] = substr($argument, strlen('--confirm='));
+        } else {
+            throw new Ft15Failure('Unknown FT15 provisioning argument.');
+        }
+    }
+
+    if ($result['help']) {
+        return $result;
+    }
+    if ($result['operation'] === '' || $result['run_id'] === '') {
+        throw new Ft15Failure('Choose one operation and supply an explicit --run-id.');
+    }
+    if ($result['operation'] !== 'apply' && $result['confirmation'] !== '') {
+        throw new Ft15Failure('--confirm is accepted only with --apply.');
+    }
+
+    return $result;
+}
+
+function printHelp(): void
+{
+    echo <<<'HELP'
+Tracker #15 isolated fixture support
+
+Required local environment variables:
+  FT15_MODE=functional-testing
+  FT15_ADMIN_PASSWORD=<local secret, at least 12 characters>
+  FT15_STAFF_PASSWORD=<local secret, at least 12 characters>
+  MYSQL_TEST_DB_HOST, MYSQL_TEST_DB_PORT, MYSQL_TEST_DB_DATABASE,
+  MYSQL_TEST_DB_USERNAME, MYSQL_TEST_DB_PASSWORD, MYSQL_TEST_DB_SOCKET
+
+The script reads ignored .env.mysql and optional ignored .env.ft15 files.
+
+Operations:
+  --preview  Validate non-database inputs and print a non-secret plan. No DB access.
+  --verify   Connect read-only and prove the live mysql_testing / trackpro_test identity.
+  --apply    Reset the whole isolated schema and provision fixtures.
+
+Apply additionally requires:
+  --confirm=RESET-trackpro_test-FOR-FT15:<RUN_ID>
+
+Every operation requires --run-id=<6-48 uppercase identifier>.
+HELP;
+    echo PHP_EOL;
+}
+
+function loadIgnoredEnvironment(string $repositoryRoot): void
+{
+    foreach (['.env.mysql', '.env.ft15'] as $filename) {
+        if (is_file($repositoryRoot.'/'.$filename)) {
+            Dotenv::createUnsafeImmutable($repositoryRoot, $filename)->safeLoad();
+        }
+    }
+}
+
+function requireFunctionalMode(): void
+{
+    if (getenv('FT15_MODE') !== FixturePlan::MODE) {
+        throw new Ft15Failure('FT15_MODE must explicitly equal functional-testing.');
+    }
+}
+
+/** @return array{admin: string, staff: string} */
+function requireCredentialInputs(): array
+{
+    $admin = getenv('FT15_ADMIN_PASSWORD');
+    $staff = getenv('FT15_STAFF_PASSWORD');
+
+    if (! is_string($admin) || strlen($admin) < 12) {
+        throw new Ft15Failure('FT15_ADMIN_PASSWORD is required locally and must contain at least 12 characters.');
+    }
+    if (! is_string($staff) || strlen($staff) < 12) {
+        throw new Ft15Failure('FT15_STAFF_PASSWORD is required locally and must contain at least 12 characters.');
+    }
+
+    return ['admin' => $admin, 'staff' => $staff];
+}
+
+function forceTestingEnvironment(): void
+{
+    foreach ([
+        'APP_ENV' => 'testing',
+        'CACHE_STORE' => 'array',
+        'DB_CONNECTION' => FixturePlan::CONNECTION,
+        'DB_URL' => '',
+        'LOG_CHANNEL' => 'null',
+        'QUEUE_CONNECTION' => 'sync',
+        'SESSION_DRIVER' => 'array',
+    ] as $name => $value) {
+        putenv($name.'='.$value);
+        $_ENV[$name] = $value;
+        $_SERVER[$name] = $value;
+    }
+}
+
+/** @return array{database: string, driver: string, engine: string, mysql_major: string} */
+function guardLiveIdentity(): array
+{
+    if (! app()->environment('testing')) {
+        throw new Ft15Failure('Live access refused: the application environment is not testing.');
+    }
+    if (config('database.default') !== FixturePlan::CONNECTION) {
+        throw new Ft15Failure('Live access refused: the default connection is not mysql_testing.');
+    }
+
+    $configuration = config('database.connections.'.FixturePlan::CONNECTION);
+    if (! is_array($configuration)
+        || ($configuration['driver'] ?? null) !== 'mysql'
+        || ($configuration['database'] ?? null) !== FixturePlan::DATABASE
+        || ($configuration['database'] ?? null) === 'trackpro_local'
+        || ($configuration['username'] ?? null) !== 'trackpro_test_user'
+        || ($configuration['unix_socket'] ?? null) !== EXPECTED_SOCKET
+        || ! in_array($configuration['host'] ?? null, ['localhost', '127.0.0.1', '::1'], true)) {
+        throw new Ft15Failure('Live access refused: mysql_testing configuration is not the reserved local trackpro_test target.');
+    }
+
+    $connection = DB::connection(FixturePlan::CONNECTION);
+    $pdo = $connection->getPdo();
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
+        throw new Ft15Failure('Live access refused: the connected PDO driver is not MySQL.');
+    }
+
+    $identity = $connection->selectOne(
+        'SELECT DATABASE() AS database_name, CURRENT_USER() AS account_name, '
+        .'@@socket AS socket_path, @@default_storage_engine AS default_engine, VERSION() AS version'
+    );
+    if ($identity === null
+        || $identity->database_name !== FixturePlan::DATABASE
+        || $identity->database_name === 'trackpro_local'
+        || $identity->account_name !== EXPECTED_ACCOUNT
+        || $identity->socket_path !== EXPECTED_SOCKET
+        || strcasecmp((string) $identity->default_engine, 'InnoDB') !== 0
+        || preg_match('/\A8\./', (string) $identity->version) !== 1) {
+        throw new Ft15Failure('Live access refused: server-side MySQL identity could not be proven.');
+    }
+
+    $connectionStatus = (string) $pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
+    if (! str_contains(strtolower($connectionStatus), 'unix socket')) {
+        throw new Ft15Failure('Live access refused: the reserved local Unix-socket connection was not proven.');
+    }
+
+    return [
+        'database' => FixturePlan::DATABASE,
+        'driver' => 'mysql',
+        'engine' => 'InnoDB',
+        'mysql_major' => '8',
+    ];
+}
+
+function guardExpectedMigratedSchema(): void
+{
+    $expected = [
+        'audit_logs', 'categories', 'migrations', 'product_variants', 'products',
+        'restock_items', 'restocks', 'sale_items', 'sales', 'stock_movements', 'users',
+    ];
+    $actual = array_map(
+        static fn (object $row): string => (string) $row->table_name,
+        DB::connection(FixturePlan::CONNECTION)->select(
+            'SELECT TABLE_NAME AS table_name FROM information_schema.TABLES '
+            .'WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = ? ORDER BY TABLE_NAME',
+            [FixturePlan::DATABASE, 'BASE TABLE'],
+        ),
+    );
+
+    if ($actual !== $expected) {
+        throw new Ft15Failure('Fixture writes refused: the freshly migrated schema inventory is unexpected.');
+    }
+}
+
+/**
+ * @param  array{admin: string, staff: string}  $passwords
+ * @return array<string, int|string>
+ */
+function provisionFixtures(array $plan, array $passwords): array
+{
+    // The live identity is checked again immediately before the fixture write transaction.
+    guardLiveIdentity();
+
+    return DB::connection(FixturePlan::CONNECTION)->transaction(function () use ($plan, $passwords): array {
+        $now = (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d H:i:s');
+
+        $adminId = insertUser($plan['users']['admin'], Hash::make($passwords['admin']), $now);
+        $staffId = insertUser($plan['users']['staff'], Hash::make($passwords['staff']), $now);
+        $disabledId = insertUser(
+            $plan['users']['controlled_disabled_cashier'],
+            Hash::make(bin2hex(random_bytes(32))),
+            $now,
+        );
+
+        $mainCategoryId = DB::table('categories')->insertGetId([
+            'name' => $plan['catalog']['main_category'],
+            'status' => 'active',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $lifecycleCategoryId = DB::table('categories')->insertGetId([
+            'name' => $plan['catalog']['lifecycle_category'],
+            'status' => 'active',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $analyticsCategoryId = DB::table('categories')->insertGetId([
+            'name' => $plan['catalog']['analytics_category'],
+            'status' => 'active',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $mainProductId = insertProduct($mainCategoryId, $plan['catalog']['main_product'], $now);
+        $analyticsProductId = insertProduct($analyticsCategoryId, $plan['catalog']['analytics_product'], $now);
+
+        $wholeId = insertVariant($mainProductId, $plan['variants']['whole'], $now);
+        $fractionalId = insertVariant($mainProductId, $plan['variants']['fractional'], $now);
+        $lowStockId = insertVariant($analyticsProductId, $plan['variants']['controlled_low_stock'], $now);
+        $outOfStockId = insertVariant($analyticsProductId, $plan['variants']['controlled_out_of_stock'], $now);
+
+        insertOpeningMovement($fractionalId, $adminId, $plan['variants']['fractional'], $now);
+        insertOpeningMovement($lowStockId, $adminId, $plan['variants']['controlled_low_stock'], $now);
+        insertOpeningMovement($outOfStockId, $adminId, $plan['variants']['controlled_out_of_stock'], $now);
+
+        $control = $plan['controlled_non_completed_sale'];
+        $controlledSaleId = DB::table('sales')->insertGetId([
+            'checkout_token' => $control['checkout_token'],
+            'recorded_by' => $disabledId,
+            'status' => $control['status'],
+            'total_amount' => $control['total_amount'],
+            'cash_received' => $control['cash_received'],
+            'change_amount' => $control['change_amount'],
+            'void_reason' => $control['void_reason'],
+            'voided_by' => $adminId,
+            'voided_at' => $control['created_at'],
+            'created_at' => $control['created_at'],
+        ]);
+
+        return [
+            'admin_user_id' => $adminId,
+            'staff_user_id' => $staffId,
+            'controlled_disabled_cashier_id' => $disabledId,
+            'main_category_id' => $mainCategoryId,
+            'main_product_id' => $mainProductId,
+            'whole_variant_id' => $wholeId,
+            'fractional_variant_id' => $fractionalId,
+            'lifecycle_category_id' => $lifecycleCategoryId,
+            'controlled_low_stock_variant_id' => $lowStockId,
+            'controlled_out_of_stock_variant_id' => $outOfStockId,
+            'controlled_non_completed_sale_id' => $controlledSaleId,
+            'controlled_non_completed_sale_receipt' => 'TRX-'.str_pad((string) $controlledSaleId, 6, '0', STR_PAD_LEFT),
+        ];
+    });
+}
+
+function insertUser(array $user, string $passwordHash, string $now): int
+{
+    return DB::table('users')->insertGetId([
+        'name' => $user['name'],
+        'username' => $user['username'],
+        'password' => $passwordHash,
+        'role' => $user['role'],
+        'status' => $user['status'],
+        'remember_token' => null,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+}
+
+function insertProduct(int $categoryId, string $name, string $now): int
+{
+    return DB::table('products')->insertGetId([
+        'category_id' => $categoryId,
+        'name' => $name,
+        'status' => 'active',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+}
+
+function insertVariant(int $productId, array $variant, string $now): int
+{
+    return DB::table('product_variants')->insertGetId([
+        'product_id' => $productId,
+        'size' => $variant['size'],
+        'type_series' => $variant['type_series'],
+        'thickness' => $variant['thickness'],
+        'unit' => $variant['unit'],
+        'quantity_mode' => $variant['quantity_mode'],
+        'cost_price' => $variant['cost_price'],
+        'selling_price' => $variant['selling_price'],
+        'current_stock' => $variant['current_stock'],
+        'low_stock_threshold' => $variant['low_stock_threshold'],
+        'status' => 'active',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+}
+
+function insertOpeningMovement(int $variantId, int $adminId, array $variant, string $now): void
+{
+    $opening = $variant['opening_fixture'];
+    if (! is_array($opening)) {
+        throw new Ft15Failure('Controlled opening evidence is missing from the fixture plan.');
+    }
+
+    DB::table('stock_movements')->insert([
+        'product_variant_id' => $variantId,
+        'movement_type' => 'INITIAL_STOCK',
+        'quantity_before' => '0.000',
+        'quantity_change' => $opening['quantity'],
+        'quantity_after' => $opening['quantity'],
+        'performed_by' => $adminId,
+        'sale_item_id' => null,
+        'restock_item_id' => null,
+        'reason' => $opening['reason'],
+        'created_at' => $now,
+    ]);
+}
+
+function emitManifest(array $manifest): void
+{
+    $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    echo $json.PHP_EOL;
+}
