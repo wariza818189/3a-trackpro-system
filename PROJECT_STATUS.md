@@ -61,6 +61,7 @@ Completed:
 - Tracker #16 — Dashboard & Reports — COMPLETED; committed and pushed
 - Tracker #3 — Client Problem & Requirements — COMPLETED; documentation reviewed, corrected, committed, and pushed
 - Tracker #4 — Product Data Planning — COMPLETED; source reconciled, planning artifacts committed, and pushed
+- Tracker #5 — UI/UX Planning — COMPLETED; retrospective planning baseline reviewed, committed, and pushed
 
 Latest completed formal engineering stage:
 
@@ -84,19 +85,19 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#4 — Product Data Planning
+#5 — UI/UX Planning
 
 Status:
 
 COMPLETED
 
-Tracker #4 is formally closed as a product-data planning tracker on the approved
-source audit, normalization plan, and validated local staging dataset recorded
-below. Tracker #16 remains the latest completed application stage. Tracker #3
-and Tracker #12 remain COMPLETED; Tracker #12's one-time completed/replayed POS
-confirmation links to the receipt.
+Tracker #5 is formally closed as a retrospective/project-derived UI/UX planning
+tracker on the reviewed baseline recorded below. The existing interface was
+inventoried and formalized without redesign implementation. Tracker #16 remains
+the latest completed application stage; Trackers #3, #4, and #12 remain
+COMPLETED.
 
-Overall completed tracker count: **12 / 23**.
+Overall completed tracker count: **13 / 23**.
 
 Completed tracker items:
 
@@ -104,6 +105,7 @@ Completed tracker items:
 - #2 Project Scope Planning
 - #3 Client Problem & Requirements
 - #4 Product Data Planning
+- #5 UI/UX Planning
 - #6 Workflow & Business Rules
 - #9 Database & System Design
 - #10 Authentication & User Roles
@@ -115,13 +117,23 @@ Completed tracker items:
 
 All other tracker statuses remain unchanged. These remain pending/in progress:
 
-- #5 UI/UX Planning
 - #7 Test Case Preparation
 - #15 Functional Testing
 - #17 Edge Case & Permission Testing
 
-Module verification does not formally complete these trackers. Tracker #13
-remains COMPLETED. No next tracker is started by this documentation checkpoint.
+These remain Not Started:
+
+- #8 Documentation Outline
+- #18 User Guide & Screenshots
+- #19 Final Integration & Bug Fixing
+- #20 Project Documentation Finalization
+- #21 Presentation & Demo Preparation
+- #22 Final System Testing & Rehearsal
+- #23 Final Presentation
+
+Module verification does not formally complete the pending testing trackers.
+Tracker #13 remains COMPLETED. Tracker #7 may be the next formal planning focus,
+but it is not started by this documentation checkpoint.
 
 Previously completed tracker (unchanged):
 
@@ -397,10 +409,10 @@ approved real-source product families.
 
 Tracker #4 covers source catalog review, normalization, grouping, Variant
 mapping, unit/mode planning, price-source interpretation, and ambiguity/HOLD
-handling. #5 UI/UX Planning, #7 Test Case Preparation, #15 Functional Testing,
-and #17 Edge Case & Permission Testing remain pending/in progress. Opening
-Inventory remains a separate physical-count workflow. No other tracker is
-completed by this closeout.
+handling. At the Tracker #4 closeout, #5 UI/UX Planning, #7 Test Case
+Preparation, #15 Functional Testing, and #17 Edge Case & Permission Testing
+remained pending/in progress. Opening Inventory remains a separate physical-count
+workflow. No other tracker was completed by that closeout.
 
 No schema, migration, model, controller, service, application source, or
 dependency changed. No product seed/import ran and no database was accessed.
@@ -415,6 +427,136 @@ The completed product-data planning/documentation checkpoint is
 checkpoint and is not added to the application checkpoint chain below. The
 latest completed application checkpoint remains
 `31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
+`Add dashboard and sales reports`. Use `git rev-parse HEAD` for the repository's
+actual current HEAD; this closeout does not predict its own commit hash.
+
+## Tracker #5 UI/UX Planning Closeout
+
+Status: COMPLETED — formal documentation closeout on 2026-09-09.
+
+Tracker #5 is a **RETROSPECTIVE / PROJECT-DERIVED UI/UX PLANNING
+BASELINE** because much of the interface existed before this formal planning
+artifact. Completion means the current implemented UI was fully inventoried;
+Admin/Staff usage differences, information and navigation architecture,
+principal flows, implemented visual and interaction conventions, responsive
+behavior, accessibility evidence and limitations, feedback/error/empty-state
+patterns, and receipt-print behavior were documented; genuine UX risks were
+recorded; and future recommendations were separated from current features.
+
+Completion does not mean a redesign or any recommendation was implemented,
+every UX risk was fixed, usability testing or client UI approval occurred,
+pre-development wireframes existed, screenshots or user-guide work occurred,
+or WCAG conformance was established. Open recommendations do not block this
+planning tracker's completion.
+
+### Deliverable, screens, and role-based experience
+
+The tracked deliverable is [docs/ui-ux-plan.md](docs/ui-ux-plan.md), titled
+**3A TrackPro — UI/UX Planning Baseline**. Its reviewed and pushed UI/UX
+planning/documentation checkpoint is
+`7c87d4ae72f63c2a77837ce21755f23de63623be` —
+`Document UI and UX planning baseline`.
+
+The baseline inventories **22 route-backed user-facing pages**. Shared surfaces,
+which are not counted as independent pages, include the desktop sidebar, mobile
+top bar and off-canvas navigation, account/logout area, global alerts, brand
+component, dynamic Stock In rows, dynamic POS cart, and receipt print state.
+
+Admin and Staff are application-role usage profiles, not demographic personas
+or undocumented job titles. Admin has **10** navigation destinations and Staff
+has **7**. Staff may enter purchase cost while creating a new Stock In receipt,
+but does not receive existing or historical purchase-cost visibility in catalog
+browsing, Stock In history/detail after submission, POS, Dashboard, Reports, or
+Sales History.
+
+### Navigation, responsiveness, and mapped flows
+
+At Tailwind `lg` (64rem / 1024px) and above, the authenticated shell uses a
+fixed `w-60` sidebar, offset main content, grouped role-filtered navigation, and
+an active-destination state. Below `lg`, it uses a sticky top bar, hamburger,
+`w-72 max-w-[85vw]` drawer, backdrop, Escape/backdrop/X/navigation closure,
+body-scroll lock, inert background, and focus entry/return. This evidence does
+not establish complete modal-dialog semantics or WCAG conformance. Wide tables
+commonly retain desktop columns and use horizontal scrolling on narrow screens.
+
+The planning baseline maps Login to Dashboard; Category to Product to
+ProductVariant; Opening Inventory; Stock In; Stock Correction; POS; Sales
+History to receipt and reprint; Dashboard operational follow-up; Reports
+filtering; and archive/reactivate lifecycle flows. These maps are planning
+evidence, not completion evidence for separate testing trackers.
+
+Sales History remains **status-neutral**: active Admin and Staff may browse all
+historical Sales regardless of recording user. Completed-only semantics apply
+to Dashboard and Reports analytics. The existing Sales History eyebrow
+`Completed transactions` conflicts with the page semantics and is recorded as
+a future content-correction candidate; Tracker #5 did not change it.
+
+### Accessibility and print evidence
+
+Accessibility observations use three evidence levels:
+
+- **Implemented:** relevant semantic elements; navigation ARIA,
+  `aria-current`, `aria-controls`, `aria-expanded`, and `aria-hidden`; `inert`;
+  Escape handling; focus entry/return; `role=alert`/`status`; visible text with
+  state colors; native disabled/read-only behavior; and existing
+  `aria-describedby` help.
+- **Partial:** table semantic completeness, field-error association, dynamic
+  announcements, drawer modal semantics/focus trapping, and consistent focus
+  styling.
+- **Not established:** WCAG conformance, formal contrast audit, screen-reader
+  testing, reduced-motion testing, comprehensive keyboard testing, and formal
+  usability studies.
+
+The Sale receipt supports browser printing and reprinting. Its print state
+suppresses application chrome and non-receipt controls while retaining receipt
+evidence. Historical Firefox receipt verification remains historical evidence.
+Reports have no dedicated print control, print route, report-specific print
+layout, PDF export, or CSV export.
+
+### Source-derived risks and future boundary
+
+Source inspection identified eight genuine usability risks, not proven user
+failures:
+
+1. POS and Stock In item selection omit Category context.
+2. Archive acts without an explicit confirmation naming the affected record.
+3. Below `xl`, the mobile POS cart follows the full catalog.
+4. Repeated-row error association could be stronger.
+5. Sales History eyebrow wording conflicts with status-neutral semantics.
+6. Opening Inventory uses a generic unavailable reason.
+7. Dynamic POS and Stock In updates lack assistive announcements.
+8. Invalid Reports may retain zero-valued summary cards.
+
+Future, not-yet-implemented recommendations cover Category context in POS/Stock
+In, archive confirmation, a mobile cart shortcut/sticky summary, stronger
+programmatic field-error association, status-neutral Sales History wording,
+specific Opening Inventory ineligibility explanations, Staff-specific dependency
+guidance, invalid-report summary handling, visual/action/focus consistency, and
+assistive announcements for dynamic updates. None is described as a current
+feature or implemented by this closeout.
+
+### Evidence limits, tracker boundaries, and checkpoints
+
+No repository evidence establishes pre-development wireframes, client-selected
+colors/layouts, client UI sign-off, usability interviews, observed usability
+sessions, quantified usability findings, formal demographic personas, specific
+client device/printer models, or proof that every UI decision preceded
+implementation. This closeout makes none of those claims.
+
+Tracker #5 does not complete or start #7 Test Case Preparation, #15 Functional
+Testing, #17 Edge Case & Permission Testing, or #18 User Guide & Screenshots.
+No screenshot collection, new usability test, or user guide was produced.
+Responsive Navigation remains a completed UI mini-checkpoint outside the formal
+23-item tracker count.
+
+The historical ordinary software baseline remains **191 tests / 2,023
+assertions**, 27.576 seconds, isolated SQLite `:memory:`; the application route
+baseline remains **40**. These were not rerun for Tracker #5. No test, build,
+browser, or database gate was required or performed.
+
+The UI/UX planning checkpoint is documentation-only and is not added to the
+completed application checkpoint chain below. The latest completed application
+checkpoint remains `31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
 `Add dashboard and sales reports`. Use `git rev-parse HEAD` for the repository's
 actual current HEAD; this closeout does not predict its own commit hash.
 
@@ -957,8 +1099,8 @@ Status: IMPLEMENTED / VERIFIED — application commit and normal push complete:
 All automated and browser results below are historical approved evidence. No
 tests, builds, browser smoke, or database access occur in this documentation
 checkpoint. The formal completed tracker count at that historical checkpoint was
-**9 / 23**; Tracker #3 later raised it to 11 / 23, and the current count after
-Tracker #4 closeout is **12 / 23**.
+**9 / 23**; Tracker #3 later raised it to 11 / 23, and the historical count after
+Tracker #4 closeout was **12 / 23**.
 
 ### Completed navigation and security
 
@@ -1381,17 +1523,20 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 Tracker #4 — Product Data Planning is COMPLETED on the approved source audit,
 normalization plan, and reconciled local staging dataset. Its planning artifacts
-are reviewed, committed, and pushed. Tracker #3 remains COMPLETED on the approved
-requirements baseline. Tracker #16 remains the latest completed application
-stage, automatically verified, manually browser-smoked, committed, and pushed;
-Trackers #13 and #14 also remain COMPLETED. The separate Responsive Navigation
-UI mini-checkpoint remains IMPLEMENTED / VERIFIED outside the formal tracker
-count. The completed count is **12 / 23**. Stop for review; no next tracker is
-authorized here.
+are reviewed, committed, and pushed. Tracker #5 — UI/UX Planning is COMPLETED
+on the reviewed retrospective/project-derived baseline in
+`docs/ui-ux-plan.md`; its planning checkpoint is committed and pushed. Tracker
+#3 remains COMPLETED on the approved requirements baseline. Tracker #16 remains
+the latest completed application stage, automatically verified, manually
+browser-smoked, committed, and pushed; Trackers #13 and #14 also remain
+COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
+IMPLEMENTED / VERIFIED outside the formal tracker count. The completed count is
+**13 / 23**. Stop for review; Tracker #7 may be the next formal planning focus,
+but no next tracker is started or authorized here.
 
-#5 UI/UX Planning and #7 Test Case Preparation remain pending/in progress and
-are not started by this closeout. Opening Inventory remains a separate physical
-count workflow; no product data was loaded.
+#7 Test Case Preparation remains pending/in progress and is not started by this
+closeout. Opening Inventory remains a separate physical count workflow; no
+product data was loaded.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
 ongoing module tests do not formally complete it. #17 Edge Case & Permission
