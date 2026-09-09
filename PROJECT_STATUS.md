@@ -62,6 +62,7 @@ Completed:
 - Tracker #3 — Client Problem & Requirements — COMPLETED; documentation reviewed, corrected, committed, and pushed
 - Tracker #4 — Product Data Planning — COMPLETED; source reconciled, planning artifacts committed, and pushed
 - Tracker #5 — UI/UX Planning — COMPLETED; retrospective planning baseline reviewed, committed, and pushed
+- Tracker #7 — Test Case Preparation — COMPLETED; retrospective preparation baseline reviewed, committed, and pushed
 
 Latest completed formal engineering stage:
 
@@ -85,19 +86,19 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#5 — UI/UX Planning
+#7 — Test Case Preparation
 
 Status:
 
 COMPLETED
 
-Tracker #5 is formally closed as a retrospective/project-derived UI/UX planning
-tracker on the reviewed baseline recorded below. The existing interface was
-inventoried and formalized without redesign implementation. Tracker #16 remains
-the latest completed application stage; Trackers #3, #4, and #12 remain
-COMPLETED.
+Tracker #7 is formally closed as a retrospective/project-derived test case
+preparation tracker on the reviewed baseline recorded below. Test scope,
+traceability, execution targets, and safe data boundaries were formalized
+without executing #15 or #17. Tracker #16 remains the latest completed
+application stage; Trackers #3, #4, #5, and #12 remain COMPLETED.
 
-Overall completed tracker count: **13 / 23**.
+Overall completed tracker count: **14 / 23**.
 
 Completed tracker items:
 
@@ -107,6 +108,7 @@ Completed tracker items:
 - #4 Product Data Planning
 - #5 UI/UX Planning
 - #6 Workflow & Business Rules
+- #7 Test Case Preparation
 - #9 Database & System Design
 - #10 Authentication & User Roles
 - #11 Product & Inventory Module
@@ -117,7 +119,6 @@ Completed tracker items:
 
 All other tracker statuses remain unchanged. These remain pending/in progress:
 
-- #7 Test Case Preparation
 - #15 Functional Testing
 - #17 Edge Case & Permission Testing
 
@@ -131,9 +132,9 @@ These remain Not Started:
 - #22 Final System Testing & Rehearsal
 - #23 Final Presentation
 
-Module verification does not formally complete the pending testing trackers.
-Tracker #13 remains COMPLETED. Tracker #7 may be the next formal planning focus,
-but it is not started by this documentation checkpoint.
+Test-case preparation does not formally complete the pending execution
+trackers. Tracker #13 remains COMPLETED. Tracker #15 may be the likely next
+formal execution focus, but it is not started by this closeout.
 
 Previously completed tracker (unchanged):
 
@@ -559,6 +560,141 @@ completed application checkpoint chain below. The latest completed application
 checkpoint remains `31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
 `Add dashboard and sales reports`. Use `git rev-parse HEAD` for the repository's
 actual current HEAD; this closeout does not predict its own commit hash.
+
+## Tracker #7 Test Case Preparation Closeout
+
+Status: COMPLETED — formal documentation closeout on 2026-09-09.
+
+Tracker #7 is a **RETROSPECTIVE / PROJECT-DERIVED TEST CASE PREPARATION
+BASELINE** because substantial automated testing and historical browser/manual
+verification existed before the formal test-case artifact. Completion means the
+testing scope, evidence classes, execution statuses, safe test-data/database
+boundaries, stable case IDs, requirements traceability, and execution-ready
+cases were documented; representative automated evidence was statically
+verified; historical manual evidence was kept separate from new execution; and
+the dedicated artifact was reviewed, committed, and pushed.
+
+Completion does not mean #15 Functional Testing or #17 Edge Case & Permission
+Testing was executed. Tests, guarded MySQL gates, browser/manual cases, and
+prints were not rerun; no screenshots, new runtime results, client testing or
+sign-off, security certification, or accessibility certification were produced.
+
+### Deliverable and formal case baseline
+
+The tracked deliverable is [docs/test-cases.md](docs/test-cases.md), titled
+**3A TrackPro — Test Case Preparation Baseline**. Its reviewed and pushed
+documentation/testing-planning checkpoint is
+`9ad9513a133f2d3cfaaa8c4782bc9cb13b50476c` —
+`Document test case preparation baseline`.
+
+The artifact contains **79 consolidated formal cases**. It deliberately does
+not mirror the 191 existing ordinary automated test methods one-for-one. Its
+execution-target distribution is:
+
+| Execution target | Formal cases |
+| --- | ---: |
+| #15 Functional Testing | 30 |
+| #17 Edge Case & Permission Testing | 37 |
+| Guarded MySQL Verification | 8 |
+| Review Only | 4 |
+| **Total** | **79** |
+
+Evidence classification and execution status are separate dimensions. The
+evidence-class distribution is:
+
+| Evidence class | Formal cases |
+| --- | ---: |
+| A — Automated Direct | 61 |
+| B — Automated Partial | 10 |
+| C — Historical Manual | 6 |
+| D — Prepared / Not Yet Executed evidence class | 0 |
+| E — No Clear Current Evidence | 2 |
+| **Total** | **79** |
+
+The execution-status baseline is **67 Prepared / Not Yet Executed**, **8
+Existing Automated Evidence**, and **4 Review Evidence / Not
+Runtime-Testable**. Historical Manual Evidence is referenced by prepared cases
+rather than represented as standalone execution-status rows. The 67 prepared
+cases are not called Passed; D = 0 is not contradictory because evidence class
+and execution status measure different properties.
+
+### Coverage and requirements traceability
+
+Coverage spans Authentication and authorization; Categories, Products, and
+ProductVariants; archive/reactivate, hierarchy, and identity rules; Opening
+Inventory; Stock In; Stock Correction; POS; Sales History and receipt;
+Dashboard; Reports; Responsive Navigation; shared UI/responsive behavior;
+accessibility-oriented observations; receipt print; resources/routes; guarded
+MySQL integrity/concurrency; and review-only project boundaries.
+
+The matrix maps every approved baseline identifier: **53 Functional
+Requirements**, **13 Non-Functional Requirements**, **14 Business Rules**, and
+**7 Assumptions**, for **87 approved IDs**. Static validation found no missing
+approved ID and no invented requirement, rule, or assumption ID. Non-runtime
+concerns use review evidence instead of fabricated executable cases.
+
+Tracker #7 is preparation. Tracker #15 later executes normal functional/manual
+acceptance cases; Tracker #17 later executes negative, boundary, lifecycle,
+authorization, permission, and integrity-focused cases. Preparing a case does
+not complete either execution tracker. Existing automation can support a
+prepared case without replacing a later manual acceptance check when that check
+has a distinct purpose.
+
+### Guarded MySQL and test-data safety boundaries
+
+Guarded MySQL cases separate database identity, schema CHECK/FK/InnoDB
+integrity, Opening Inventory concurrency, Stock In concurrency, Stock
+Correction concurrency, Sale overselling/idempotency concurrency, and stable
+multi-Variant locking from ordinary verification. Ordinary SQLite tests do not
+prove MySQL locking or concurrency behavior. No MySQL execution occurred during
+Tracker #7 documentation.
+
+Ordinary automation uses isolated SQLite `:memory:`. Any future guarded MySQL
+execution must use only explicitly authorized `mysql_testing` / `trackpro_test`
+infrastructure. `trackpro_local` contains legitimate data and is not a
+disposable routine test database. Test Hammer contains legitimate historical
+Sale/StockMovement evidence and must not be deleted, rewritten, renamed, or
+repurposed. Real price-list staging data is not automatically loaded for
+testing, private credentials do not belong in the artifact, and immutable
+historical transactions are not rewritten as cleanup. No database was accessed
+during Tracker #7 preparation.
+
+### Domain semantics, UI risks, and future boundaries
+
+Sales History remains **status-neutral**: active Admin and Staff may browse all
+historical Sales regardless of recording user. Completed-only semantics apply
+to Dashboard and Reports analytics. Staff may enter current purchase cost while
+creating a new Stock In receipt, but does not receive existing or historical
+purchase-cost visibility afterward in catalog browsing, Stock In
+history/detail, POS, Dashboard, Reports, or Sales History.
+
+All eight Tracker #5 source-derived usability risks are represented only as
+current-baseline observations, documented risks, or deferred corrected
+expectations. No case expects an unimplemented recommendation, and Tracker #7
+implemented no UI recommendation.
+
+SALE_VOID / Admin full-sale void and User Management remain future. Tracker #18
+User Guide & Screenshots remains Not Started; no screenshot campaign or user
+guide work occurred during Tracker #7.
+
+### Historical baselines and checkpoint boundary
+
+The historical ordinary software baseline remains **191 tests / 2,023
+assertions**, 27.576 seconds, isolated SQLite `:memory:`; the application route
+baseline remains **40**. Approved Tracker #7 static source inspection observed
+**191 declared ordinary test methods** and **23 declared dedicated MySQL test
+methods**. Those method counts are static source observations, not new runtime
+results. No tests, builds, browser sessions, or database gates were run for this
+documentation checkpoint.
+
+The test-case preparation checkpoint is documentation/testing planning only and
+is not added to the completed application checkpoint chain below. The latest
+completed application checkpoint remains
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
+`Add dashboard and sales reports`. Responsive Navigation remains a completed
+UI mini-checkpoint outside the formal 23-item tracker count. Use
+`git rev-parse HEAD` for the repository's actual current HEAD; this closeout
+does not predict its own commit hash.
 
 ## Completed Application Checkpoint Chain
 
@@ -1526,17 +1662,19 @@ normalization plan, and reconciled local staging dataset. Its planning artifacts
 are reviewed, committed, and pushed. Tracker #5 — UI/UX Planning is COMPLETED
 on the reviewed retrospective/project-derived baseline in
 `docs/ui-ux-plan.md`; its planning checkpoint is committed and pushed. Tracker
-#3 remains COMPLETED on the approved requirements baseline. Tracker #16 remains
+#7 — Test Case Preparation is COMPLETED on the reviewed
+retrospective/project-derived baseline in `docs/test-cases.md`; its
+documentation/testing-planning checkpoint is committed and pushed. Tracker #3
+remains COMPLETED on the approved requirements baseline. Tracker #16 remains
 the latest completed application stage, automatically verified, manually
 browser-smoked, committed, and pushed; Trackers #13 and #14 also remain
 COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
 IMPLEMENTED / VERIFIED outside the formal tracker count. The completed count is
-**13 / 23**. Stop for review; Tracker #7 may be the next formal planning focus,
-but no next tracker is started or authorized here.
+**14 / 23**. Stop for review; Tracker #15 may be the likely next formal
+execution focus, but no next tracker is started or authorized here.
 
-#7 Test Case Preparation remains pending/in progress and is not started by this
-closeout. Opening Inventory remains a separate physical count workflow; no
-product data was loaded.
+Opening Inventory remains a separate physical count workflow; no product data
+was loaded by Tracker #7.
 
 #15 Functional Testing retains its current pending/in-progress tracker status;
 ongoing module tests do not formally complete it. #17 Edge Case & Permission
