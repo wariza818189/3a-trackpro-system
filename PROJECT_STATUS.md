@@ -1,6 +1,6 @@
 # 3A TrackPro — Project Status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-11
 
 ## Latest Completed Application Checkpoint
 
@@ -57,6 +57,7 @@ Completed:
 - Stage 3D — Admin Stock Correction / CORRECTION — COMPLETED
 - Tracker #12 — Sales / POS Module — COMPLETED
 - Tracker #13 — Receipt & Sales History — COMPLETED
+- Tracker #15 — Functional Testing — COMPLETED; 30 / 30 finalized and passed
 - Responsive Navigation UI mini-checkpoint — IMPLEMENTED / VERIFIED; committed and pushed
 - Tracker #16 — Dashboard & Reports — COMPLETED; committed and pushed
 - Tracker #3 — Client Problem & Requirements — COMPLETED; documentation reviewed, corrected, committed, and pushed
@@ -86,19 +87,24 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#7 — Test Case Preparation
+#15 — Functional Testing
 
 Status:
 
 COMPLETED
 
-Tracker #7 is formally closed as a retrospective/project-derived test case
-preparation tracker on the reviewed baseline recorded below. Test scope,
-traceability, execution targets, and safe data boundaries were formalized
-without executing #15 or #17. Tracker #16 remains the latest completed
-application stage; Trackers #3, #4, #5, and #12 remain COMPLETED.
+Tracker #15 is formally closed on run `FT15-20260909-A`: all 30 unique
+functional cases were finalized, with 30 Passed, 0 Failed, and 0 Blocked.
+Execution used isolated `mysql_testing` / `trackpro_test`; protected
+`trackpro_local` was not used as disposable test data, and Test Hammer was not
+reused or touched. The final `TC-SALES-002` case deliberately retained a current
+test-catalog Product rename and two Variant reprices while the historical
+Sale/SaleItem receipt snapshots remained unchanged. The execution record is
+[docs/functional-test-results.md](docs/functional-test-results.md). Tracker #17
+remains separate and has not been executed by this closeout. Tracker #16 remains
+the latest completed application engineering stage.
 
-Overall completed tracker count: **14 / 23**.
+Overall completed tracker count: **15 / 23**.
 
 Completed tracker items:
 
@@ -115,11 +121,11 @@ Completed tracker items:
 - #12 Sales / POS Module
 - #13 Receipt & Sales History
 - #14 Stock-In & Stock Movements
+- #15 Functional Testing
 - #16 Dashboard & Reports
 
-All other tracker statuses remain unchanged. These remain pending/in progress:
+Current In Progress tracker:
 
-- #15 Functional Testing
 - #17 Edge Case & Permission Testing
 
 These remain Not Started:
@@ -132,9 +138,10 @@ These remain Not Started:
 - #22 Final System Testing & Rehearsal
 - #23 Final Presentation
 
-Test-case preparation does not formally complete the pending execution
-trackers. Tracker #13 remains COMPLETED. Tracker #15 may be the likely next
-formal execution focus, but it is not started by this closeout.
+Current formal tracker distribution: **15 Completed, 1 In Progress, 7 Not Started**.
+Tracker #15 completion does not imply that all project testing is complete;
+Tracker #17 remains the separate current testing tracker and no #17 execution
+evidence is claimed here.
 
 Previously completed tracker (unchanged):
 
@@ -695,6 +702,39 @@ completed application checkpoint remains
 UI mini-checkpoint outside the formal 23-item tracker count. Use
 `git rev-parse HEAD` for the repository's actual current HEAD; this closeout
 does not predict its own commit hash.
+
+## Tracker #15 Functional Testing Closeout
+
+Status: COMPLETED — formal closeout on 2026-09-11.
+
+Run: `FT15-20260909-A`.
+
+Result: **30 / 30 cases finalized — 30 Passed, 0 Failed, 0 Blocked**.
+
+The complete execution record is
+[docs/functional-test-results.md](docs/functional-test-results.md). Coverage
+spanned authentication, operational Dashboard behavior, catalog and Variant
+workflows, Opening Inventory, Stock In, Stock Correction, POS, Sales History,
+receipt/reprint/print presentation, Reports, navigation/responsive behavior,
+shared UI states, implemented and partial accessibility behavior, and immutable
+historical receipt evidence after legitimate current-catalog change.
+
+The final case was `TC-SALES-002 — Receipt — immutable detail`. Through normal
+Admin UI, current Product ID 1 was intentionally renamed to
+`FT15 Snapshot Changed Material`; ProductVariant ID 1 selling price was changed
+to `175.00`; and ProductVariant ID 2 selling price was changed to `160.00`.
+Those final `trackpro_test` catalog values were deliberately retained as the
+postcondition proving snapshot independence. The historical completed Sale and
+both SaleItems remained unchanged, as did stock, StockMovements,
+Restocks/RestockItems, and AuditLogs. No fixture re-apply, rollback, or revert
+occurred.
+
+This completes Tracker #15 only. Tracker #17 — Edge Case & Permission Testing
+remains separate and In Progress; no #17 execution evidence is claimed. The
+latest completed application/code checkpoint remains
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
+`Add dashboard and sales reports`; this functional-testing documentation
+closeout is not a new application feature checkpoint.
 
 ## Completed Application Checkpoint Chain
 
@@ -1657,33 +1697,27 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #4 — Product Data Planning is COMPLETED on the approved source audit,
-normalization plan, and reconciled local staging dataset. Its planning artifacts
-are reviewed, committed, and pushed. Tracker #5 — UI/UX Planning is COMPLETED
-on the reviewed retrospective/project-derived baseline in
-`docs/ui-ux-plan.md`; its planning checkpoint is committed and pushed. Tracker
-#7 — Test Case Preparation is COMPLETED on the reviewed
-retrospective/project-derived baseline in `docs/test-cases.md`; its
-documentation/testing-planning checkpoint is committed and pushed. Tracker #3
-remains COMPLETED on the approved requirements baseline. Tracker #16 remains
-the latest completed application stage, automatically verified, manually
-browser-smoked, committed, and pushed; Trackers #13 and #14 also remain
-COMPLETED. The separate Responsive Navigation UI mini-checkpoint remains
-IMPLEMENTED / VERIFIED outside the formal tracker count. The completed count is
-**14 / 23**. Stop for review; Tracker #15 may be the likely next formal
-execution focus, but no next tracker is started or authorized here.
+Tracker #15 — Functional Testing is COMPLETED on run `FT15-20260909-A`, with
+all 30 cases finalized and Passed. The completed count is **15 / 23**. Tracker
+#16 remains the latest completed application engineering stage, and the latest
+completed application/code checkpoint remains
+`31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
+`Add dashboard and sales reports`. The Tracker #15 closeout is testing and
+documentation evidence, not an application feature checkpoint.
 
-Opening Inventory remains a separate physical count workflow; no product data
-was loaded by Tracker #7.
+Tracker #17 — Edge Case & Permission Testing is the sole current In Progress
+tracker. It was not executed by the #15 closeout. The recommended next action is
+to review the completed #15 record and then prepare a controlled #17 execution
+plan; no #17 case is started or authorized here.
 
-#15 Functional Testing retains its current pending/in-progress tracker status;
-ongoing module tests do not formally complete it. #17 Edge Case & Permission
-Testing also remains pending/in progress. Other remaining tracker work
-is unchanged. SALE_VOID / Admin full-sale void, returns/refunds, discounts,
-credit / utang, formal profit / COGS, CSV/PDF report exports, sales-by-cashier
-ranking, top-selling variant report, general stock-movement report, User
-Management UI, and remaining documentation/testing/presentation work remain
-future scope.
+The seven Not Started trackers remain #8 Documentation Outline, #18 User Guide
+& Screenshots, #19 Final Integration & Bug Fixing, #20 Project Documentation
+Finalization, #21 Presentation & Demo Preparation, #22 Final System Testing &
+Rehearsal, and #23 Final Presentation. SALE_VOID / Admin full-sale void,
+returns/refunds, discounts, credit / utang, formal profit / COGS, CSV/PDF
+report exports, sales-by-cashier ranking, top-selling Variant reporting,
+general StockMovement reporting, User Management UI, and remaining
+documentation/testing/presentation work remain future scope.
 
 ## Documentation Maintenance Rule
 
