@@ -58,7 +58,7 @@
                                 <td class="px-3 py-3 text-sm">{{ $identity }}</td>
                                 <td class="px-3 py-3 text-sm">{{ $variant->unit }}</td>
                                 <td class="px-3 py-3 text-sm capitalize">{{ $variant->quantity_mode }}</td>
-                                <td class="px-3 py-3 text-right text-sm">{{ $variant->current_stock }}</td>
+                                <td class="px-3 py-3 text-right text-sm">{{ $variant->displayCurrentStock() }}</td>
                                 <td class="px-3 py-3 text-right text-sm">
                                     <a href="{{ route('stock-corrections.create', $variant) }}" class="rounded border border-amber-400 px-3 py-1.5 font-medium text-amber-800">Correct stock</a>
                                 </td>

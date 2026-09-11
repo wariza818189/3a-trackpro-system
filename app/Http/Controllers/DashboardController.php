@@ -55,7 +55,8 @@ class DashboardController extends Controller
             ->whereColumn('product_variants.current_stock', '<=', 'product_variants.low_stock_threshold')
             ->select([
                 'product_variants.id', 'product_variants.size', 'product_variants.type_series',
-                'product_variants.thickness', 'product_variants.unit', 'product_variants.current_stock',
+                'product_variants.thickness', 'product_variants.unit', 'product_variants.quantity_mode',
+                'product_variants.current_stock',
                 'product_variants.low_stock_threshold', 'products.name as product_name',
                 'categories.name as category_name',
             ])

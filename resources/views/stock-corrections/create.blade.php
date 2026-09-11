@@ -12,7 +12,7 @@
         <div><dt class="text-sm text-slate-500">Variant</dt><dd class="font-medium">{{ collect([$productVariant->size, $productVariant->type_series, $productVariant->thickness])->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard' }}</dd></div>
         <div><dt class="text-sm text-slate-500">Unit</dt><dd class="font-medium">{{ $productVariant->unit }}</dd></div>
         <div><dt class="text-sm text-slate-500">Quantity mode</dt><dd class="font-medium capitalize">{{ $productVariant->quantity_mode }}</dd></div>
-        <div><dt class="text-sm text-slate-500">Current stock</dt><dd class="font-medium">{{ $productVariant->current_stock }}</dd></div>
+        <div><dt class="text-sm text-slate-500">Current stock</dt><dd class="font-medium">{{ $productVariant->displayCurrentStock() }}</dd></div>
     </dl>
 
     <form method="POST" action="{{ route('stock-corrections.store', $productVariant) }}" class="mt-6 space-y-5 rounded-xl border bg-white p-6 shadow-sm">

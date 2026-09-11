@@ -55,6 +55,27 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('-0.250', (new StockMovement(['quantity_change' => '-0.25']))->quantity_change);
     }
 
+    public function test_variant_quantity_presentation_preserves_authoritative_decimal_values(): void
+    {
+        $whole = new ProductVariant(['quantity_mode' => 'whole']);
+        $whole->current_stock = '8.000';
+        $this->assertSame('8', $whole->displayCurrentStock());
+        $this->assertSame('8.000', $whole->current_stock);
+
+        $whole->current_stock = '0.000';
+        $this->assertSame('0', $whole->displayCurrentStock());
+        $this->assertSame('0.000', $whole->current_stock);
+
+        $fractional = new ProductVariant(['quantity_mode' => 'fractional']);
+        $fractional->current_stock = '7.500';
+        $this->assertSame('7.500', $fractional->displayCurrentStock());
+        $this->assertSame('7.500', $fractional->current_stock);
+
+        $fractional->current_stock = '6.000';
+        $this->assertSame('6.000', $fractional->displayCurrentStock());
+        $this->assertSame('6.000', $fractional->current_stock);
+    }
+
     public function test_public_numbers_are_derived_without_truncating_large_ids(): void
     {
         $sale = new Sale;

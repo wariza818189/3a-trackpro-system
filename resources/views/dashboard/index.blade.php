@@ -93,7 +93,7 @@
                                 <tr>
                                     <td class="px-3 py-3"><span class="font-semibold">{{ $variant->product_name }}</span><br><span class="text-xs text-slate-500">{{ $variant->category_name }}</span></td>
                                     <td class="px-3 py-3 text-sm">{{ $identity }}<br><span class="text-xs text-slate-500">{{ $variant->unit }}</span></td>
-                                    <td class="px-3 py-3 text-right text-sm"><span @class(['rounded px-2 py-1 font-semibold', 'bg-red-100 text-red-800' => (string) $variant->current_stock === '0.000', 'bg-amber-100 text-amber-900' => (string) $variant->current_stock !== '0.000'])>{{ $variant->current_stock }} / {{ $variant->low_stock_threshold }}</span></td>
+                                    <td class="px-3 py-3 text-right text-sm"><span @class(['rounded px-2 py-1 font-semibold', 'bg-red-100 text-red-800' => (string) $variant->current_stock === '0.000', 'bg-amber-100 text-amber-900' => (string) $variant->current_stock !== '0.000'])>{{ $variant->displayCurrentStock() }} / {{ $variant->displayLowStockThreshold() }}</span></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="3" class="px-4 py-10 text-center text-slate-500">No low-stock active items.</td></tr>

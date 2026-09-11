@@ -75,7 +75,7 @@
                             <td class="px-3 py-3 text-sm">{{ collect([$variant->size, $variant->type_series, $variant->thickness])->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard' }}</td>
                             <td class="px-3 py-3 text-sm">{{ $variant->unit }}</td>
                             <td class="px-3 py-3 text-sm capitalize">{{ $variant->quantity_mode }}</td>
-                            <td class="px-3 py-3 text-right text-sm">{{ $variant->current_stock }}</td>
+                            <td class="px-3 py-3 text-right text-sm">{{ $variant->displayCurrentStock() }}</td>
                             <td class="px-3 py-3 text-sm">
                                 @if ($variant->opening_inventory_recorded)
                                     <span class="rounded bg-emerald-100 px-2 py-1 text-emerald-800">Initialized</span>

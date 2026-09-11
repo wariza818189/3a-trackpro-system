@@ -10,6 +10,24 @@ use Illuminate\Support\Facades\DB;
 
 class ProductVariantManagementTest extends CatalogTestCase
 {
+    public function test_index_displays_current_stock_and_threshold_by_quantity_mode(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $this->variant($product, ['size' => 'Whole', 'current_stock' => '8.000']);
+        $this->variant($product, [
+            'size' => 'Fractional',
+            'unit' => 'kg',
+            'quantity_mode' => 'fractional',
+            'current_stock' => '7.500',
+        ]);
+
+        $this->actingAs($admin)->get(route('product-variants.index'))
+            ->assertOk()
+            ->assertSee('8 / 2')
+            ->assertSee('7.500 / 2.000');
+    }
+
     public function test_create_normalizes_identity_uses_defaults_and_writes_no_movement(): void
     {
         $admin = User::factory()->admin()->create();

@@ -78,7 +78,7 @@ document.querySelectorAll('[data-stock-in-form]').forEach((form) => {
         const option = select.selectedOptions[0];
         const output = select.closest('[data-stock-in-item]').querySelector('[data-stock-in-metadata]');
         output.textContent = option?.value
-            ? `${option.dataset.product} · ${option.dataset.identity} · Unit: ${option.dataset.unit} · ${option.dataset.mode} · Current stock: ${option.dataset.stock}`
+            ? `${option.dataset.product} · ${option.dataset.identity} · Unit: ${option.dataset.unit} · ${option.dataset.mode} · Current stock: ${option.dataset.stockDisplay}`
             : 'Select a variant to see its unit, quantity mode, and current stock.';
     };
 

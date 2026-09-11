@@ -14,6 +14,28 @@ use Illuminate\Validation\ValidationException;
 
 class RestockManagementTest extends RestockTestCase
 {
+    public function test_create_preserves_canonical_stock_data_and_provides_mode_aware_display_data(): void
+    {
+        $actor = User::factory()->create();
+        $product = $this->product($this->category());
+        $whole = $this->variant($product, ['size' => 'Whole', 'current_stock' => '8.000']);
+        $fractional = $this->variant($product, [
+            'size' => 'Fractional',
+            'unit' => 'kg',
+            'quantity_mode' => 'fractional',
+            'current_stock' => '7.500',
+        ]);
+        $this->initialize($whole, $actor);
+        $this->initialize($fractional, $actor);
+
+        $this->actingAs($actor)->get(route('stock-in.create'))
+            ->assertOk()
+            ->assertSee('data-stock="8.000"', false)
+            ->assertSee('data-stock-display="8"', false)
+            ->assertSee('data-stock="7.500"', false)
+            ->assertSee('data-stock-display="7.500"', false);
+    }
+
     public function test_initialized_zero_stock_records_exact_multi_item_history_and_latest_cost(): void
     {
         $actor = User::factory()->create();

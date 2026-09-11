@@ -15,6 +15,19 @@ use Tests\Feature\Catalog\CatalogTestCase;
 
 class OpeningInventoryManagementTest extends CatalogTestCase
 {
+    public function test_index_and_create_display_whole_current_stock_without_decimal_places(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), ['current_stock' => '0.000']);
+
+        $this->actingAs($admin)->get(route('opening-inventory.index'))
+            ->assertOk()
+            ->assertSee('<td class="px-3 py-3 text-right text-sm">0</td>', false);
+        $this->actingAs($admin)->get(route('opening-inventory.create', $variant))
+            ->assertOk()
+            ->assertSee('<dd class="font-medium">0</dd>', false);
+    }
+
     public function test_positive_whole_opening_is_canonical_atomic_and_actor_bound(): void
     {
         $admin = User::factory()->admin()->create();

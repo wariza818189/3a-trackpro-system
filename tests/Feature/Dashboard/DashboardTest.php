@@ -84,11 +84,29 @@ class DashboardTest extends PosTestCase
         $response = $this->actingAs($staff)->get(route('home'))->assertOk();
         $response->assertSeeInOrder(['Low Stock', '2', 'Out of Stock', '1'])
             ->assertSeeInOrder([$out->size, $low->size])
-            ->assertSee('0.000 / 0.000')
+            ->assertSee('0 / 0')
+            ->assertSee('2 / 2')
             ->assertDontSee('Healthy')
             ->assertDontSee('Archived Variant')
             ->assertDontSee('Hidden Product Variant')
             ->assertDontSee('Hidden Category Variant');
+    }
+
+    public function test_low_stock_list_preserves_fractional_current_stock_presentation(): void
+    {
+        $staff = User::factory()->create();
+        $variant = $this->variant($this->product($this->category()), [
+            'size' => 'Fractional',
+            'unit' => 'kg',
+            'quantity_mode' => 'fractional',
+            'current_stock' => '7.500',
+            'low_stock_threshold' => '8.000',
+        ]);
+
+        $this->actingAs($staff)->get(route('home'))
+            ->assertOk()
+            ->assertSee($variant->size)
+            ->assertSee('7.500 / 8.000');
     }
 
     public function test_recent_completed_sales_are_limited_and_deterministically_ordered(): void

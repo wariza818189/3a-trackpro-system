@@ -58,7 +58,7 @@
                             <p class="mt-1 text-sm text-slate-600">{{ $identity }}</p>
                             <dl class="mt-4 grid grid-cols-2 gap-2 text-sm">
                                 <div><dt class="text-slate-500">Unit / mode</dt><dd>{{ $variant->unit }} · {{ ucfirst($variant->quantity_mode) }}</dd></div>
-                                <div><dt class="text-slate-500">Stock</dt><dd>{{ $variant->current_stock }}</dd></div>
+                                <div><dt class="text-slate-500">Stock</dt><dd>{{ $variant->displayCurrentStock() }}</dd></div>
                                 <div class="col-span-2"><dt class="text-slate-500">Selling price</dt><dd class="text-lg font-bold text-slate-950">₱{{ $variant->selling_price }}</dd></div>
                             </dl>
                             <button type="button"

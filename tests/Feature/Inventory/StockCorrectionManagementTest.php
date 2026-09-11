@@ -16,6 +16,20 @@ use stdClass;
 
 class StockCorrectionManagementTest extends StockCorrectionTestCase
 {
+    public function test_index_and_create_display_whole_current_stock_without_decimal_places(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), ['current_stock' => '8.000']);
+        $this->initialize($variant, $admin);
+
+        $this->actingAs($admin)->get(route('stock-corrections.index'))
+            ->assertOk()
+            ->assertSee('<td class="px-3 py-3 text-right text-sm">8</td>', false);
+        $this->actingAs($admin)->get(route('stock-corrections.create', $variant))
+            ->assertOk()
+            ->assertSee('<dd class="font-medium">8</dd>', false);
+    }
+
     public function test_create_form_uses_fresh_stock_and_movement_version_after_a_stale_route_model(): void
     {
         $admin = User::factory()->admin()->create();

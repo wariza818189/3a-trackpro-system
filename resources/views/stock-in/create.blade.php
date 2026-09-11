@@ -52,6 +52,7 @@
                                                 data-unit="{{ $variant->unit }}"
                                                 data-mode="{{ $variant->quantity_mode }}"
                                                 data-stock="{{ $variant->current_stock }}"
+                                                data-stock-display="{{ $variant->displayCurrentStock() }}"
                                                 @selected((string) ($row['product_variant_id'] ?? '') === (string) $variant->id)>
                                                 {{ $variant->product->name }} — {{ $identity }} — {{ $variant->unit }}
                                             </option>
@@ -78,7 +79,7 @@
                 <template data-stock-in-template>
                     <div class="rounded-lg border border-slate-200 p-4" data-stock-in-item>
                         <div class="grid gap-4 lg:grid-cols-12">
-                            <label class="lg:col-span-6"><span class="text-sm font-semibold">Variant</span><select name="items[__INDEX__][product_variant_id]" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" data-stock-in-variant><option value="">Select a variant</option>@foreach ($variants as $variant)@php($identity = collect([$variant->size, $variant->type_series, $variant->thickness])->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard')<option value="{{ $variant->id }}" data-product="{{ $variant->product->name }}" data-identity="{{ $identity }}" data-unit="{{ $variant->unit }}" data-mode="{{ $variant->quantity_mode }}" data-stock="{{ $variant->current_stock }}">{{ $variant->product->name }} — {{ $identity }} — {{ $variant->unit }}</option>@endforeach</select></label>
+                            <label class="lg:col-span-6"><span class="text-sm font-semibold">Variant</span><select name="items[__INDEX__][product_variant_id]" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" data-stock-in-variant><option value="">Select a variant</option>@foreach ($variants as $variant)@php($identity = collect([$variant->size, $variant->type_series, $variant->thickness])->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard')<option value="{{ $variant->id }}" data-product="{{ $variant->product->name }}" data-identity="{{ $identity }}" data-unit="{{ $variant->unit }}" data-mode="{{ $variant->quantity_mode }}" data-stock="{{ $variant->current_stock }}" data-stock-display="{{ $variant->displayCurrentStock() }}">{{ $variant->product->name }} — {{ $identity }} — {{ $variant->unit }}</option>@endforeach</select></label>
                             <label class="lg:col-span-3"><span class="text-sm font-semibold">Received quantity</span><input name="items[__INDEX__][quantity]" inputmode="decimal" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></label>
                             <label class="lg:col-span-3"><span class="text-sm font-semibold">Unit purchase cost</span><input name="items[__INDEX__][unit_cost]" inputmode="decimal" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></label>
                         </div>

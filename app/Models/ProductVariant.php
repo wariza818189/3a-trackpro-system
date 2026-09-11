@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 class ProductVariant extends Model
 {
@@ -88,5 +89,30 @@ class ProductVariant extends Model
     public function openingInventoryMovements(): HasMany
     {
         return $this->stockMovements()->where('movement_type', StockMovement::TYPE_INITIAL_STOCK);
+    }
+
+    public function displayCurrentStock(): string
+    {
+        return $this->displayQuantity((string) $this->current_stock);
+    }
+
+    public function displayLowStockThreshold(): string
+    {
+        return $this->displayQuantity((string) $this->low_stock_threshold);
+    }
+
+    public function displayQuantity(string $quantity): string
+    {
+        if (preg_match('/\A(\d+)\.(\d{3})\z/D', $quantity, $matches) !== 1) {
+            throw new LogicException('A displayed inventory quantity must be a canonical three-decimal value.');
+        }
+
+        return match ($this->quantity_mode) {
+            'whole' => $matches[2] === '000'
+                ? $matches[1]
+                : throw new LogicException('A whole-quantity Variant cannot display a fractional value.'),
+            'fractional' => $quantity,
+            default => throw new LogicException('A displayed inventory quantity has an unsupported quantity mode.'),
+        };
     }
 }

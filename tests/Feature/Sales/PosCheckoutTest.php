@@ -17,6 +17,27 @@ use LogicException;
 
 class PosCheckoutTest extends PosTestCase
 {
+    public function test_pos_displays_current_stock_by_mode_but_preserves_canonical_stock_data(): void
+    {
+        $actor = User::factory()->create();
+        $whole = $this->initializedVariant($actor, ['size' => 'Whole', 'current_stock' => '8.000']);
+        $fractional = $this->initializedVariant($actor, [
+            'size' => 'Fractional',
+            'unit' => 'kg',
+            'quantity_mode' => 'fractional',
+            'current_stock' => '7.500',
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('pos.index'))->assertOk();
+        $response->assertSee('<dt class="text-slate-500">Stock</dt><dd>8</dd>', false)
+            ->assertSee('<dt class="text-slate-500">Stock</dt><dd>7.500</dd>', false)
+            ->assertSee('data-stock="8.000"', false)
+            ->assertSee('data-stock="7.500"', false);
+
+        $this->assertSame('8.000', $whole->fresh()->current_stock);
+        $this->assertSame('7.500', $fractional->fresh()->current_stock);
+    }
+
     public function test_checkout_persists_authoritative_distinct_sale_evidence(): void
     {
         $actor = User::factory()->create();
