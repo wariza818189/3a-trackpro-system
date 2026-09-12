@@ -14,6 +14,21 @@ require_once dirname(__DIR__, 3).'/scripts/ft17/SafetyGuard.php';
 
 final class Ft17SafetyGuardTest extends TestCase
 {
+    private const ACCOUNT_GRANTEE = '`trackpro_ft17_test_user`@`localhost`';
+
+    /** @var list<string> */
+    private const REQUIRED_PRIVILEGES = [
+        'ALTER',
+        'CREATE',
+        'DELETE',
+        'DROP',
+        'INDEX',
+        'INSERT',
+        'REFERENCES',
+        'SELECT',
+        'UPDATE',
+    ];
+
     #[Test]
     public function it_accepts_only_the_exact_mode_configuration_and_live_identity(): void
     {
@@ -21,22 +36,108 @@ final class Ft17SafetyGuardTest extends TestCase
         SafetyGuard::assertConfiguration('testing', SafetyGuard::CONNECTION, $this->configuration());
 
         $result = SafetyGuard::assertLiveIdentity($this->identity(), 'mysql', 'Localhost via UNIX socket');
-        SafetyGuard::assertAccountPrivileges(0, self::schemaPrivileges(false), [['USAGE', 'NO']], 0);
-        SafetyGuard::assertAccountPrivileges(1, self::schemaPrivileges(true), [['USAGE', 'NO']], 0);
 
         $this->assertSame(SafetyGuard::DATABASE, $result['database']);
         $this->assertSame(SafetyGuard::ACCOUNT, $result['account']);
     }
 
     #[Test]
-    public function it_rejects_account_grants_outside_the_exact_ft17_schema_scope(): void
+    public function it_accepts_a_wildcard_safe_schema_grant_when_partial_revokes_are_disabled(): void
     {
-        $unsafe = self::schemaPrivileges(false);
-        $unsafe[] = ['747261636B70726F5F6C6F63616C', 'SELECT', 'NO'];
+        $privilegesInDifferentOrder = array_reverse(self::REQUIRED_PRIVILEGES);
+
+        SafetyGuard::assertAccountPrivileges(
+            0,
+            self::schemaPrivileges(),
+            [['USAGE', 'NO']],
+            0,
+            self::showGrants(0, $privilegesInDifferentOrder),
+        );
+
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
+    public function it_rejects_an_unescaped_wildcard_schema_grant_when_partial_revokes_are_disabled(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        SafetyGuard::assertAccountPrivileges(
+            0,
+            self::schemaPrivileges(),
+            [['USAGE', 'NO']],
+            0,
+            self::showGrants(0, scope: '`trackpro_ft17_test`.*'),
+        );
+    }
+
+    #[Test]
+    public function it_accepts_a_literal_schema_grant_when_partial_revokes_are_enabled(): void
+    {
+        $showGrants = array_reverse(self::showGrants(1));
+
+        SafetyGuard::assertAccountPrivileges(1, self::schemaPrivileges(), [['USAGE', 'NO']], 0, $showGrants);
+
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
+    public function schema_privilege_metadata_always_uses_the_literal_logical_database_name(): void
+    {
+        $escapedMetadata = self::schemaPrivileges();
+        foreach ($escapedMetadata as &$privilege) {
+            $privilege[0] = 'trackpro\\_ft17\\_test';
+        }
+        unset($privilege);
 
         $this->expectException(RuntimeException::class);
 
-        SafetyGuard::assertAccountPrivileges(0, $unsafe, [['USAGE', 'NO']], 0);
+        SafetyGuard::assertAccountPrivileges(0, $escapedMetadata, [['USAGE', 'NO']], 0, self::showGrants(0));
+    }
+
+    #[Test]
+    #[DataProvider('unsafeShowGrantsProvider')]
+    public function it_rejects_every_unexpected_show_grants_posture(int $partialRevokes, array $showGrants): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        SafetyGuard::assertAccountPrivileges(
+            $partialRevokes,
+            self::schemaPrivileges(),
+            [['USAGE', 'NO']],
+            0,
+            $showGrants,
+        );
+    }
+
+    public static function unsafeShowGrantsProvider(): array
+    {
+        $account = self::ACCOUNT_GRANTEE;
+        $schemaPrivileges = implode(', ', self::REQUIRED_PRIVILEGES);
+        $valid = self::showGrants(0);
+
+        return [
+            'wrong database grant' => [0, self::showGrants(0, scope: '`unrelated\\_database`.*')],
+            'protected local database grant' => [0, self::showGrants(0, scope: '`trackpro\\_local`.*')],
+            'protected frozen database grant' => [0, self::showGrants(0, scope: '`trackpro\\_test`.*')],
+            'extra global privilege' => [0, ["GRANT SELECT ON *.* TO {$account}", $valid[1]]],
+            'grant option' => [0, [$valid[0], $valid[1].' WITH GRANT OPTION']],
+            'table-specific grant' => [0, [$valid[0], "GRANT SELECT ON `trackpro_ft17_test`.`products` TO {$account}"]],
+            'column-specific grant' => [0, [$valid[0], "GRANT SELECT (`name`) ON `trackpro_ft17_test`.`products` TO {$account}"]],
+            'procedure grant' => [0, [$valid[0], "GRANT EXECUTE ON PROCEDURE `trackpro_ft17_test`.`unsafe` TO {$account}"]],
+            'function grant' => [0, [$valid[0], "GRANT EXECUTE ON FUNCTION `trackpro_ft17_test`.`unsafe` TO {$account}"]],
+            'granted role' => [0, [$valid[0], "GRANT `unexpected_role`@`localhost` TO {$account}"]],
+            'partial restriction statement' => [0, [$valid[0], "REVOKE INSERT ON *.* FROM {$account}"]],
+            'extra unrelated statement' => [0, [...$valid, "SET DEFAULT ROLE ALL TO {$account}"]],
+            'missing privilege' => [0, self::showGrants(0, array_slice(self::REQUIRED_PRIVILEGES, 1))],
+            'extra privilege' => [0, self::showGrants(0, [...self::REQUIRED_PRIVILEGES, 'CREATE VIEW'])],
+            'escaped schema with partial revokes enabled' => [1, self::showGrants(1, scope: '`trackpro\\_ft17\\_test`.*')],
+            'duplicate database statement' => [0, [$valid[1], $valid[1]]],
+            'wrong grantee account' => [0, [
+                $valid[0],
+                "GRANT {$schemaPrivileges} ON `trackpro\\_ft17\\_test`.* TO `trackpro_test_user`@`localhost`",
+            ]],
+        ];
     }
 
     #[Test]
@@ -54,22 +155,26 @@ final class Ft17SafetyGuardTest extends TestCase
             $schemaPrivileges,
             $userPrivileges,
             $otherPrivilegeCount,
+            self::showGrants(in_array($partialRevokes, [0, 1], true) ? $partialRevokes : 0),
         );
     }
 
     public static function unsafeGrantProvider(): array
     {
-        $missingSchemaPrivilege = self::schemaPrivileges(false);
+        $missingSchemaPrivilege = self::schemaPrivileges();
         array_pop($missingSchemaPrivilege);
-        $grantablePrivilege = self::schemaPrivileges(false);
+        $grantablePrivilege = self::schemaPrivileges();
         $grantablePrivilege[0][2] = 'YES';
+        $unrelatedScope = self::schemaPrivileges();
+        $unrelatedScope[0][0] = 'trackpro_local';
 
         return [
-            'unexpected partial revokes mode' => [2, self::schemaPrivileges(false), [['USAGE', 'NO']], 0],
+            'unexpected partial revokes mode' => [2, self::schemaPrivileges(), [['USAGE', 'NO']], 0],
             'missing schema privilege' => [0, $missingSchemaPrivilege, [['USAGE', 'NO']], 0],
-            'global select privilege' => [0, self::schemaPrivileges(false), [['SELECT', 'NO'], ['USAGE', 'NO']], 0],
+            'unrelated metadata schema scope' => [0, $unrelatedScope, [['USAGE', 'NO']], 0],
+            'global select privilege' => [0, self::schemaPrivileges(), [['SELECT', 'NO'], ['USAGE', 'NO']], 0],
             'grant option' => [0, $grantablePrivilege, [['USAGE', 'NO']], 0],
-            'table column or role grant' => [0, self::schemaPrivileges(false), [['USAGE', 'NO']], 1],
+            'table or column grant' => [0, self::schemaPrivileges(), [['USAGE', 'NO']], 1],
         ];
     }
 
@@ -178,15 +283,28 @@ final class Ft17SafetyGuardTest extends TestCase
         ];
     }
 
-    private static function schemaPrivileges(bool $partialRevokes): array
+    private static function schemaPrivileges(): array
     {
-        $scope = $partialRevokes
-            ? strtoupper(bin2hex(SafetyGuard::DATABASE))
-            : strtoupper(bin2hex(str_replace('_', '\\_', SafetyGuard::DATABASE)));
-
         return array_map(
-            static fn (string $privilege): array => [$scope, $privilege, 'NO'],
-            ['ALTER', 'CREATE', 'DELETE', 'DROP', 'INDEX', 'INSERT', 'REFERENCES', 'SELECT', 'UPDATE'],
+            static fn (string $privilege): array => [SafetyGuard::DATABASE, $privilege, 'NO'],
+            self::REQUIRED_PRIVILEGES,
         );
+    }
+
+    /**
+     * @param  list<string>|null  $privileges
+     * @return list<string>
+     */
+    private static function showGrants(int $partialRevokes, ?array $privileges = null, ?string $scope = null): array
+    {
+        $scope ??= $partialRevokes === 0
+            ? '`trackpro\\_ft17\\_test`.*'
+            : '`trackpro_ft17_test`.*';
+        $privileges ??= self::REQUIRED_PRIVILEGES;
+
+        return [
+            'GRANT USAGE ON *.* TO '.self::ACCOUNT_GRANTEE,
+            'GRANT '.implode(', ', $privileges).' ON '.$scope.' TO '.self::ACCOUNT_GRANTEE,
+        ];
     }
 }

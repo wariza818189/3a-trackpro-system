@@ -7,6 +7,7 @@ namespace Tests\Ft17\MySql;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use PDO;
+use RuntimeException;
 use Tests\TestCase;
 use TrackPro\Ft17Support\SafetyGuard;
 
@@ -55,9 +56,9 @@ final class DatabaseIdentityTest extends TestCase
     {
         $grantee = "CONCAT(QUOTE('trackpro_ft17_test_user'), '@', QUOTE('localhost'))";
         $schemaPrivileges = array_map(
-            static fn (object $row): array => [(string) $row->scope_hex, (string) $row->privilege, (string) $row->is_grantable],
+            static fn (object $row): array => [(string) $row->scope, (string) $row->privilege, (string) $row->is_grantable],
             $connection->select(
-                'SELECT HEX(TABLE_SCHEMA) AS scope_hex, PRIVILEGE_TYPE AS privilege, IS_GRANTABLE AS is_grantable '
+                'SELECT TABLE_SCHEMA AS scope, PRIVILEGE_TYPE AS privilege, IS_GRANTABLE AS is_grantable '
                 .'FROM information_schema.SCHEMA_PRIVILEGES WHERE GRANTEE = '.$grantee.' ORDER BY PRIVILEGE_TYPE'
             ),
         );
@@ -71,10 +72,18 @@ final class DatabaseIdentityTest extends TestCase
         $otherPrivilegeCount = (int) $connection->scalar(
             'SELECT '
             .'(SELECT COUNT(*) FROM information_schema.TABLE_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
-            .'(SELECT COUNT(*) FROM information_schema.COLUMN_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
-            .'(SELECT COUNT(*) FROM information_schema.ROUTINE_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
-            ."(SELECT COUNT(*) FROM information_schema.APPLICABLE_ROLES WHERE GRANTEE = 'trackpro_ft17_test_user' "
-            ."AND GRANTEE_HOST = 'localhost')"
+            .'(SELECT COUNT(*) FROM information_schema.COLUMN_PRIVILEGES WHERE GRANTEE = '.$grantee.')'
+        );
+        $showGrants = array_map(
+            static function (object $row): string {
+                $values = array_values((array) $row);
+                if (count($values) !== 1 || ! is_string($values[0])) {
+                    throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
+                }
+
+                return $values[0];
+            },
+            $connection->select('SHOW GRANTS FOR CURRENT_USER()'),
         );
 
         SafetyGuard::assertAccountPrivileges(
@@ -82,6 +91,7 @@ final class DatabaseIdentityTest extends TestCase
             $schemaPrivileges,
             $userPrivileges,
             $otherPrivilegeCount,
+            $showGrants,
         );
     }
 }

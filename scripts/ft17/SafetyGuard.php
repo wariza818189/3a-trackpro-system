@@ -38,6 +38,19 @@ final class SafetyGuard
     /** @var list<string> */
     private const PROTECTED_DATABASES = ['trackpro_local', 'trackpro_test'];
 
+    /** @var list<string> */
+    private const REQUIRED_SCHEMA_PRIVILEGES = [
+        'ALTER',
+        'CREATE',
+        'DELETE',
+        'DROP',
+        'INDEX',
+        'INSERT',
+        'REFERENCES',
+        'SELECT',
+        'UPDATE',
+    ];
+
     public static function assertMode(mixed $mode): void
     {
         if ($mode !== self::MODE) {
@@ -99,29 +112,84 @@ final class SafetyGuard
     /**
      * @param  list<array{string, string, string}>  $schemaPrivileges
      * @param  list<array{string, string}>  $userPrivileges
+     * @param  list<string>  $showGrants
      */
     public static function assertAccountPrivileges(
         int $partialRevokes,
         array $schemaPrivileges,
         array $userPrivileges,
         int $otherPrivilegeCount,
+        array $showGrants,
     ): void {
         if (! in_array($partialRevokes, [0, 1], true)) {
             throw new RuntimeException('Live access refused: the MySQL partial-revokes mode is unexpected.');
         }
 
-        $scope = $partialRevokes === 1
-            ? strtoupper(bin2hex(self::DATABASE))
-            : strtoupper(bin2hex(str_replace('_', '\\_', self::DATABASE)));
         $expectedSchemaPrivileges = array_map(
-            static fn (string $privilege): array => [$scope, $privilege, 'NO'],
-            ['ALTER', 'CREATE', 'DELETE', 'DROP', 'INDEX', 'INSERT', 'REFERENCES', 'SELECT', 'UPDATE'],
+            static fn (string $privilege): array => [self::DATABASE, $privilege, 'NO'],
+            self::REQUIRED_SCHEMA_PRIVILEGES,
         );
 
         if ($schemaPrivileges !== $expectedSchemaPrivileges
             || $userPrivileges !== [['USAGE', 'NO']]
             || $otherPrivilegeCount !== 0) {
             throw new RuntimeException('Live access refused: the FT17 account grants are not limited to the isolated database.');
+        }
+
+        self::assertShowGrants($partialRevokes, $showGrants);
+    }
+
+    /** @param list<string> $showGrants */
+    private static function assertShowGrants(int $partialRevokes, array $showGrants): void
+    {
+        if (count($showGrants) !== 2) {
+            throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
+        }
+
+        $expectedAccount = '`'.self::USERNAME.'`@`localhost`';
+        $expectedSchemaScope = $partialRevokes === 0
+            ? '`trackpro\\_ft17\\_test`.*'
+            : '`'.self::DATABASE.'`.*';
+        $globalGrantCount = 0;
+        $schemaGrantCount = 0;
+
+        foreach ($showGrants as $showGrant) {
+            $normalized = preg_replace('/\s+/', ' ', trim($showGrant));
+            if (! is_string($normalized)
+                || preg_match(
+                    '/\AGRANT (?<privileges>[A-Z ]+(?:, [A-Z ]+)*) ON (?<scope>\*\.\*|`(?:``|[^`])+`\.\*) TO (?<account>`(?:``|[^`])+`@`(?:``|[^`])+`)\z/D',
+                    $normalized,
+                    $matches,
+                ) !== 1
+                || $matches['account'] !== $expectedAccount) {
+                throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
+            }
+
+            $privileges = array_map('trim', explode(',', $matches['privileges']));
+            if (count($privileges) !== count(array_unique($privileges))) {
+                throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
+            }
+            sort($privileges);
+
+            if ($matches['scope'] === '*.*' && $privileges === ['USAGE']) {
+                $globalGrantCount++;
+
+                continue;
+            }
+
+            $expectedPrivileges = self::REQUIRED_SCHEMA_PRIVILEGES;
+            sort($expectedPrivileges);
+            if ($matches['scope'] === $expectedSchemaScope && $privileges === $expectedPrivileges) {
+                $schemaGrantCount++;
+
+                continue;
+            }
+
+            throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
+        }
+
+        if ($globalGrantCount !== 1 || $schemaGrantCount !== 1) {
+            throw new RuntimeException('Live access refused: the FT17 account grant statements are unexpected.');
         }
     }
 
