@@ -1,0 +1,459 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Dotenv\Dotenv;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use TrackPro\Ft17Support\FixturePlan;
+use TrackPro\Ft17Support\SafetyGuard;
+
+final class Ft17Failure extends RuntimeException {}
+
+$repositoryRoot = dirname(__DIR__);
+
+require $repositoryRoot.'/vendor/autoload.php';
+require __DIR__.'/ft17/SafetyGuard.php';
+require __DIR__.'/ft17/FixturePlan.php';
+
+try {
+    $arguments = parseArguments(array_slice($argv, 1));
+    if ($arguments['help']) {
+        printHelp();
+        exit(0);
+    }
+
+    loadIgnoredEnvironment($repositoryRoot);
+    SafetyGuard::assertMode(getenv('FT17_MODE'));
+
+    $fixtureId = $arguments['fixture_id'];
+    try {
+        FixturePlan::assertFixtureId($fixtureId);
+    } catch (InvalidArgumentException $exception) {
+        throw new Ft17Failure($exception->getMessage());
+    }
+
+    $plan = FixturePlan::make(
+        $fixtureId,
+        new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')),
+    );
+    $manifest = FixturePlan::manifest($plan);
+
+    if ($arguments['operation'] === 'preview') {
+        emitManifest($manifest + [
+            'operation' => 'preview',
+            'database_accessed' => false,
+            'identity_verified' => false,
+            'writes_performed' => false,
+            'next_gate' => 'Run --verify before separately considering an infrastructure-only --apply.',
+        ]);
+        exit(0);
+    }
+
+    if ($arguments['operation'] === 'apply') {
+        if (! FixturePlan::confirmationMatches($fixtureId, $arguments['confirmation'])) {
+            throw new Ft17Failure('Apply refused: the destructive confirmation phrase is missing or incorrect.');
+        }
+
+        $passwords = requireCredentialInputs();
+    }
+
+    forceTestingEnvironment();
+    $app = require $repositoryRoot.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
+    $kernel->bootstrap();
+
+    $identity = guardLiveIdentity();
+
+    if ($arguments['operation'] === 'verify') {
+        emitManifest($manifest + [
+            'operation' => 'verify',
+            'database_accessed' => true,
+            'identity_verified' => true,
+            'verified_identity' => $identity,
+            'writes_performed' => false,
+            'next_gate' => 'Seek separate approval before infrastructure-only --apply.',
+        ]);
+        exit(0);
+    }
+
+    // Re-prove all configuration and live identity gates immediately before reset.
+    SafetyGuard::assertMode(getenv('FT17_MODE'));
+    guardLiveIdentity();
+    $exitCode = Artisan::call('migrate:fresh', [
+        '--database' => SafetyGuard::CONNECTION,
+        '--force' => true,
+    ]);
+    if ($exitCode !== 0) {
+        throw new Ft17Failure('The isolated FT17 schema reset did not complete.');
+    }
+
+    guardLiveIdentity();
+    guardExpectedMigratedSchema();
+    $identifiers = provisionFixtures($plan, $passwords);
+
+    emitManifest($manifest + [
+        'operation' => 'apply',
+        'database_accessed' => true,
+        'identity_verified' => true,
+        'writes_performed' => true,
+        'identifiers' => $identifiers,
+        'formal_execution_started' => false,
+        'next_gate' => 'Infrastructure review only; formal Tracker #17 execution still requires explicit approval.',
+    ]);
+} catch (Throwable $exception) {
+    $message = $exception instanceof Ft17Failure
+        || ($exception instanceof RuntimeException && str_starts_with($exception->getMessage(), 'FT17_MODE'))
+        || ($exception instanceof RuntimeException && str_starts_with($exception->getMessage(), 'Live access refused:'))
+        || ($exception instanceof RuntimeException && str_starts_with($exception->getMessage(), 'Fixture writes refused:'))
+            ? $exception->getMessage()
+            : 'FT17 provisioning failed safely; no connection details or underlying exception are shown.';
+    fwrite(STDERR, $message.PHP_EOL);
+    exit(1);
+}
+
+/** @return array{help: bool, operation: string, fixture_id: string, confirmation: string} */
+function parseArguments(array $arguments): array
+{
+    $result = ['help' => false, 'operation' => '', 'fixture_id' => '', 'confirmation' => ''];
+
+    foreach ($arguments as $argument) {
+        if ($argument === '--help') {
+            $result['help'] = true;
+        } elseif (in_array($argument, ['--preview', '--verify', '--apply'], true)) {
+            if ($result['operation'] !== '') {
+                throw new Ft17Failure('Choose exactly one operation: --preview, --verify, or --apply.');
+            }
+            $result['operation'] = substr($argument, 2);
+        } elseif (str_starts_with($argument, '--fixture-id=')) {
+            if ($result['fixture_id'] !== '') {
+                throw new Ft17Failure('Supply --fixture-id exactly once.');
+            }
+            $result['fixture_id'] = substr($argument, strlen('--fixture-id='));
+        } elseif (str_starts_with($argument, '--confirm=')) {
+            if ($result['confirmation'] !== '') {
+                throw new Ft17Failure('Supply --confirm at most once.');
+            }
+            $result['confirmation'] = substr($argument, strlen('--confirm='));
+        } else {
+            throw new Ft17Failure('Unknown FT17 provisioning argument.');
+        }
+    }
+
+    if ($result['help']) {
+        return $result;
+    }
+    if ($result['operation'] === '' || $result['fixture_id'] === '') {
+        throw new Ft17Failure('Choose one operation and supply an explicit --fixture-id.');
+    }
+    if ($result['operation'] !== 'apply' && $result['confirmation'] !== '') {
+        throw new Ft17Failure('--confirm is accepted only with --apply.');
+    }
+
+    return $result;
+}
+
+function printHelp(): void
+{
+    echo <<<'HELP'
+Tracker #17 isolated infrastructure and fixture support
+
+Required ignored local environment file: .env.ft17.mysql
+  FT17_MODE=edge-permission-testing
+  FT17_APP_HOST=127.0.0.1 and FT17_APP_PORT=8017 for a later browser app
+  MYSQL_FT17_DB_HOST, MYSQL_FT17_DB_PORT, MYSQL_FT17_DB_DATABASE,
+  MYSQL_FT17_DB_USERNAME, MYSQL_FT17_DB_PASSWORD, MYSQL_FT17_DB_SOCKET
+
+Apply also requires local FT17_ADMIN_PASSWORD and FT17_STAFF_PASSWORD values
+of at least 12 characters. No secret is included in output.
+
+Operations:
+  --preview  Validate the FT17 mode and print a non-secret plan. No DB access.
+  --verify   Connect read-only and prove the live FT17 database/account identity.
+  --apply    Reset only the guarded FT17 schema and provision support fixtures.
+
+Apply additionally requires:
+  --confirm=RESET-trackpro_ft17_test-FOR-FT17-INFRA:<FIXTURE_ID>
+
+Every operation requires --fixture-id=FT17-INFRA-<1-32 uppercase-safe characters>.
+Applying fixtures does not start or record a formal Tracker #17 run.
+HELP;
+    echo PHP_EOL;
+}
+
+function loadIgnoredEnvironment(string $repositoryRoot): void
+{
+    if (is_file($repositoryRoot.'/.env.ft17.mysql')) {
+        Dotenv::createUnsafeImmutable($repositoryRoot, '.env.ft17.mysql')->safeLoad();
+    }
+}
+
+/** @return array{admin: string, staff: string} */
+function requireCredentialInputs(): array
+{
+    $admin = getenv('FT17_ADMIN_PASSWORD');
+    $staff = getenv('FT17_STAFF_PASSWORD');
+
+    if (! is_string($admin) || strlen($admin) < 12) {
+        throw new Ft17Failure('FT17_ADMIN_PASSWORD is required locally and must contain at least 12 characters.');
+    }
+    if (! is_string($staff) || strlen($staff) < 12) {
+        throw new Ft17Failure('FT17_STAFF_PASSWORD is required locally and must contain at least 12 characters.');
+    }
+
+    return ['admin' => $admin, 'staff' => $staff];
+}
+
+function forceTestingEnvironment(): void
+{
+    foreach (['APP_ENV' => 'testing', 'CACHE_STORE' => 'array', 'DB_CONNECTION' => SafetyGuard::CONNECTION,
+        'DB_URL' => '', 'LOG_CHANNEL' => 'null', 'QUEUE_CONNECTION' => 'sync', 'SESSION_DRIVER' => 'array'] as $name => $value) {
+        putenv($name.'='.$value);
+        $_ENV[$name] = $value;
+        $_SERVER[$name] = $value;
+    }
+}
+
+/** @return array{database: string, account: string, driver: string, engine: string, mysql_major: string} */
+function guardLiveIdentity(): array
+{
+    SafetyGuard::assertMode(getenv('FT17_MODE'));
+    $configuration = config('database.connections.'.SafetyGuard::CONNECTION);
+    SafetyGuard::assertConfiguration(
+        app()->environment(),
+        config('database.default'),
+        is_array($configuration) ? $configuration : [],
+    );
+
+    $connection = DB::connection(SafetyGuard::CONNECTION);
+    $pdo = $connection->getPdo();
+    $identity = $connection->selectOne(
+        'SELECT DATABASE() AS database_name, CURRENT_USER() AS account_name, '
+        .'@@socket AS socket_path, @@default_storage_engine AS default_engine, VERSION() AS version'
+    );
+
+    $verified = SafetyGuard::assertLiveIdentity(
+        $identity === null ? [] : (array) $identity,
+        (string) $pdo->getAttribute(PDO::ATTR_DRIVER_NAME),
+        (string) $pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS),
+    );
+    guardAccountPrivileges($connection);
+
+    return $verified;
+}
+
+function guardAccountPrivileges(Connection $connection): void
+{
+    $grantee = "CONCAT(QUOTE('trackpro_ft17_test_user'), '@', QUOTE('localhost'))";
+    $schemaPrivileges = array_map(
+        static fn (object $row): array => [(string) $row->scope_hex, (string) $row->privilege, (string) $row->is_grantable],
+        $connection->select(
+            'SELECT HEX(TABLE_SCHEMA) AS scope_hex, PRIVILEGE_TYPE AS privilege, IS_GRANTABLE AS is_grantable '
+            .'FROM information_schema.SCHEMA_PRIVILEGES WHERE GRANTEE = '.$grantee.' ORDER BY PRIVILEGE_TYPE'
+        ),
+    );
+    $userPrivileges = array_map(
+        static fn (object $row): array => [(string) $row->privilege, (string) $row->is_grantable],
+        $connection->select(
+            'SELECT PRIVILEGE_TYPE AS privilege, IS_GRANTABLE AS is_grantable '
+            .'FROM information_schema.USER_PRIVILEGES WHERE GRANTEE = '.$grantee.' ORDER BY PRIVILEGE_TYPE'
+        ),
+    );
+    $otherPrivilegeCount = (int) $connection->scalar(
+        'SELECT '
+        .'(SELECT COUNT(*) FROM information_schema.TABLE_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
+        .'(SELECT COUNT(*) FROM information_schema.COLUMN_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
+        .'(SELECT COUNT(*) FROM information_schema.ROUTINE_PRIVILEGES WHERE GRANTEE = '.$grantee.') + '
+        ."(SELECT COUNT(*) FROM information_schema.APPLICABLE_ROLES WHERE GRANTEE = 'trackpro_ft17_test_user' "
+        ."AND GRANTEE_HOST = 'localhost')"
+    );
+
+    SafetyGuard::assertAccountPrivileges(
+        (int) $connection->scalar('SELECT @@partial_revokes'),
+        $schemaPrivileges,
+        $userPrivileges,
+        $otherPrivilegeCount,
+    );
+}
+
+function guardExpectedMigratedSchema(): void
+{
+    $tables = array_map(
+        static fn (object $row): string => (string) $row->table_name,
+        DB::connection(SafetyGuard::CONNECTION)->select(
+            'SELECT TABLE_NAME AS table_name FROM information_schema.TABLES '
+            .'WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = ? ORDER BY TABLE_NAME',
+            [SafetyGuard::DATABASE, 'BASE TABLE'],
+        ),
+    );
+    SafetyGuard::assertMigratedSchema($tables);
+}
+
+/**
+ * @param  array{admin: string, staff: string}  $passwords
+ * @return array<string, int|string>
+ */
+function provisionFixtures(array $plan, array $passwords): array
+{
+    guardLiveIdentity();
+
+    return DB::connection(SafetyGuard::CONNECTION)->transaction(function () use ($plan, $passwords): array {
+        $now = $plan['fixture_created_at'];
+        $userIds = [];
+        foreach ($plan['users'] as $key => $user) {
+            $password = match ($key) {
+                'admin' => $passwords['admin'],
+                'staff' => $passwords['staff'],
+                default => bin2hex(random_bytes(32)),
+            };
+            $userIds[$key] = DB::table('users')->insertGetId([
+                'name' => $user['name'], 'username' => $user['username'], 'password' => Hash::make($password),
+                'role' => $user['role'], 'status' => $user['status'], 'remember_token' => null,
+                'created_at' => $now, 'updated_at' => $user['updated_at'] ?? $now,
+            ]);
+        }
+
+        $categoryIds = [];
+        foreach ($plan['catalog']['categories'] as $key => $category) {
+            $categoryIds[$key] = DB::table('categories')->insertGetId($category + ['created_at' => $now, 'updated_at' => $now]);
+        }
+
+        $productIds = [];
+        foreach ($plan['catalog']['products'] as $key => $product) {
+            $productIds[$key] = DB::table('products')->insertGetId([
+                'category_id' => $categoryIds[$product['category']], 'name' => $product['name'],
+                'status' => $product['status'], 'created_at' => $now, 'updated_at' => $now,
+            ]);
+        }
+
+        $variantIds = [];
+        foreach ($plan['variants'] as $key => $variant) {
+            $variantIds[$key] = insertVariant($productIds[$variant['product']], $variant, $now);
+        }
+
+        insertOpening($variantIds['initialized_whole'], $userIds['admin'], '10.000', $plan['fixture_id'], $now);
+        insertOpening($variantIds['initialized_fractional'], $userIds['admin'], '10.500', $plan['fixture_id'], $now);
+        insertOpening($variantIds['restocked_whole'], $userIds['admin'], '3.000', $plan['fixture_id'], $now);
+        insertRestock($variantIds['restocked_whole'], $userIds['admin'], $plan['fixture_id'], $now);
+        insertOpening($variantIds['corrected_whole'], $userIds['admin'], '6.000', $plan['fixture_id'], $now);
+        insertCorrection($variantIds['corrected_whole'], $userIds['admin'], $plan['fixture_id'], $now);
+        insertOpening($variantIds['sale_history_whole'], $userIds['admin'], '10.000', $plan['fixture_id'], $now);
+        insertOpening($variantIds['archived'], $userIds['admin'], '0.000', $plan['fixture_id'], $now);
+        $completedSaleId = insertCompletedSale($plan, $variantIds['sale_history_whole'], $userIds['disabled_staff']);
+        $voidedSaleId = insertControlledVoidedSale($plan, $userIds['disabled_staff'], $userIds['admin']);
+
+        return [
+            'admin_user_id' => $userIds['admin'],
+            'staff_user_id' => $userIds['staff'],
+            'disabled_staff_user_id' => $userIds['disabled_staff'],
+            'completed_sale_id' => $completedSaleId,
+            'controlled_voided_sale_id' => $voidedSaleId,
+            'fixture_id' => $plan['fixture_id'],
+        ];
+    });
+}
+
+function insertVariant(int $productId, array $variant, string $now): int
+{
+    return DB::table('product_variants')->insertGetId([
+        'product_id' => $productId, 'size' => $variant['size'], 'type_series' => $variant['type_series'],
+        'thickness' => $variant['thickness'], 'unit' => $variant['unit'], 'quantity_mode' => $variant['quantity_mode'],
+        'cost_price' => $variant['cost_price'], 'selling_price' => $variant['selling_price'],
+        'current_stock' => $variant['current_stock'], 'low_stock_threshold' => $variant['low_stock_threshold'],
+        'status' => $variant['status'], 'created_at' => $now, 'updated_at' => $now,
+    ]);
+}
+
+function insertOpening(int $variantId, int $adminId, string $quantity, string $fixtureId, string $now): void
+{
+    DB::table('stock_movements')->insert([
+        'product_variant_id' => $variantId, 'movement_type' => 'INITIAL_STOCK',
+        'quantity_before' => '0.000', 'quantity_change' => $quantity, 'quantity_after' => $quantity,
+        'performed_by' => $adminId, 'sale_item_id' => null, 'restock_item_id' => null,
+        'reason' => "FT17 CONTROLLED FIXTURE opening evidence ({$fixtureId})", 'created_at' => $now,
+    ]);
+}
+
+function insertRestock(int $variantId, int $adminId, string $fixtureId, string $now): void
+{
+    $restockId = DB::table('restocks')->insertGetId([
+        'submission_token' => deterministicUuid($fixtureId, 'restock'), 'recorded_by' => $adminId,
+        'reference_text' => 'FT17 controlled fixture', 'notes' => null, 'total_cost' => '200.00', 'created_at' => $now,
+    ]);
+    $itemId = DB::table('restock_items')->insertGetId([
+        'restock_id' => $restockId, 'product_variant_id' => $variantId, 'product_name_snapshot' => 'FT17 Edge Material',
+        'size_snapshot' => 'Restocked Whole', 'type_series_snapshot' => '', 'thickness_snapshot' => '',
+        'unit_snapshot' => 'piece', 'quantity' => '5.000', 'unit_cost' => '40.00', 'line_total' => '200.00', 'created_at' => $now,
+    ]);
+    DB::table('stock_movements')->insert([
+        'product_variant_id' => $variantId, 'movement_type' => 'RESTOCK', 'quantity_before' => '3.000',
+        'quantity_change' => '5.000', 'quantity_after' => '8.000', 'performed_by' => $adminId,
+        'sale_item_id' => null, 'restock_item_id' => $itemId, 'reason' => null, 'created_at' => $now,
+    ]);
+}
+
+function insertCorrection(int $variantId, int $adminId, string $fixtureId, string $now): void
+{
+    DB::table('stock_movements')->insert([
+        'product_variant_id' => $variantId, 'movement_type' => 'CORRECTION', 'quantity_before' => '6.000',
+        'quantity_change' => '-2.000', 'quantity_after' => '4.000', 'performed_by' => $adminId,
+        'sale_item_id' => null, 'restock_item_id' => null,
+        'reason' => "FT17 CONTROLLED FIXTURE correction evidence ({$fixtureId})", 'created_at' => $now,
+    ]);
+}
+
+function insertCompletedSale(array $plan, int $variantId, int $cashierId): int
+{
+    $sale = $plan['history_controls']['completed_sale'];
+    $saleId = DB::table('sales')->insertGetId([
+        'checkout_token' => $sale['checkout_token'], 'recorded_by' => $cashierId, 'status' => 'completed',
+        'total_amount' => $sale['total_amount'], 'cash_received' => $sale['cash_received'],
+        'change_amount' => $sale['change_amount'], 'void_reason' => null, 'voided_by' => null, 'voided_at' => null,
+        'created_at' => $sale['created_at'], 'updated_at' => $sale['created_at'],
+    ]);
+    $itemId = DB::table('sale_items')->insertGetId([
+        'sale_id' => $saleId, 'product_variant_id' => $variantId, 'product_name_snapshot' => 'FT17 Edge Material',
+        'size_snapshot' => 'Sale History Whole', 'type_series_snapshot' => '', 'thickness_snapshot' => '',
+        'unit_snapshot' => 'piece', 'quantity' => $sale['quantity'], 'unit_price' => $sale['unit_price'],
+        'line_total' => $sale['total_amount'], 'created_at' => $sale['created_at'],
+    ]);
+    DB::table('stock_movements')->insert([
+        'product_variant_id' => $variantId, 'movement_type' => 'SALE', 'quantity_before' => '10.000',
+        'quantity_change' => '-3.000', 'quantity_after' => '7.000', 'performed_by' => $cashierId,
+        'sale_item_id' => $itemId, 'restock_item_id' => null, 'reason' => null, 'created_at' => $sale['created_at'],
+    ]);
+
+    return $saleId;
+}
+
+function insertControlledVoidedSale(array $plan, int $cashierId, int $adminId): int
+{
+    $sale = $plan['history_controls']['controlled_voided_sale'];
+
+    return DB::table('sales')->insertGetId([
+        'checkout_token' => $sale['checkout_token'], 'recorded_by' => $cashierId, 'status' => 'voided',
+        'total_amount' => $sale['total_amount'], 'cash_received' => $sale['cash_received'],
+        'change_amount' => $sale['change_amount'],
+        'void_reason' => 'FT17 CONTROLLED FIXTURE only; no void workflow was executed.',
+        'voided_by' => $adminId, 'voided_at' => $sale['created_at'],
+        'created_at' => $sale['created_at'], 'updated_at' => $sale['created_at'],
+    ]);
+}
+
+function deterministicUuid(string $fixtureId, string $label): string
+{
+    $hex = substr(hash('sha256', $fixtureId.'|'.$label), 0, 32);
+    $hex[12] = '5';
+    $hex[16] = dechex((hexdec($hex[16]) & 0x3) | 0x8);
+
+    return substr($hex, 0, 8).'-'.substr($hex, 8, 4).'-'.substr($hex, 12, 4).'-'.substr($hex, 16, 4).'-'.substr($hex, 20, 12);
+}
+
+function emitManifest(array $manifest): void
+{
+    echo json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL;
+}

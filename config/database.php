@@ -83,6 +83,25 @@ return [
             ]) : [],
         ],
 
+        'mysql_ft17_testing' => [
+            'driver' => 'mysql',
+            'host' => env('MYSQL_FT17_DB_HOST'),
+            'port' => env('MYSQL_FT17_DB_PORT'),
+            'database' => env('MYSQL_FT17_DB_DATABASE'),
+            'username' => env('MYSQL_FT17_DB_USERNAME'),
+            'password' => env('MYSQL_FT17_DB_PASSWORD'),
+            'unix_socket' => env('MYSQL_FT17_DB_SOCKET'),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => 'InnoDB',
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
