@@ -125,8 +125,11 @@ final class SafetyGuard
             throw new RuntimeException('Live access refused: the MySQL partial-revokes mode is unexpected.');
         }
 
+        $expectedMetadataScope = $partialRevokes === 0
+            ? str_replace('_', '\\_', self::DATABASE)
+            : self::DATABASE;
         $expectedSchemaPrivileges = array_map(
-            static fn (string $privilege): array => [self::DATABASE, $privilege, 'NO'],
+            static fn (string $privilege): array => [$expectedMetadataScope, $privilege, 'NO'],
             self::REQUIRED_SCHEMA_PRIVILEGES,
         );
 

@@ -48,7 +48,7 @@ final class Ft17SafetyGuardTest extends TestCase
 
         SafetyGuard::assertAccountPrivileges(
             0,
-            self::schemaPrivileges(),
+            self::schemaPrivileges(0),
             [['USAGE', 'NO']],
             0,
             self::showGrants(0, $privilegesInDifferentOrder),
@@ -64,7 +64,7 @@ final class Ft17SafetyGuardTest extends TestCase
 
         SafetyGuard::assertAccountPrivileges(
             0,
-            self::schemaPrivileges(),
+            self::schemaPrivileges(0),
             [['USAGE', 'NO']],
             0,
             self::showGrants(0, scope: '`trackpro_ft17_test`.*'),
@@ -76,23 +76,25 @@ final class Ft17SafetyGuardTest extends TestCase
     {
         $showGrants = array_reverse(self::showGrants(1));
 
-        SafetyGuard::assertAccountPrivileges(1, self::schemaPrivileges(), [['USAGE', 'NO']], 0, $showGrants);
+        SafetyGuard::assertAccountPrivileges(1, self::schemaPrivileges(1), [['USAGE', 'NO']], 0, $showGrants);
 
         $this->addToAssertionCount(1);
     }
 
     #[Test]
-    public function schema_privilege_metadata_always_uses_the_literal_logical_database_name(): void
+    public function it_rejects_literal_schema_privilege_metadata_when_partial_revokes_are_disabled(): void
     {
-        $escapedMetadata = self::schemaPrivileges();
-        foreach ($escapedMetadata as &$privilege) {
-            $privilege[0] = 'trackpro\\_ft17\\_test';
-        }
-        unset($privilege);
-
         $this->expectException(RuntimeException::class);
 
-        SafetyGuard::assertAccountPrivileges(0, $escapedMetadata, [['USAGE', 'NO']], 0, self::showGrants(0));
+        SafetyGuard::assertAccountPrivileges(0, self::schemaPrivileges(1), [['USAGE', 'NO']], 0, self::showGrants(0));
+    }
+
+    #[Test]
+    public function it_rejects_escaped_schema_privilege_metadata_when_partial_revokes_are_enabled(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        SafetyGuard::assertAccountPrivileges(1, self::schemaPrivileges(0), [['USAGE', 'NO']], 0, self::showGrants(1));
     }
 
     #[Test]
@@ -103,7 +105,7 @@ final class Ft17SafetyGuardTest extends TestCase
 
         SafetyGuard::assertAccountPrivileges(
             $partialRevokes,
-            self::schemaPrivileges(),
+            self::schemaPrivileges($partialRevokes),
             [['USAGE', 'NO']],
             0,
             $showGrants,
@@ -161,20 +163,20 @@ final class Ft17SafetyGuardTest extends TestCase
 
     public static function unsafeGrantProvider(): array
     {
-        $missingSchemaPrivilege = self::schemaPrivileges();
+        $missingSchemaPrivilege = self::schemaPrivileges(0);
         array_pop($missingSchemaPrivilege);
-        $grantablePrivilege = self::schemaPrivileges();
+        $grantablePrivilege = self::schemaPrivileges(0);
         $grantablePrivilege[0][2] = 'YES';
-        $unrelatedScope = self::schemaPrivileges();
-        $unrelatedScope[0][0] = 'trackpro_local';
 
         return [
-            'unexpected partial revokes mode' => [2, self::schemaPrivileges(), [['USAGE', 'NO']], 0],
+            'unexpected partial revokes mode' => [2, self::schemaPrivileges(0), [['USAGE', 'NO']], 0],
             'missing schema privilege' => [0, $missingSchemaPrivilege, [['USAGE', 'NO']], 0],
-            'unrelated metadata schema scope' => [0, $unrelatedScope, [['USAGE', 'NO']], 0],
-            'global select privilege' => [0, self::schemaPrivileges(), [['SELECT', 'NO'], ['USAGE', 'NO']], 0],
+            'unrelated metadata schema scope' => [0, self::schemaPrivileges(0, 'unrelated\\_database'), [['USAGE', 'NO']], 0],
+            'protected local metadata scope' => [0, self::schemaPrivileges(0, 'trackpro\\_local'), [['USAGE', 'NO']], 0],
+            'protected frozen metadata scope' => [0, self::schemaPrivileges(0, 'trackpro\\_test'), [['USAGE', 'NO']], 0],
+            'global select privilege' => [0, self::schemaPrivileges(0), [['SELECT', 'NO'], ['USAGE', 'NO']], 0],
             'grant option' => [0, $grantablePrivilege, [['USAGE', 'NO']], 0],
-            'table or column grant' => [0, self::schemaPrivileges(), [['USAGE', 'NO']], 1],
+            'table or column grant' => [0, self::schemaPrivileges(0), [['USAGE', 'NO']], 1],
         ];
     }
 
@@ -283,10 +285,14 @@ final class Ft17SafetyGuardTest extends TestCase
         ];
     }
 
-    private static function schemaPrivileges(): array
+    private static function schemaPrivileges(int $partialRevokes, ?string $scope = null): array
     {
+        $scope ??= $partialRevokes === 0
+            ? 'trackpro\\_ft17\\_test'
+            : SafetyGuard::DATABASE;
+
         return array_map(
-            static fn (string $privilege): array => [SafetyGuard::DATABASE, $privilege, 'NO'],
+            static fn (string $privilege): array => [$scope, $privilege, 'NO'],
             self::REQUIRED_PRIVILEGES,
         );
     }
