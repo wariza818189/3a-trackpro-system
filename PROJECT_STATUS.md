@@ -1,6 +1,6 @@
 # 3A TrackPro — Project Status
 
-Last updated: 2026-09-11
+Last updated: 2026-09-17
 
 ## Latest Completed Application Checkpoint
 
@@ -42,6 +42,58 @@ The Visionaries
 Final presentation:
 
 October 22, 2026
+
+## Current Project Focus
+
+Teacher consultation introduced a formal scope expansion:
+
+- #24 POS Opening Cash Register
+- #25 Purchase Order & Low-Stock Prioritization
+- #26 PO-Based Receiving & Partial Delivery
+- #27 Follow-up PO for Remaining / Unfulfilled Quantities
+- #28 Pending Purchase Orders Report
+- #29 Unfulfilled Items Report
+- #30 Damaged Items Recording & Report
+
+No application implementation has started for this new scope. The current
+planning record is [docs/teacher-scope-expansion.md](docs/teacher-scope-expansion.md);
+formal requirements, database design, and the test catalog have not yet been
+revised for the expansion.
+
+### Current Testing State
+
+Tracker #17 / FT17 is paused while the scope expansion is designed and
+implemented. The preserved formal run is `FT17-20260912-A`, with the current
+formal tally:
+
+**Pass 8 / Fail 1 / Blocked 0 / Remaining 28**
+
+Existing FT17 evidence remains immutable and valid as pre-scope-expansion
+evidence. `TC-AUTH-006` remains the preserved formal **FAIL**; historical
+verdicts must not be rewritten. The remaining old FT17 cases must not resume
+until the new scope has been designed and implemented and the test baseline has
+been refreshed.
+
+### Major Workflow Change
+
+Previous normal replenishment:
+
+`Manual Stock In -> Inventory`
+
+New target replenishment:
+
+`Low Stock -> Purchase Order -> PO-Based Receiving -> Inventory`
+
+Opening Inventory remains the initial stock-setup workflow. Stock Correction
+remains the controlled Admin adjustment workflow. Existing historical Stock-In
+and Restock records remain valid, and the existing Stock-In backend/history
+should be reused where safe. New regular replenishment is intended to become
+PO-based.
+
+### Next Technical Step
+
+Conduct a read-only repository impact audit for teacher scope expansion
+#24–#30.
 
 ## Current Development Position
 
@@ -87,24 +139,23 @@ mini-checkpoint outside the formal 23-item tracker count.
 
 Tracker item:
 
-#15 — Functional Testing
+#17 — Edge Case & Permission Testing
 
 Status:
 
-COMPLETED
+IN PROGRESS — PAUSED
 
-Tracker #15 is formally closed on run `FT15-20260909-A`: all 30 unique
-functional cases were finalized, with 30 Passed, 0 Failed, and 0 Blocked.
-Execution used isolated `mysql_testing` / `trackpro_test`; protected
-`trackpro_local` was not used as disposable test data, and Test Hammer was not
-reused or touched. The final `TC-SALES-002` case deliberately retained a current
-test-catalog Product rename and two Variant reprices while the historical
-Sale/SaleItem receipt snapshots remained unchanged. The execution record is
-[docs/functional-test-results.md](docs/functional-test-results.md). Tracker #17
-remains separate and has not been executed by this closeout. Tracker #16 remains
-the latest completed application engineering stage.
+Tracker #17 formal run `FT17-20260912-A` is paused at **Pass 8 / Fail 1 /
+Blocked 0 / Remaining 28** while teacher scope expansion #24–#30 is designed
+and implemented. Completed evidence remains preserved as valid
+pre-scope-expansion evidence, and `TC-AUTH-006` remains the formal **FAIL**.
+The remaining old FT17 cases will not resume until the new scope and refreshed
+test baseline are ready. Tracker #15 remains completed on run
+`FT15-20260909-A`; its execution record is
+[docs/functional-test-results.md](docs/functional-test-results.md). Tracker #16
+remains the latest completed application engineering stage.
 
-Overall completed tracker count: **15 / 23**.
+Overall completed tracker count: **15 / 30**.
 
 Completed tracker items:
 
@@ -137,11 +188,18 @@ These remain Not Started:
 - #21 Presentation & Demo Preparation
 - #22 Final System Testing & Rehearsal
 - #23 Final Presentation
+- #24 POS Opening Cash Register
+- #25 Purchase Order & Low-Stock Prioritization
+- #26 PO-Based Receiving & Partial Delivery
+- #27 Follow-up PO for Remaining / Unfulfilled Quantities
+- #28 Pending Purchase Orders Report
+- #29 Unfulfilled Items Report
+- #30 Damaged Items Recording & Report
 
-Current formal tracker distribution: **15 Completed, 1 In Progress, 7 Not Started**.
-Tracker #15 completion does not imply that all project testing is complete;
-Tracker #17 remains the separate current testing tracker and no #17 execution
-evidence is claimed here.
+Current formal tracker distribution: **15 Completed, 1 In Progress (paused),
+14 Not Started**. Tracker #15 completion does not imply that all project
+testing is complete. Tracker #17 has preserved partial execution evidence but
+is paused for the scope expansion.
 
 Previously completed tracker (unchanged):
 
@@ -815,6 +873,13 @@ Implemented:
 
 Not yet implemented:
 
+- POS Opening Cash Register
+- Purchase Orders and low-stock prioritization
+- PO-based receiving and partial delivery
+- follow-up POs for remaining/unfulfilled quantities
+- Pending Purchase Orders report
+- Unfulfilled Items report
+- damaged-items recording and report
 - Admin full-sale void
 - SALE_VOID
 - returns/refunds
@@ -1618,6 +1683,17 @@ No:
 
 ## Current Test Baseline
 
+Current formal Tracker #17 run (paused):
+
+`FT17-20260912-A`
+
+**Pass 8 / Fail 1 / Blocked 0 / Remaining 28**
+
+The completed evidence is immutable pre-scope-expansion evidence.
+`TC-AUTH-006` remains the preserved formal **FAIL**. The remaining old cases
+must not be executed against the changing scope before the new design and
+implementation are complete and the test baseline is refreshed.
+
 Verified final Tracker #16 ordinary suite (historical; not rerun for this update):
 
 `191 tests / 2,023 assertions`
@@ -1645,7 +1721,7 @@ Opening Inventory:
 - exactly once
 - INITIAL_STOCK movement required
 
-Normal Stock In:
+Existing normal Stock In baseline:
 
 - Admin and Staff
 - requires opening initialization
@@ -1657,6 +1733,11 @@ Normal Stock In:
 - one RESTOCK movement per item
 - durable submission-token idempotency
 - exact BCMath arithmetic
+
+The target workflow for future regular replenishment is Low Stock → Purchase
+Order → PO-Based Receiving → Inventory. Opening Inventory and Stock Correction
+retain their distinct purposes. Existing Restock/StockMovement history remains
+valid, and the current Stock-In backend/history should be reused where safe.
 
 Stock Correction:
 
@@ -1697,27 +1778,16 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Tracker #15 — Functional Testing is COMPLETED on run `FT15-20260909-A`, with
-all 30 cases finalized and Passed. The completed count is **15 / 23**. Tracker
-#16 remains the latest completed application engineering stage, and the latest
-completed application/code checkpoint remains
-`31b5b95f8d4de3136c15924bc541b52a6d2fa846` —
-`Add dashboard and sales reports`. The Tracker #15 closeout is testing and
-documentation evidence, not an application feature checkpoint.
+Conduct a read-only repository impact audit for teacher scope expansion
+#24–#30 before changing formal requirements, database design, migrations,
+application code, or the test catalog. No application implementation has
+started for the new scope.
 
-Tracker #17 — Edge Case & Permission Testing is the sole current In Progress
-tracker. It was not executed by the #15 closeout. The recommended next action is
-to review the completed #15 record and then prepare a controlled #17 execution
-plan; no #17 case is started or authorized here.
-
-The seven Not Started trackers remain #8 Documentation Outline, #18 User Guide
-& Screenshots, #19 Final Integration & Bug Fixing, #20 Project Documentation
-Finalization, #21 Presentation & Demo Preparation, #22 Final System Testing &
-Rehearsal, and #23 Final Presentation. SALE_VOID / Admin full-sale void,
-returns/refunds, discounts, credit / utang, formal profit / COGS, CSV/PDF
-report exports, sales-by-cashier ranking, top-selling Variant reporting,
-general StockMovement reporting, User Management UI, and remaining
-documentation/testing/presentation work remain future scope.
+Tracker #17 formal run `FT17-20260912-A` remains paused at **Pass 8 / Fail 1 /
+Blocked 0 / Remaining 28**. Preserve its completed evidence and the formal
+`TC-AUTH-006` failure as pre-scope-expansion history; do not resume the
+remaining old cases until the new scope has been designed and implemented and
+the baseline refreshed.
 
 ## Documentation Maintenance Rule
 
