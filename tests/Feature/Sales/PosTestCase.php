@@ -47,10 +47,21 @@ abstract class PosTestCase extends TestCase
             $table->string('status')->default('active');
             $table->timestamps();
         });
+        Schema::create('cash_register_sessions', function (Blueprint $table): void {
+            $table->id();
+            $table->decimal('opening_cash', 16, 2);
+            $table->foreignId('opened_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->timestamp('opened_at');
+            $table->foreignId('closed_by')->nullable()->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->timestamp('closed_at')->nullable();
+            $table->unsignedTinyInteger('active_slot')->nullable()->unique();
+            $table->timestamps();
+        });
         Schema::create('sales', function (Blueprint $table): void {
             $table->id();
             $table->uuid('checkout_token')->unique();
             $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('cash_register_session_id')->nullable()->constrained('cash_register_sessions')->restrictOnDelete()->restrictOnUpdate();
             $table->string('status')->default('completed');
             $table->decimal('total_amount', 16, 2);
             $table->decimal('cash_received', 16, 2);

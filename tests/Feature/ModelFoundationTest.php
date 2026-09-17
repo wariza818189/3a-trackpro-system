@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\CashRegisterSession;
 use App\Models\Category;
 use App\Models\Concerns\ImmutableRecord;
 use App\Models\Product;
@@ -53,6 +54,22 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('0.125', $variant->current_stock);
         $this->assertSame('0.000', (new ProductVariant)->current_stock);
         $this->assertSame('-0.250', (new StockMovement(['quantity_change' => '-0.25']))->quantity_change);
+    }
+
+    public function test_cash_register_session_uses_trusted_writes_and_expected_casts(): void
+    {
+        $session = new CashRegisterSession;
+        $session->opening_cash = '1250.5';
+        $session->opened_at = '2026-09-17 08:00:00';
+        $session->closed_at = '2026-09-17 17:00:00';
+        $session->active_slot = '1';
+
+        $this->assertSame(['*'], $session->getGuarded());
+        $this->assertSame('1250.50', $session->opening_cash);
+        $this->assertSame('2026-09-17 08:00:00', $session->opened_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-09-17 17:00:00', $session->closed_at->format('Y-m-d H:i:s'));
+        $this->assertSame(1, $session->active_slot);
+        $this->assertArrayNotHasKey(ImmutableRecord::class, class_uses_recursive($session));
     }
 
     public function test_variant_quantity_presentation_preserves_authoritative_decimal_values(): void
@@ -114,7 +131,13 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('products.category_id', (new Category)->products()->getQualifiedForeignKeyName());
         $this->assertSame('product_id', (new ProductVariant)->product()->getForeignKeyName());
         $this->assertSame('recorded_by', (new Sale)->recordedBy()->getForeignKeyName());
+        $this->assertSame('cash_register_session_id', (new Sale)->cashRegisterSession()->getForeignKeyName());
         $this->assertSame('voided_by', (new Sale)->voidedBy()->getForeignKeyName());
+        $this->assertSame('opened_by', (new CashRegisterSession)->openedBy()->getForeignKeyName());
+        $this->assertSame('closed_by', (new CashRegisterSession)->closedBy()->getForeignKeyName());
+        $this->assertSame('cash_register_session_id', (new CashRegisterSession)->sales()->getForeignKeyName());
+        $this->assertSame('opened_by', (new User)->openedCashRegisterSessions()->getForeignKeyName());
+        $this->assertSame('closed_by', (new User)->closedCashRegisterSessions()->getForeignKeyName());
         $this->assertSame('sale_id', (new SaleItem)->sale()->getForeignKeyName());
         $this->assertSame('sale_item_id', (new SaleItem)->saleMovement()->getForeignKeyName());
         $this->assertSame('restock_id', (new RestockItem)->restock()->getForeignKeyName());
@@ -151,9 +174,18 @@ class ModelFoundationTest extends TestCase
 
     public function test_nonhistorical_models_remain_mutable(): void
     {
-        foreach ([Product::class, ProductVariant::class, Category::class, User::class] as $class) {
+        foreach ([Product::class, ProductVariant::class, Category::class, User::class, CashRegisterSession::class] as $class) {
             $this->assertArrayNotHasKey(ImmutableRecord::class, class_uses_recursive($class));
         }
+    }
+
+    public function test_legacy_sale_allows_a_null_cash_register_session_relationship(): void
+    {
+        $sale = new Sale;
+
+        $this->assertNull($sale->cash_register_session_id);
+        $this->assertNull($sale->cashRegisterSession()->getParent()->cash_register_session_id);
+        $this->assertNotContains('cash_register_session_id', $sale->getFillable());
     }
 
     public function test_catalog_mass_assignment_excludes_status_and_current_stock(): void

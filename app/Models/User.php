@@ -51,6 +51,16 @@ class User extends Authenticatable
         return $this->hasMany(Sale::class, 'recorded_by');
     }
 
+    public function openedCashRegisterSessions(): HasMany
+    {
+        return $this->hasMany(CashRegisterSession::class, 'opened_by');
+    }
+
+    public function closedCashRegisterSessions(): HasMany
+    {
+        return $this->hasMany(CashRegisterSession::class, 'closed_by');
+    }
+
     public function voidedSales(): HasMany
     {
         return $this->hasMany(Sale::class, 'voided_by');

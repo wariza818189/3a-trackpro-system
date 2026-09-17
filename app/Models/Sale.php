@@ -53,6 +53,11 @@ class Sale extends Model
         return $this->belongsTo(User::class, 'recorded_by');
     }
 
+    public function cashRegisterSession(): BelongsTo
+    {
+        return $this->belongsTo(CashRegisterSession::class, 'cash_register_session_id');
+    }
+
     public function voidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
