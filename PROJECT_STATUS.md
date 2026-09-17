@@ -55,10 +55,12 @@ Teacher consultation introduced a formal scope expansion:
 - #29 Unfulfilled Items Report
 - #30 Damaged Items Recording & Report
 
-No application implementation has started for this new scope. The current
-planning record is [docs/teacher-scope-expansion.md](docs/teacher-scope-expansion.md);
-formal requirements, database design, and the test catalog have not yet been
-revised for the expansion.
+The read-only repository impact audit is complete, and the Phase A architecture
+decisions have been approved. The Phase A formal requirements and additive
+database design are documented in
+[docs/teacher-scope-expansion.md](docs/teacher-scope-expansion.md) and their
+formal documents; application implementation has not begun. The test catalog
+has not yet been revised for the expansion.
 
 ### Current Testing State
 
@@ -92,8 +94,9 @@ PO-based.
 
 ### Next Technical Step
 
-Conduct a read-only repository impact audit for teacher scope expansion
-#24–#30.
+Prepare the controlled implementation plan and implementation checkpoints for
+the documented Phase A design. Keep formal test-catalog revision as a later
+separate checkpoint before the new formal integration/edge run.
 
 ## Current Development Position
 
@@ -1778,10 +1781,11 @@ and SALE. SALE_VOID is schema-supported but not implemented.
 
 ## Current Next Step
 
-Conduct a read-only repository impact audit for teacher scope expansion
-#24–#30 before changing formal requirements, database design, migrations,
-application code, or the test catalog. No application implementation has
-started for the new scope.
+Prepare the controlled implementation plan and implementation checkpoints for
+the documented Phase A design. The repository impact audit is complete, the
+architecture decisions are approved, and application implementation has not
+begun. Keep formal test-catalog revision as a later separate checkpoint before
+the new formal integration/edge run.
 
 Tracker #17 formal run `FT17-20260912-A` remains paused at **Pass 8 / Fail 1 /
 Blocked 0 / Remaining 28**. Preserve its completed evidence and the formal

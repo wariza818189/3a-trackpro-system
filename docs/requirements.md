@@ -4,8 +4,10 @@
 
 This is the team-approved requirements baseline for Tracker #3, reconciling
 approved project design decisions with implemented and verified system behavior.
+It also records the approved Phase A requirements design for teacher expansion
+#24–#30. Expansion rows are marked planned and must not be read as implemented.
 Validation basis: project/team baseline, reconciled against implemented and
-verified system behavior.
+verified system behavior and the approved expansion planning record.
 
 No original client interview transcript or formal client sign-off is available
 in the repository. Client-specific statements are therefore not attributed or
@@ -53,21 +55,31 @@ customer complaints, or transaction delays are asserted.
 | A-02 | Sales and inventory activities benefit from centralized recording and stock visibility. |
 | A-03 | Two application permission levels, Admin and Staff, are sufficient for current v1. |
 | A-04 | Cash is the only supported payment mode in v1. |
-| A-05 | V1 does not depend on customer accounts, supplier management, credit, returns/refunds, or accounting integration. |
+| A-05 | V1 does not depend on customer accounts, Supplier CRUD/master data, credit, returns/refunds, or accounting integration; Purchase Orders use required historical supplier-name text instead. |
 | A-06 | No claim is made about the client's exact previous manual tools or quantified operational losses. |
 | A-07 | Requirements are team-approved/project-derived unless separately identified as direct documentary client evidence; none is identified here. |
+| A-08 | The current scope has one global physical/logical cash register, not multiple registers or employee shifts. |
+| A-09 | Supplier identity on a Purchase Order is required historical text, not a relationship to Supplier master data. |
+| A-10 | Low-stock prioritization does not establish or invent an automatic reorder quantity. |
+| A-11 | Damaged delivered quantity remains unfulfilled until the corresponding demand is fulfilled by an accepted replacement/subsequent delivery or transferred to a follow-up PO. |
+| A-12 | A follow-up transfer moves the complete current outstanding quantity for each selected source PO line; arbitrary partial splitting of a selected line is not supported. |
 
 ## 5. Users and responsibilities
 
 Admin may perform normal Staff workflows plus catalog mutation, Opening
-Inventory, Stock Correction, Reports, and the Admin-only Dashboard trend.
-Future sensitive Admin workflows require separate implementation before they
-become available. Admin does not imply store owner.
+Inventory, Stock Correction, Reports, and the Admin-only Dashboard trend. In
+the planned expansion, Admin also creates/edits Purchase Orders, creates
+follow-up POs, may open the register, and may close any active register session.
+Future sensitive Admin workflows require implementation before they become
+available. Admin does not imply store owner.
 
-Staff may use POS, browse permitted catalog/inventory, perform Stock In, access
-Sales History/receipts, and use the operational Dashboard. Staff does not imply
-a particular employee or job title. All application access requires an active
-authenticated account; public visitors have no operational access.
+Staff may use POS, browse permitted catalog/inventory, perform the currently
+implemented Stock In, access Sales History/receipts, and use the operational
+Dashboard. Under the planned workflow, Staff may open the register, close the
+active session they opened, view cost-redacted operational PO information, and
+perform PO-based receiving. Staff does not imply a particular employee or job
+title. All application access requires an active authenticated account; public
+visitors have no operational access.
 
 Staff may enter the purchase cost for a new Stock In receipt, but existing
 catalog and historical Stock In costs are not disclosed to Staff. POS,
@@ -75,9 +87,9 @@ Dashboard, Reports, and Sales receipts/history do not expose purchase costs.
 
 ## 6. Functional requirements
 
-All rows below are adopted requirements implemented at the referenced
-application checkpoint. Acceptance outcomes are observable software behavior;
-section 10 maps the tracker references to implementation and verification.
+Rows below distinguish the implemented application checkpoint from the planned
+teacher expansion. Acceptance outcomes describe required observable behavior;
+the status column is authoritative about whether that behavior exists.
 Admin/Staff entries mean active authenticated users unless otherwise stated.
 
 | ID | Requirement | Role | Acceptance outcome | Implementation status / traceability |
@@ -88,8 +100,8 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-AUTH-04 | Protect logout with POST and CSRF. | Admin, Staff | POST signs out; GET cannot log out; browser mutation retains CSRF protection. | Implemented; #10 |
 | FR-CAT-01 | Allow Admin to manage Categories. | Admin | Valid create/edit/lifecycle actions succeed; invalid changes are rejected. | Implemented; #11 |
 | FR-CAT-02 | Allow Admin to manage Products under Categories. | Admin | Products retain valid parent relationships and lifecycle restrictions. | Implemented; #11 |
-| FR-CAT-03 | Allow Admin to manage Product Variants. | Admin | Valid variant attributes/prices can be maintained subject to history restrictions. | Implemented; #11 |
-| FR-CAT-04 | Preserve catalog history through archive/reactivate lifecycle. | Admin | No catalog hard-delete route exists; positive-stock variants cannot be archived. | Implemented; #11 |
+| FR-CAT-03 | Allow Admin to manage Product Variants. | Admin | Valid variant attributes/prices can be maintained subject to stock, transaction, and planned procurement-history restrictions. | Implemented baseline; procurement-history extension planned; #11/#25–#27 |
+| FR-CAT-04 | Preserve catalog history through archive/reactivate lifecycle. | Admin | No catalog hard-delete route exists; positive-stock variants cannot be archived, and planned lifecycle rules must preserve valid open-PO receiving. | Implemented baseline; open-PO extension planned; #11/#25–#27 |
 | FR-CAT-05 | Provide safe catalog browsing to Staff. | Staff | Only permitted active hierarchy is shown; costs and mutation access are denied. | Implemented; #11 |
 | FR-INV-01 | Keep an authoritative stock pool per Variant. | Admin, Staff | Each operation affects its specified variant balance; ordinary catalog forms cannot set stock. | Implemented; #11/#14/#12 |
 | FR-INV-02 | Support piece, sheet, roll, m, and kg units. | Admin | Supported units are accepted and retained; unsupported units are rejected. | Implemented; #11 |
@@ -98,21 +110,32 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-OPEN-01 | Record opening physical stock once per eligible Variant. | Admin | A first eligible opening succeeds; a later opening is rejected based on history. | Implemented; #14 |
 | FR-OPEN-02 | Accept zero opening quantity. | Admin | Zero records initialization even though the balance remains zero. | Implemented; #14 |
 | FR-OPEN-03 | Record opening movement evidence. | Admin | A successful opening creates INITIAL_STOCK with trusted actor and quantities. | Implemented; #14 |
-| FR-STOCKIN-01 | Allow stock receiving by Admin and Staff. | Admin, Staff | Both roles can submit positive quantities for active initialized variants. | Implemented; #14 |
-| FR-STOCKIN-02 | Update stock atomically during receiving. | Admin, Staff | All receipt items and balances commit together or none do; equivalent retries do not duplicate receiving. | Implemented; #14 |
-| FR-STOCKIN-03 | Preserve historical received cost. | Admin, Staff | Later receipts do not change the earlier receipt's stored unit cost. | Implemented; #14 |
-| FR-STOCKIN-04 | Maintain the latest received-cost reference. | Admin, Staff | Successful receiving updates the variant reference to the received cost. | Implemented; #14 |
-| FR-STOCKIN-05 | Record receiving movement evidence. | Admin, Staff | Each RestockItem has one corresponding RESTOCK movement. | Implemented; #14 |
+| FR-STOCKIN-01 | Allow stock receiving by Admin and Staff. | Admin, Staff | Historical manual Restocks remain valid; future normal receiving requires a PO and accepts only eligible active initialized variants. | Manual baseline implemented; PO requirement planned; #14/#26 |
+| FR-STOCKIN-02 | Update stock atomically during receiving. | Admin, Staff | Accepted lines, damage evidence, balances, costs, and movements commit together or none do; equivalent retries do not duplicate effects. | Implemented baseline; PO/damage extension planned; #14/#26/#30 |
+| FR-STOCKIN-03 | Preserve historical actual received cost. | Admin, Staff | Later receipts or PO expected-cost changes do not change an earlier RestockItem's actual unit cost. | Implemented baseline; PO distinction planned; #14/#26 |
+| FR-STOCKIN-04 | Maintain the latest accepted received-cost reference. | Admin, Staff | Successful accepted receiving updates the Variant reference to actual received cost; damage-only evidence does not. | Implemented baseline; damage rule planned; #14/#26/#30 |
+| FR-STOCKIN-05 | Record receiving movement evidence. | Admin, Staff | Each accepted RestockItem has one RESTOCK movement; damaged quantity creates no StockMovement. | Implemented accepted-line baseline; damage rule planned; #14/#26/#30 |
+| FR-PO-01 | **Teacher-requested:** Create Purchase Orders. | Admin | Admin can create and edit a pending PO with required historical supplier text, Variant lines, quantities, and expected costs before activity; accepted receiving, damaged receiving, or outgoing transfer activity freezes protected fields. | Planned; #25 |
+| FR-PO-02 | **Teacher-requested:** Prioritize/recommend low-stock items for PO creation. | Admin | Active initialized low-stock Variants without open coverage appear first; already-covered low-stock Variants remain visible/searchable with their open quantity; no reorder quantity is invented. | Planned; #25 |
+| FR-RECV-01 | **Teacher-requested:** Receive inventory from a PO and support partial delivery. | Admin, Staff | A new receipt references a PO and may accept less than a line's open outstanding quantity while preserving remaining demand. | Planned; #26 |
+| FR-RECV-02 | **Derived:** Increase sellable stock only for accepted quantity. | Admin, Staff | Accepted quantity alone updates current stock, latest received cost, and RESTOCK movement evidence. | Planned; #26 |
+| FR-RECV-03 | **Derived:** Preserve auditable damaged receiving evidence without a stock increase. | Admin, Staff | Damage, including damage-only receiving, records quantity, required note, snapshots, actor/receipt/time evidence, creates no RESTOCK movement, and remains outstanding. | Planned; #30 |
+| FR-RECV-04 | **Derived:** Prevent over-receiving, duplicate receipt effects, and unsafe concurrent receipt effects. | Admin, Staff | Authoritative locked PO evidence limits accepted quantity to open outstanding demand and makes equivalent receipt retries exactly-once. | Planned; #26/#30 |
+| FR-FOLLOWUP-01 | **Teacher-requested:** Continue remaining quantities through a follow-up Purchase Order. | Admin | Admin may select one or more open source PO lines and create a traceable follow-up PO. | Planned; #27 |
+| FR-FOLLOWUP-02 | **Derived:** Prevent duplicated remainder transfer and double-counted demand. | Admin | Each selected line transfers its complete current remainder once; unselected lines remain open; transferred demand is open on only the target PO. | Planned; #27 |
 | FR-CORR-01 | Restrict stock correction to Admin. | Admin | Staff direct requests are forbidden. | Implemented; #14 |
 | FR-CORR-02 | Require a physical target and reason for correction. | Admin | An eligible nonnegative target and nonblank reason are required. | Implemented; #14 |
 | FR-CORR-03 | Reject stale and no-op corrections. | Admin | Intervening movement invalidates the form; unchanged targets cause no write. | Implemented; #14 |
 | FR-CORR-04 | Correct quantity with movement evidence only. | Admin | Stock changes with one CORRECTION movement; cost stays unchanged. | Implemented; #14 |
-| FR-POS-01 | Provide cash-only POS access. | Admin, Staff | Both roles can perform eligible cash checkout; other payment workflows are absent. | Implemented; #12 |
+| FR-REG-01 | **Teacher-requested:** Record a starting cash box/opening register amount. | Admin, Staff | Either role can open the single register with a nonnegative amount, including zero. | Planned; #24 |
+| FR-REG-02 | **Derived:** Enforce at most one active register session and provide minimal closure. | Admin, Staff | Concurrent opens cannot create two active sessions; Staff may close their own session and Admin may close any session without reconciliation. | Planned; #24 |
+| FR-REG-03 | **Derived:** Require and retain the authoritative active register relationship for new Sales. | Admin, Staff | New checkout is blocked without an active session; the server selects and locks it; legacy Sales may have no session link. | Planned; #24 |
+| FR-POS-01 | Provide cash-only POS access through the active register. | Admin, Staff | Both roles can perform eligible cash checkout only while the global register is active; other payment workflows are absent. | Cash-only baseline implemented; register precondition planned; #12/#24 |
 | FR-POS-02 | Determine checkout price and stock on the server. | Admin, Staff | Submitted values cannot override stock or price; stale expected prices are rejected. | Implemented; #12 |
-| FR-POS-03 | Complete checkout atomically. | Admin, Staff | Sale, items, deductions, and movements commit together or roll back. | Implemented; #12 |
+| FR-POS-03 | Complete checkout atomically. | Admin, Staff | The server-selected register relationship, Sale, items, deductions, and movements commit together or roll back. | Implemented baseline; register relationship planned; #12/#24 |
 | FR-POS-04 | Reject checkout exceeding available stock. | Admin, Staff | Insufficient stock produces no Sale or deduction, including concurrent checkout. | Implemented; #12 |
 | FR-POS-05 | Prevent duplicate effects on equivalent retry. | Admin, Staff | Equivalent checkout-token replay returns the existing Sale without another deduction. | Implemented; #12 |
-| FR-POS-06 | Preserve successful checkout evidence. | Admin, Staff | One immutable Sale and one SaleItem plus SALE movement per distinct variant are recorded. | Implemented; #12 |
+| FR-POS-06 | Preserve successful checkout evidence. | Admin, Staff | One immutable Sale and one SaleItem plus SALE movement per distinct Variant are recorded; each new Sale retains its register session while legacy Sales remain valid without one. | Implemented baseline; register relationship planned; #12/#24 |
 | FR-POS-07 | Require sufficient cash and exact change. | Admin, Staff | Underpayment is rejected; change equals cash less authoritative total. | Implemented; #12 |
 | FR-SALES-01 | Allow browsing of Sale history. | Admin, Staff | Both roles can browse Sales regardless of the recording user, with historical status preserved. | Implemented; #13 |
 | FR-SALES-02 | Filter Sales History by receipt, user recording the sale, and Manila date. | Admin, Staff | Receipt, cashier, and date filters narrow results; invalid filters fail closed. | Implemented; #13 |
@@ -121,7 +144,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-SALES-05 | Keep purchase costs and checkout tokens private. | Admin, Staff | Neither appears in Sales History or receipt responses. | Implemented; #13 |
 | FR-NAV-01 | Provide desktop sidebar navigation. | Admin, Staff | At lg and above, destinations are reachable beside unobstructed content. | Implemented; UI mini-checkpoint |
 | FR-NAV-02 | Provide mobile navigation below lg. | Admin, Staff | Below 64rem / 1024px, a top bar and off-canvas drawer replace the sidebar. | Implemented; UI mini-checkpoint |
-| FR-NAV-03 | Match navigation visibility to role permissions. | Admin, Staff | Admin has 10 destinations and Staff seven; restricted destinations are absent for Staff. | Implemented; UI mini-checkpoint/#16 |
+| FR-NAV-03 | Match navigation visibility to role permissions. | Admin, Staff | Destinations reflect authorized Sales, Procurement, Inventory, and Reports workflows; restricted destinations are absent for Staff. | Implemented baseline counts; expansion revision planned; UI mini-checkpoint/#16/#24–#30 |
 | FR-NAV-04 | Support keyboard and focus interaction in the drawer. | Admin, Staff | Focus enters the drawer; Escape closes it; focus returns appropriately and background interaction is controlled. | Implemented; UI mini-checkpoint |
 | FR-DASH-01 | Provide an operational Dashboard. | Admin, Staff | Both roles can access the existing home route. | Implemented; #16 |
 | FR-DASH-02 | Display operational summary cards. | Admin, Staff | Today's Sales, Transactions Today, Low Stock, and Out of Stock reflect the defined populations. | Implemented; #16 |
@@ -135,6 +158,19 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-REP-04 | Include zero-sale dates in Daily Sales. | Admin | Every selected Manila date has a count and total, including zero. | Implemented; #16 |
 | FR-REP-05 | Keep quantities separated by historical unit. | Admin | unit_snapshot groups remain separate and quantities display three decimals after current catalog changes. | Implemented; #16 |
 | FR-REP-06 | Exclude cost/profit and sensitive internal data from Reports. | Admin | No purchase cost, profit, checkout token, or authentication fields appear. | Implemented; #16 |
+| FR-PROC-REP-01 | **Teacher-requested:** Report Pending Purchase Orders. | Admin | A read-only report shows POs that are pending or not completely fulfilled using authoritative receiving/transfer evidence. | Planned; #28 |
+| FR-PROC-REP-02 | **Teacher-requested:** Report Unfulfilled Items. | Admin | A read-only report shows each PO line's ordered, accepted, transferred, and open outstanding quantities. | Planned; #29 |
+| FR-PROC-REP-03 | **Teacher-requested:** Report Damaged Items. | Admin | A read-only report derives damaged-item rows from receiving evidence with PO, receipt, Variant snapshot, quantity, note, actor, and time. | Planned; #30 |
+
+The derived PO lifecycle supporting these requirements is `pending` before any
+accepted or damaged receiving activity or outgoing transfer from that PO;
+incoming transfer evidence only establishes a follow-up PO item's origin and
+ordered demand. A newly created follow-up PO therefore starts `pending`.
+`partially_received` applies when accepted/damaged receiving or outgoing
+transfer activity exists and open outstanding remains; `completed` applies
+when every ordered quantity was accepted; and `closed_with_remainder` applies
+when no open outstanding remains and some remainder was transferred out. The
+last two states are terminal for receiving and editing.
 
 Sales History grants both roles access to all Sales; FR-SALES-01 does not add a
 completed-only restriction to that existing history surface. Completed-only
@@ -154,7 +190,7 @@ there is no report store/export/print route.
 | --- | --- |
 | NFR-INT-01 | No valid operation leaves negative stock. |
 | NFR-INT-02 | Every legitimate stock mutation has StockMovement evidence. |
-| NFR-CON-01 | Concurrent stock-changing workflows preserve authoritative balances and exactly-once effects where designed, including opening and equivalent restock/checkout retries. |
+| NFR-CON-01 | Concurrent register, inventory, PO receiving, and remainder-transfer workflows preserve one-active-register, authoritative balances/outstanding demand, and exactly-once effects where designed, including equivalent restock/checkout retries. |
 | NFR-SEC-01 | Backend authorization governs access to protected operations. |
 | NFR-SEC-02 | Role-hidden UI is not a substitute for backend checks; unauthorized direct requests are denied. |
 | NFR-SEC-03 | Authentication secrets and internal submission/checkout tokens are not disclosed through reporting or historical presentation. |
@@ -180,7 +216,7 @@ guardrails, not proof that unrestricted direct SQL cannot alter records.
 | BR-03 | Every legitimate stock mutation records movement evidence with trusted actor and quantities. |
 | BR-04 | Completed Sale/SaleItem history is immutable; current catalog changes do not rewrite snapshots. |
 | BR-05 | Opening Inventory is Admin-only and once per eligible active Variant; zero is valid and initialization is determined from history. |
-| BR-06 | Stock In requires initialized inventory in the active Category → Product → Variant hierarchy and positive quantities; historical received cost is immutable and received cost updates the latest reference. |
+| BR-06 | Historical manual Stock In remains valid. New normal receiving requires a PO and initialized inventory in the active Category → Product → Variant hierarchy; accepted actual cost is immutable and accepted receiving updates the latest reference. |
 | BR-07 | Stock Correction is Admin-only, requires an initialized active variant, physical target and reason, rejects stale/no-op forms, and changes quantity without changing cost. |
 | BR-08 | No unit conversion exists; each Variant is an independent stock pool. The same physical inventory must not be counted in two pools. |
 | BR-09 | Low Stock is current_stock <= low_stock_threshold within the active hierarchy; zero stock is also low stock. Out of Stock is current_stock = 0.000. |
@@ -189,6 +225,13 @@ guardrails, not proof that unrestricted direct SQL cannot alter records.
 | BR-12 | Dashboard/Reports sales analytics include status = completed only. |
 | BR-13 | Manila calendar boundaries govern reporting: include start of day and exclude start of the next day after the selected end date. |
 | BR-14 | No FIFO, weighted-average, formal COGS or profit calculation exists. Latest/reference and historical restock costs do not establish cost of goods sold. |
+| BR-15 | Opening cash is not Sales revenue and is excluded from Dashboard and Sales Summary totals. |
+| BR-16 | At most one cash-register session may be active globally. Opening cash may be zero; minimal closure performs no reconciliation. |
+| BR-17 | New regular replenishment requires a Purchase Order; historical legacy Restocks remain valid without PO relationships. |
+| BR-18 | Accepted quantity creates RESTOCK movement evidence and increases sellable stock; damaged quantity does neither. |
+| BR-19 | A PO item's open outstanding quantity equals ordered quantity minus accepted quantity minus transferred quantity; damaged quantity remains outstanding. |
+| BR-20 | A selected source PO line transfers its complete current remainder at most once, and transferred demand may be open on only one PO at a time. |
+| BR-21 | Admin may edit expected cost while a PO is pending and has no procurement activity. Accepted receiving, damaged receiving, or outgoing transfer activity makes expected cost immutable; actual RestockItem cost is separate immutable receiving evidence and never rewrites expected cost. |
 
 Detailed schema and concurrency mechanisms remain in the existing #6/#9 design
 evidence. Bound date predicates and static SQL aggregation preserve reporting
@@ -205,6 +248,11 @@ boundaries; requirement acceptance concerns their resulting values and access.
 
 ### Planned current-project future work
 
+- Teacher expansion #24–#30: one global register session, Purchase Orders,
+  low-stock prioritization, PO-based partial receiving, damaged receiving
+  evidence, selected-line full-remainder follow-up POs, and three Admin-only
+  procurement reports. Phase A requirements/schema design is approved;
+  application implementation has not begun.
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
 - User Management UI.
 - Final integration and remaining testing, documentation, and presentation work.
@@ -213,13 +261,17 @@ Schema support for void status/fields/movement types is preparation only; no
 void transition or stock-restoration workflow is implemented. Existing roles
 and disabled-account enforcement do not constitute a User Management UI.
 
-### Deferred / excluded from current v1
+### Currently outside the recorded teacher-requested expansion unless later requested
 
-- Supplier management and purchase orders; customer accounts.
+- Supplier CRUD/master data and customer accounts.
 - Credit/utang, returns/refunds, discounts, and partial void.
 - Unit conversion and accounting integration.
 - FIFO / weighted-average COGS and profit reporting.
-- CSV/PDF report exports and advanced additional reports, including cashier
+- Supplier payments, accounts payable, invoices, purchase returns, purchase
+  discounts, tax/VAT accounting, approval workflows, multi-warehouse,
+  multi-register, closing-cash reconciliation, shortage/overage, employee
+  shifts, cash expenses, and damaged-item photo uploads.
+- CSV/PDF procurement/report exports and advanced additional reports, including cashier
   ranking, top-selling variants, and a general stock-movement report.
 
 These are scope exclusions, not promises that every item will be delivered in
@@ -242,6 +294,10 @@ application checkpoint. Detailed procedures and test-case preparation remain #7.
 | Receipts/history (FR-SALES) | #13 | SalesHistoryController and immutable receipt presentation | History/receipt suites, filters and Print Preview smoke |
 | Navigation (FR-NAV) | Separate UI mini-checkpoint; #16 menu additions | Shared Blade navigation and drawer behavior | Navigation suite, keyboard/breakpoint/mobile/print evidence |
 | Dashboard/Reports (FR-DASH, FR-REP) | #16 | DashboardController, ReportsController and Blade views | Dashboard/Reports suites, desktop/mobile, filter and receipt-link smoke |
+| Register sessions (FR-REG; expanded FR-POS) | #24 | Planned CashRegisterSession and RecordSale extension | Not implemented; revised test catalog and execution pending |
+| Purchase Orders/low stock (FR-PO) | #25 | Planned PO header/item workflow and initialized low-stock recommendation | Not implemented; revised test catalog and execution pending |
+| PO receiving/damage/follow-up (FR-RECV, FR-FOLLOWUP; expanded FR-STOCKIN) | #26/#27/#30 | Planned Restock-engine extension with PO, damage, and transfer evidence | Not implemented; revised test catalog and concurrency verification pending |
+| Procurement reports (FR-PROC-REP) | #28–#30 | Planned Admin-only read-only report queries/views | Not implemented; revised test catalog and execution pending |
 
 Refer to [PROJECT_STATUS.md](../PROJECT_STATUS.md) for completed checkpoints and
 recorded results, and [database-design.md](database-design.md) for workflow rules.
@@ -275,6 +331,8 @@ facts. No assumption here establishes a measured improvement or client approval.
 | Tracker | #3 Client Problem & Requirements |
 | Repository implementation reference | Latest application checkpoint: 31b5b95f8d4de3136c15924bc541b52a6d2fa846 — Add dashboard and sales reports |
 | Documentation preparation date | 2026-09-08 |
+| Phase A expansion amendment date | 2026-09-17 |
+| Phase A expansion status | Requirements/schema design approved; application not implemented |
 | Client validation/sign-off | Not recorded / not required for this project-derived baseline |
 
 This record identifies the approved baseline type and preparation context; it
