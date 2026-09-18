@@ -17,6 +17,63 @@ use Illuminate\Validation\ValidationException;
 
 class CashRegisterTest extends PosTestCase
 {
+    public function test_closed_register_pos_shows_opening_form_and_gates_checkout_for_admin_and_staff(): void
+    {
+        foreach ([User::factory()->admin()->create(), User::factory()->create()] as $actor) {
+            $response = $this->actingAs($actor)->get(route('pos.index'))->assertOk();
+
+            $response->assertSee('Cash Register: Closed')
+                ->assertSee('action="'.route('pos.register.open').'"', false)
+                ->assertSee('name="opening_cash"', false)
+                ->assertSee('Starting cash amount')
+                ->assertSee('data-register-open="0"', false)
+                ->assertSee('data-pos-checkout disabled', false)
+                ->assertDontSee('action="'.route('pos.register.close').'"', false)
+                ->assertDontSee('name="cash_register_session_id"', false);
+        }
+    }
+
+    public function test_open_register_pos_shows_safe_state_and_role_appropriate_close_action(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-18 09:15:00', 'Asia/Manila'));
+
+        try {
+            $opener = User::factory()->create(['name' => 'Register Opener']);
+            $otherStaff = User::factory()->create(['name' => 'Other Staff']);
+            $admin = User::factory()->admin()->create(['name' => 'Store Admin']);
+            app(OpenCashRegister::class)->execute($opener, '87654.32');
+
+            $openerResponse = $this->actingAs($opener)->get(route('pos.index'))->assertOk();
+            $openerResponse->assertSee('Cash Register: Open')
+                ->assertSee('Opened by Register Opener')
+                ->assertSee('Sep 18, 2026 9:15 AM')
+                ->assertSee('data-register-open="1"', false)
+                ->assertSee('action="'.route('pos.register.close').'"', false)
+                ->assertDontSee('action="'.route('pos.register.open').'"', false)
+                ->assertDontSee('name="opening_cash"', false)
+                ->assertDontSee('87654.32')
+                ->assertDontSee('name="cash_register_session_id"', false)
+                ->assertDontSee('data-pos-checkout disabled', false);
+
+            $this->actingAs($otherStaff)->get(route('pos.index'))
+                ->assertOk()
+                ->assertSee('Cash Register: Open')
+                ->assertSee('Opened by Register Opener')
+                ->assertSee('data-register-open="1"', false)
+                ->assertDontSee('action="'.route('pos.register.close').'"', false)
+                ->assertDontSee('data-pos-checkout disabled', false);
+
+            $this->actingAs($admin)->get(route('pos.index'))
+                ->assertOk()
+                ->assertSee('Cash Register: Open')
+                ->assertSee('action="'.route('pos.register.close').'"', false)
+                ->assertDontSee('87654.32')
+                ->assertDontSee('name="cash_register_session_id"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_admin_can_open_register_with_canonical_authoritative_state_and_no_business_mutations(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-09-17 08:30:00', 'Asia/Manila'));
@@ -32,6 +89,10 @@ class CashRegisterTest extends PosTestCase
             $response->assertSessionHasNoErrors()
                 ->assertRedirect(route('pos.index'))
                 ->assertSessionHas('success', 'Cash register opened.');
+            $this->get(route('pos.index'))
+                ->assertOk()
+                ->assertSee('Cash register opened.')
+                ->assertSee('Cash Register: Open');
 
             $session = CashRegisterSession::query()->sole();
             $this->assertSame('50.50', $session->opening_cash);
@@ -168,6 +229,10 @@ class CashRegisterTest extends PosTestCase
             ])->assertSessionHasNoErrors()
                 ->assertRedirect(route('pos.index'))
                 ->assertSessionHas('success', 'Cash register closed.');
+            $this->get(route('pos.index'))
+                ->assertOk()
+                ->assertSee('Cash register closed.')
+                ->assertSee('Cash Register: Closed');
 
             $closed = $opened->fresh();
             $this->assertSame($openingState['opening_cash'], $closed->getRawOriginal('opening_cash'));

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleRequest;
+use App\Models\CashRegisterSession;
 use App\Models\ProductVariant;
 use App\Services\Sales\RecordSale;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,19 @@ class PosController extends Controller
 {
     public function index(Request $request): View
     {
+        $activeRegister = CashRegisterSession::query()
+            ->with('openedBy:id,name')
+            ->where('active_slot', 1)
+            ->first(['opened_by', 'opened_at']);
+        $registerState = [
+            'is_open' => $activeRegister !== null,
+            'opened_by_name' => $activeRegister?->openedBy?->name,
+            'opened_at' => $activeRegister?->opened_at,
+            'may_close' => $activeRegister !== null
+                && ($request->user()->isAdmin()
+                    || (int) $activeRegister->opened_by === (int) $request->user()->getAuthIdentifier()),
+        ];
+
         $variants = ProductVariant::query()
             ->select(['id', 'product_id', 'size', 'type_series', 'thickness', 'unit', 'quantity_mode', 'current_stock', 'selling_price', 'status'])
             ->with(['product:id,category_id,name,status', 'product.category:id,name,status'])
@@ -36,7 +50,7 @@ class PosController extends Controller
         );
 
         return view('pos.index', compact(
-            'variants', 'submissionToken', 'cartRows', 'pricesRefreshed', 'unavailableItems', 'tokenMisuse',
+            'variants', 'submissionToken', 'cartRows', 'pricesRefreshed', 'unavailableItems', 'tokenMisuse', 'registerState',
         ));
     }
 

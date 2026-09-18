@@ -14,6 +14,46 @@
         </label>
     </div>
 
+    <section class="mt-6 rounded-xl border bg-white p-5 shadow-sm" aria-labelledby="register-status-title">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 id="register-status-title" class="text-lg font-bold">
+                    Cash Register: {{ $registerState['is_open'] ? 'Open' : 'Closed' }}
+                </h2>
+                @if ($registerState['is_open'])
+                    <p class="mt-1 text-sm text-slate-600">
+                        Opened by {{ $registerState['opened_by_name'] }}
+                        <span aria-hidden="true">·</span>
+                        <time datetime="{{ $registerState['opened_at']->toAtomString() }}">{{ $registerState['opened_at']->format('M j, Y g:i A') }}</time>
+                    </p>
+                @else
+                    <p class="mt-1 text-sm text-slate-600">Enter the starting cash amount to begin checkout.</p>
+                @endif
+            </div>
+
+            @if (! $registerState['is_open'])
+                <form method="POST" action="{{ route('pos.register.open') }}" class="w-full sm:w-auto">
+                    @csrf
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <label class="block min-w-0 sm:w-64">
+                            <span class="text-sm font-semibold">Starting cash amount</span>
+                            <input name="opening_cash" value="{{ old('opening_cash', '') }}" inputmode="decimal" pattern="[0-9]+(?:\.[0-9]{1,2})?" maxlength="17" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="0.00">
+                        </label>
+                        <button class="rounded-lg bg-amber-500 px-4 py-2.5 font-bold text-slate-950 hover:bg-amber-400">Open Register</button>
+                    </div>
+                    @error('opening_cash')
+                        <p class="mt-2 text-sm text-red-700">{{ $message }}</p>
+                    @enderror
+                </form>
+            @elseif ($registerState['may_close'])
+                <form method="POST" action="{{ route('pos.register.close') }}">
+                    @csrf
+                    <button class="w-full rounded-lg border border-red-300 px-4 py-2.5 font-bold text-red-700 hover:bg-red-50 sm:w-auto">Close Register</button>
+                </form>
+            @endif
+        </div>
+    </section>
+
     @if (session('sale_confirmation'))
         @php($confirmation = session('sale_confirmation'))
         <section class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950" role="status">
@@ -43,7 +83,7 @@
         <p class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">{{ $notice }}</p>
     @endforeach
 
-    <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" data-pos>
+    <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" data-pos data-register-open="{{ $registerState['is_open'] ? '1' : '0' }}">
         <section aria-labelledby="catalog-title">
             <h2 id="catalog-title" class="text-xl font-bold">Available catalog</h2>
             @if ($variants->isEmpty())
@@ -106,7 +146,7 @@
                     <div class="flex justify-between text-lg font-bold"><span>Estimated total</span><output data-pos-total>₱0.00</output></div>
                     <label class="mt-4 block"><span class="text-sm font-semibold">Cash tendered</span><input name="amount_tendered" value="{{ old('amount_tendered', '') }}" inputmode="decimal" required data-pos-tender class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="0.00"></label>
                     <div class="mt-3 flex justify-between text-sm"><span class="text-slate-600">Estimated change</span><output class="font-semibold" data-pos-change>₱0.00</output></div>
-                    <button class="mt-5 w-full rounded-lg bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300" data-pos-checkout>Checkout</button>
+                    <button class="mt-5 w-full rounded-lg bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300" data-pos-checkout @disabled(! $registerState['is_open'])>Checkout</button>
                 </div>
             </form>
         </aside>

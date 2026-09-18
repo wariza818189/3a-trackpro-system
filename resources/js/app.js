@@ -107,6 +107,7 @@ document.querySelectorAll('[data-stock-in-form]').forEach((form) => {
 });
 
 document.querySelectorAll('[data-pos]').forEach((pos) => {
+    const registerOpen = pos.dataset.registerOpen === '1';
     const form = pos.querySelector('[data-pos-form]');
     const cart = pos.querySelector('[data-pos-cart]');
     const empty = pos.querySelector('[data-pos-empty]');
@@ -131,7 +132,7 @@ document.querySelectorAll('[data-pos]').forEach((pos) => {
 
     const update = () => {
         let total = 0n;
-        let valid = rows().length > 0;
+        let valid = registerOpen && rows().length > 0;
         rows().forEach((row) => {
             const quantity = parseScaled(row.querySelector('[data-pos-quantity]').value, 3);
             const price = parseScaled(row.dataset.price, 2);
@@ -228,6 +229,9 @@ document.querySelectorAll('[data-pos]').forEach((pos) => {
         }
     });
     form.addEventListener('input', update);
+    form.addEventListener('submit', (event) => {
+        if (!registerOpen) event.preventDefault();
+    });
 
     const search = document.querySelector('[data-pos-search]');
     search?.addEventListener('input', () => {
