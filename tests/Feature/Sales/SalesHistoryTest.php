@@ -20,6 +20,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_index_displays_authoritative_summary_and_deterministic_newest_first_order(): void
     {
         $cashier = User::factory()->create(['name' => 'History Cashier']);
+        $this->openCashRegister($cashier);
         $product = $this->product($this->category(), ['name' => 'History Product']);
         $firstVariant = $this->variant($product, ['size' => 'First', 'current_stock' => '20.000']);
         $secondVariant = $this->variant($product, ['size' => 'Second', 'current_stock' => '20.000', 'selling_price' => '25.00']);
@@ -53,6 +54,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_index_paginates_twenty_and_preserves_filters(): void
     {
         $cashier = User::factory()->create();
+        $this->openCashRegister($cashier);
         $variant = $this->initializedVariant($cashier, ['current_stock' => '30.000']);
         $sales = collect();
         for ($index = 0; $index < 21; $index++) {
@@ -80,6 +82,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_receipt_search_is_exact_canonical_case_insensitive_and_fails_closed(): void
     {
         $cashier = User::factory()->create();
+        $this->openCashRegister($cashier);
         $variant = $this->initializedVariant($cashier);
         $first = $this->recordSale($cashier, [[$variant, '1', '100.00']], '100.00');
         $second = $this->recordSale($cashier, [[$variant, '1', '100.00']], '100.00');
@@ -110,6 +113,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_cashier_filter_is_narrow_and_includes_disabled_historical_cashiers(): void
     {
         $viewer = User::factory()->create();
+        $this->openCashRegister($viewer);
         $disabledCashier = User::factory()->create([
             'name' => 'Disabled Historical Cashier',
             'username' => 'private_disabled_cashier',
@@ -139,6 +143,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_date_filters_use_inclusive_manila_calendar_days_and_exclusive_next_day(): void
     {
         $cashier = User::factory()->create();
+        $this->openCashRegister($cashier);
         $variant = $this->initializedVariant($cashier);
         $before = $this->at('2026-09-07 23:59:59', fn (): Sale => $this->recordSale($cashier, [[$variant, '1', '100.00']], '100.00'));
         $start = $this->at('2026-09-08 00:00:00', fn (): Sale => $this->recordSale($cashier, [[$variant, '1', '100.00']], '100.00'));
@@ -156,6 +161,7 @@ class SalesHistoryTest extends PosTestCase
     public function test_malformed_and_reversed_date_filters_fail_closed(): void
     {
         $cashier = User::factory()->create();
+        $this->openCashRegister($cashier);
         $variant = $this->initializedVariant($cashier);
         $sale = $this->recordSale($cashier, [[$variant, '1', '100.00']], '100.00');
 
@@ -177,6 +183,7 @@ class SalesHistoryTest extends PosTestCase
         });
 
         $cashier = User::factory()->create(['name' => 'Receipt Cashier']);
+        $this->openCashRegister($cashier);
         $viewer = User::factory()->create();
         $product = $this->product($this->category(), ['name' => 'Historical Hammer QZX']);
         $variant = $this->variant($product, [

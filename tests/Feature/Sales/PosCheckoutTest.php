@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Services\CashRegister\CloseCashRegister;
 use App\Services\Sales\RecordSale;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_checkout_persists_authoritative_distinct_sale_evidence(): void
     {
         $actor = User::factory()->create();
+        $session = $this->openCashRegister($actor, '250.00');
         $product = $this->product($this->category(), ['name' => 'Claw Hammer']);
         $first = $this->variant($product, ['current_stock' => '10.000', 'selling_price' => '100.00']);
         $second = $this->variant($product, [
@@ -80,6 +82,7 @@ class PosCheckoutTest extends PosTestCase
         $this->get(route('pos.index'))->assertOk()->assertSee(route('sales.show', $sale->id), false);
         $this->assertSame($token, $sale->checkout_token);
         $this->assertSame($actor->id, $sale->recorded_by);
+        $this->assertSame($session->id, $sale->cash_register_session_id);
         $this->assertSame(Sale::STATUS_COMPLETED, $sale->status);
         $this->assertSame('215.44', $sale->total_amount);
         $this->assertSame('250.00', $sale->cash_received);
@@ -121,9 +124,129 @@ class PosCheckoutTest extends PosTestCase
         $this->assertSame(0, AuditLog::query()->count());
     }
 
+    public function test_new_checkout_requires_an_active_register_without_partial_mutation(): void
+    {
+        $actor = User::factory()->create();
+        $variant = $this->initializedVariant($actor, ['current_stock' => '5.000']);
+
+        $this->actingAs($actor)->from(route('pos.index'))->post(route('pos.checkout'), $this->payload($variant))
+            ->assertSessionHasErrors([
+                'register' => 'The cash register is closed. Open the register before checkout.',
+            ])
+            ->assertRedirect(route('pos.index'));
+
+        $this->assertSame(0, Sale::query()->count());
+        $this->assertSame(0, SaleItem::query()->count());
+        $this->assertSame(0, StockMovement::query()->where('movement_type', StockMovement::TYPE_SALE)->count());
+        $this->assertSame('5.000', $variant->fresh()->current_stock);
+    }
+
+    public function test_checkout_rejects_a_register_closed_before_submit_without_partial_mutation(): void
+    {
+        $actor = User::factory()->create();
+        $variant = $this->initializedVariant($actor, ['current_stock' => '5.000']);
+        $session = $this->openCashRegister($actor);
+        app(CloseCashRegister::class)->execute($actor);
+
+        $this->actingAs($actor)->from(route('pos.index'))->post(route('pos.checkout'), $this->payload($variant))
+            ->assertSessionHasErrors('register')
+            ->assertRedirect(route('pos.index'));
+
+        $this->assertNull($session->fresh()->active_slot);
+        $this->assertSame(0, Sale::query()->count());
+        $this->assertSame(0, SaleItem::query()->count());
+        $this->assertSame(0, StockMovement::query()->where('movement_type', StockMovement::TYPE_SALE)->count());
+        $this->assertSame('5.000', $variant->fresh()->current_stock);
+    }
+
+    public function test_client_cannot_select_a_cash_register_session(): void
+    {
+        $actor = User::factory()->create();
+        $variant = $this->initializedVariant($actor);
+        $closed = $this->openCashRegister($actor);
+        app(CloseCashRegister::class)->execute($actor);
+        $active = $this->openCashRegister($actor);
+        $payload = $this->payload($variant);
+        $payload['cash_register_session_id'] = $closed->id;
+
+        $this->actingAs($actor)->post(route('pos.checkout'), $payload)
+            ->assertSessionHasErrors('request');
+
+        $this->assertSame(1, $active->fresh()->active_slot);
+        $this->assertSame(0, Sale::query()->count());
+        $this->assertSame('10.000', $variant->fresh()->current_stock);
+    }
+
+    public function test_equivalent_checkout_replay_succeeds_after_register_close(): void
+    {
+        $actor = User::factory()->create();
+        $variant = $this->initializedVariant($actor, ['current_stock' => '5.000']);
+        $session = $this->openCashRegister($actor);
+        $token = Str::uuid()->toString();
+        $items = [[
+            'product_variant_id' => $variant->id,
+            'quantity' => '2',
+            'expected_unit_price' => '100',
+        ]];
+        $sale = app(RecordSale::class)->execute($actor, $token, '200', $items);
+        $stockAfterCheckout = $variant->fresh()->current_stock;
+        app(CloseCashRegister::class)->execute($actor);
+
+        $response = $this->actingAs($actor)->post(route('pos.checkout'), [
+            'submission_token' => $token,
+            'amount_tendered' => '200.00',
+            'items' => [[
+                'product_variant_id' => $variant->id,
+                'quantity' => '2.000',
+                'expected_unit_price' => '100.00',
+            ]],
+        ]);
+
+        $response->assertSessionHasNoErrors()
+            ->assertRedirect(route('pos.index'))
+            ->assertSessionHas('sale_confirmation.message', 'Sale was already recorded.')
+            ->assertSessionHas('sale_confirmation.sale_id', $sale->id);
+        $this->assertNull($session->fresh()->active_slot);
+        $this->assertSame($session->id, $sale->fresh()->cash_register_session_id);
+        $this->assertSame(1, Sale::query()->count());
+        $this->assertSame(1, SaleItem::query()->count());
+        $this->assertSame(1, StockMovement::query()->where('movement_type', StockMovement::TYPE_SALE)->count());
+        $this->assertSame($stockAfterCheckout, $variant->fresh()->current_stock);
+    }
+
+    public function test_legacy_null_session_sale_remains_replayable_after_register_close(): void
+    {
+        $actor = User::factory()->create();
+        $variant = $this->initializedVariant($actor, ['current_stock' => '5.000']);
+        $this->openCashRegister($actor);
+        $token = Str::uuid()->toString();
+        $items = [[
+            'product_variant_id' => $variant->id,
+            'quantity' => '1',
+            'expected_unit_price' => '100',
+        ]];
+        $sale = app(RecordSale::class)->execute($actor, $token, '100', $items);
+        DB::table('sales')->where('id', $sale->id)->update(['cash_register_session_id' => null]);
+        app(CloseCashRegister::class)->execute($actor);
+        $stockAfterCheckout = $variant->fresh()->current_stock;
+
+        $replay = app(RecordSale::class)->execute($actor, $token, '100.00', [[
+            'product_variant_id' => $variant->id,
+            'quantity' => '1.000',
+            'expected_unit_price' => '100.00',
+        ]]);
+
+        $this->assertSame($sale->id, $replay->id);
+        $this->assertNull($replay->cash_register_session_id);
+        $this->assertSame(1, Sale::query()->count());
+        $this->assertSame(1, StockMovement::query()->where('movement_type', StockMovement::TYPE_SALE)->count());
+        $this->assertSame($stockAfterCheckout, $variant->fresh()->current_stock);
+    }
+
     public function test_pos_finder_and_checkout_enforce_initialization_active_hierarchy_and_stock(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         $eligible = $this->initializedVariant($actor, ['size' => 'Eligible', 'current_stock' => '2.000']);
         $zero = $this->initializedVariant($actor, ['size' => 'Zero', 'current_stock' => '0.000']);
         $notInitialized = $this->variant($this->product($this->category()), ['size' => 'Not Initialized']);
@@ -204,6 +327,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_fractional_scales_duplicates_and_original_whole_components(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         foreach (['1.1', '1.12', '1.123'] as $quantity) {
             $variant = $this->initializedVariant($actor, ['quantity_mode' => 'fractional', 'current_stock' => '10.000']);
             $sale = app(RecordSale::class)->execute($actor, Str::uuid()->toString(), '500', [[
@@ -267,6 +391,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_money_payment_rounding_and_overflow_are_exact_and_controlled(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         $tiny = $this->initializedVariant($actor, [
             'quantity_mode' => 'fractional', 'selling_price' => '0.01', 'current_stock' => '10.000',
         ]);
@@ -339,7 +464,7 @@ class PosCheckoutTest extends PosTestCase
     {
         $actor = User::factory()->create();
         $variant = $this->initializedVariant($actor);
-        foreach (['recorded_by', 'cashier_id', 'status', 'total', 'subtotal', 'total_amount', 'cash_received', 'change_amount', 'change_due', 'selling_price', 'unit_price', 'line_total', 'cost_price', 'current_stock', 'quantity_before', 'quantity_change', 'quantity_after', 'movement_type', 'performed_by', 'sale_id', 'sale_item_id', 'restock_item_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'void_reason', 'voided_by', 'voided_at'] as $field) {
+        foreach (['recorded_by', 'cashier_id', 'cash_register_session_id', 'status', 'total', 'subtotal', 'total_amount', 'cash_received', 'change_amount', 'change_due', 'selling_price', 'unit_price', 'line_total', 'cost_price', 'current_stock', 'quantity_before', 'quantity_change', 'quantity_after', 'movement_type', 'performed_by', 'sale_id', 'sale_item_id', 'restock_item_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'void_reason', 'voided_by', 'voided_at'] as $field) {
             $payload = $this->payload($variant, ['submission_token' => Str::uuid()->toString()]);
             $payload[$field] = 'tampered';
             $this->actingAs($actor)->post(route('pos.checkout'), $payload)->assertSessionHasErrors('request');
@@ -355,6 +480,7 @@ class PosCheckoutTest extends PosTestCase
     {
         $actor = User::factory()->create();
         $otherActor = User::factory()->create();
+        $this->openCashRegister($actor);
         $first = $this->initializedVariant($actor, ['current_stock' => '10.000']);
         $second = $this->initializedVariant($actor, ['current_stock' => '10.000', 'selling_price' => '50.00']);
         $token = Str::uuid()->toString();
@@ -397,6 +523,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_actor_is_revalidated_before_replay_without_a_user_lock(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         $variant = $this->initializedVariant($actor);
         $token = Str::uuid()->toString();
         $items = [['product_variant_id' => $variant->id, 'quantity' => '1', 'expected_unit_price' => '100']];
@@ -416,6 +543,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_retry_token_ux_retains_ordinary_tokens_but_replaces_semantically_reused_tokens(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         $variant = $this->initializedVariant($actor);
         $ordinaryToken = Str::uuid()->toString();
         $this->actingAs($actor)->from(route('pos.index'))->post(route('pos.checkout'), [
@@ -469,6 +597,7 @@ class PosCheckoutTest extends PosTestCase
     public function test_second_sale_movement_failure_rolls_back_all_checkout_work(): void
     {
         $actor = User::factory()->create();
+        $session = $this->openCashRegister($actor);
         $first = $this->initializedVariant($actor, ['current_stock' => '5.000']);
         $second = $this->initializedVariant($actor, ['current_stock' => '6.000']);
         $unrelated = $this->initializedVariant($actor, ['current_stock' => '9.000']);
@@ -490,11 +619,13 @@ class PosCheckoutTest extends PosTestCase
         $this->assertSame('5.000', $first->fresh()->current_stock);
         $this->assertSame('6.000', $second->fresh()->current_stock);
         $this->assertSame('9.000', $unrelated->fresh()->current_stock);
+        $this->assertSame(1, $session->fresh()->active_slot);
     }
 
     public function test_sale_and_all_linked_history_are_immutable(): void
     {
         $actor = User::factory()->create();
+        $this->openCashRegister($actor);
         $variant = $this->initializedVariant($actor);
         $sale = app(RecordSale::class)->execute($actor, Str::uuid()->toString(), '100', [[
             'product_variant_id' => $variant->id, 'quantity' => '1', 'expected_unit_price' => '100',

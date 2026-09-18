@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Services\CashRegister\OpenCashRegister;
 use App\Services\Inventory\RecordOpeningInventory;
 use App\Services\Sales\RecordSale;
 use Illuminate\Support\Facades\DB;
@@ -373,6 +374,7 @@ final class SaleConcurrencyTest extends MySqlTestCase
             $actor->role = User::ROLE_ADMIN;
             $actor->status = User::STATUS_ACTIVE;
             $actor->save();
+            app(OpenCashRegister::class)->execute($actor, '0.00');
             $categoryIds = [];
             $productIds = [];
             $variantIds = [];
@@ -414,7 +416,7 @@ final class SaleConcurrencyTest extends MySqlTestCase
         DB::purge('mysql_testing');
         $this->guardMySqlTestConnection();
         $counts = [];
-        foreach (['users', 'categories', 'products', 'product_variants', 'sales', 'sale_items', 'restocks', 'restock_items', 'stock_movements', 'audit_logs'] as $table) {
+        foreach (['users', 'categories', 'products', 'product_variants', 'cash_register_sessions', 'sales', 'sale_items', 'restocks', 'restock_items', 'stock_movements', 'audit_logs'] as $table) {
             $counts[$table] = DB::table($table)->count();
         }
 
@@ -438,6 +440,10 @@ final class SaleConcurrencyTest extends MySqlTestCase
             ->orWhereIn('sale_id', $saleIds)
             ->delete();
         DB::table('sales')->where('recorded_by', $actorId)->delete();
+        DB::table('cash_register_sessions')
+            ->where('opened_by', $actorId)
+            ->orWhere('closed_by', $actorId)
+            ->delete();
         DB::table('audit_logs')->where('user_id', $actorId)->delete();
         DB::table('product_variants')->whereIn('id', $variantIds)->delete();
         DB::table('products')->whereIn('id', $productIds)->delete();

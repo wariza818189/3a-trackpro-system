@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Models\CashRegisterSession;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Services\CashRegister\OpenCashRegister;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -200,5 +202,10 @@ abstract class PosTestCase extends TestCase
         $this->initialize($variant, $actor);
 
         return $variant;
+    }
+
+    protected function openCashRegister(User $actor, string $openingCash = '0.00'): CashRegisterSession
+    {
+        return app(OpenCashRegister::class)->execute($actor, $openingCash);
     }
 }

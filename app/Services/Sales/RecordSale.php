@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\CashRegisterSession;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -171,9 +172,25 @@ class RecordSale
         }
         $change = bcsub($operation['cash_received'], $total, 2);
 
+        $activeSession = CashRegisterSession::query()
+            ->where('active_slot', 1)
+            ->lockForUpdate()
+            ->first(['id']);
+        if ($activeSession === null) {
+            $committedReplay = $this->resolveCommittedToken($operation);
+            if ($committedReplay !== null) {
+                return $committedReplay;
+            }
+
+            throw ValidationException::withMessages([
+                'register' => 'The cash register is closed. Open the register before checkout.',
+            ]);
+        }
+
         $sale = new Sale;
         $sale->checkout_token = $operation['checkout_token'];
         $sale->recorded_by = $operation['actor_id'];
+        $sale->cash_register_session_id = $activeSession->getKey();
         $sale->status = Sale::STATUS_COMPLETED;
         $sale->total_amount = $total;
         $sale->cash_received = $operation['cash_received'];
@@ -380,13 +397,25 @@ class RecordSale
     /** @param array<string, mixed> $operation */
     private function recoverCollision(array $operation): Sale
     {
+        $sale = $this->resolveCommittedToken($operation);
+        if ($sale === null) {
+            throw new LogicException('The committed checkout could not be resolved.');
+        }
+
+        return $sale;
+    }
+
+    /** @param array<string, mixed> $operation */
+    private function resolveCommittedToken(array $operation): ?Sale
+    {
         $sale = Sale::query()
             ->where('checkout_token', $operation['checkout_token'])
             ->lockForUpdate()
             ->first();
         if ($sale === null) {
-            throw new LogicException('The committed checkout could not be resolved.');
+            return null;
         }
+
         $items = SaleItem::query()
             ->where('sale_id', $sale->getKey())
             ->orderBy('product_variant_id')

@@ -31,7 +31,11 @@ class PosAuthorizationTest extends PosTestCase
 
     public function test_active_admin_and_staff_can_view_and_checkout(): void
     {
-        foreach ([User::factory()->admin()->create(), User::factory()->create()] as $user) {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->create();
+        $this->openCashRegister($admin);
+
+        foreach ([$admin, $staff] as $user) {
             $variant = $this->initializedVariant($user);
             $this->actingAs($user)->get(route('pos.index'))
                 ->assertOk()->assertSee('Point of Sale')->assertSee('name="_token"', false);

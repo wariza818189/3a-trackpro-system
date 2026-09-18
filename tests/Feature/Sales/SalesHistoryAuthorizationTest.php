@@ -28,6 +28,7 @@ class SalesHistoryAuthorizationTest extends PosTestCase
     public function test_active_admin_and_staff_can_view_all_sales(): void
     {
         $cashier = User::factory()->create(['name' => 'Other Cashier']);
+        $this->openCashRegister($cashier);
         $variant = $this->initializedVariant($cashier);
         $sale = app(RecordSale::class)->execute($cashier, Str::uuid()->toString(), '100', [[
             'product_variant_id' => $variant->id,
