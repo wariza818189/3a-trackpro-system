@@ -11,6 +11,8 @@ class PosAuthorizationTest extends PosTestCase
     {
         $this->get(route('pos.index'))->assertRedirect('/login');
         $this->post(route('pos.checkout'))->assertRedirect('/login');
+        $this->post(route('pos.register.open'), ['opening_cash' => '0'])->assertRedirect('/login');
+        $this->post(route('pos.register.close'))->assertRedirect('/login');
     }
 
     public function test_disabled_user_is_denied_and_logged_out(): void
@@ -20,6 +22,10 @@ class PosAuthorizationTest extends PosTestCase
         $this->actingAs($user)->get(route('pos.index'))->assertRedirect('/login');
         $this->assertGuest();
         $this->actingAs($user)->post(route('pos.checkout'))->assertRedirect('/login');
+        $this->assertGuest();
+        $this->actingAs($user)->post(route('pos.register.open'), ['opening_cash' => '0'])->assertRedirect('/login');
+        $this->assertGuest();
+        $this->actingAs($user)->post(route('pos.register.close'))->assertRedirect('/login');
         $this->assertGuest();
     }
 
@@ -43,7 +49,7 @@ class PosAuthorizationTest extends PosTestCase
 
     public function test_pos_routes_have_auth_and_active_without_admin_gate_and_no_future_routes(): void
     {
-        foreach (['pos.index', 'pos.checkout'] as $name) {
+        foreach (['pos.index', 'pos.checkout', 'pos.register.open', 'pos.register.close'] as $name) {
             $route = Route::getRoutes()->getByName($name);
             $this->assertNotNull($route);
             $middleware = $route->gatherMiddleware();
@@ -54,6 +60,8 @@ class PosAuthorizationTest extends PosTestCase
         }
         $this->assertSame(['GET', 'HEAD'], Route::getRoutes()->getByName('pos.index')->methods());
         $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.checkout')->methods());
+        $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.register.open')->methods());
+        $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.register.close')->methods());
         foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.void'] as $name) {
             $this->assertNull(Route::getRoutes()->getByName($name));
         }

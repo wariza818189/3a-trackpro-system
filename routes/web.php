@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpeningInventoryController;
@@ -22,6 +23,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+    Route::post('/pos/register/open', [CashRegisterController::class, 'open'])->name('pos.register.open');
+    Route::post('/pos/register/close', [CashRegisterController::class, 'close'])->name('pos.register.close');
     Route::get('/sales', [SalesHistoryController::class, 'index'])->name('sales.index');
     Route::get('/sales/{sale}', [SalesHistoryController::class, 'show'])->whereNumber('sale')->name('sales.show');
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
