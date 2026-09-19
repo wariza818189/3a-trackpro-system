@@ -579,6 +579,178 @@ final class CashRegister24eConcurrencyTest extends MySql24eConcurrencyTestCase
         }
     }
 
+    public function test_stale_snapshot_same_token_replays_after_register_close_without_new_mutation(): void
+    {
+        $workers = [];
+        $fixture = null;
+        $baseline = null;
+        $parentConnection = null;
+        $parentTransactionActive = false;
+        $token = Str::uuid()->toString();
+
+        try {
+            $connection = $this->guardedConcurrencyConnection();
+            $baseline = $this->domainCounts($connection, self::CHECKOUT_TABLES);
+            $this->assertSame(0, $this->activeRegisterCount($connection));
+            $fixture = $this->createCheckoutFixture($connection, false);
+            $cashierId = $fixture['cashier_id'];
+            $variantId = $fixture['variant_ids'][0];
+            $this->assertSame(0, $connection->table('sales')->where('checkout_token', $token)->count());
+            $this->assertSame(
+                '10.000',
+                (string) $connection->table('product_variants')
+                    ->where('id', $variantId)
+                    ->value('current_stock'),
+            );
+            unset($connection);
+
+            [$socket, $pid] = $this->forkGuardedWorker(
+                fn ($childSocket, Connection $connection): int => $this->runSaleThenCloseWorker(
+                    $childSocket,
+                    $connection,
+                    $cashierId,
+                    $variantId,
+                    $token,
+                ),
+            );
+            $workers[] = ['socket' => $socket, 'pid' => $pid, 'joined' => false];
+
+            $parentConnection = $this->reconnectParentAfterFork();
+            $this->assertSame('ready', $this->readStatus($socket));
+            $parentConnection->beginTransaction();
+            $parentTransactionActive = true;
+
+            $this->assertSame(
+                0,
+                $parentConnection->table('sales')->where('checkout_token', $token)->count(),
+                'The parent snapshot must begin before the checkout token is committed.',
+            );
+
+            $this->writeStatus($socket, 'go');
+            $result = $this->readResult($socket);
+            $this->assertSame('committed-and-closed', $result['status']);
+            $this->assertSame(
+                [
+                    'sale_id',
+                    'sale_session_id',
+                    'sale_item_ids',
+                    'sale_movement_ids',
+                    'closed_session_id',
+                    'stock_after_sale',
+                ],
+                array_keys($result['data']),
+            );
+            $childSaleId = $result['data']['sale_id'];
+            $childSessionId = $result['data']['sale_session_id'];
+            $childItemIds = $result['data']['sale_item_ids'];
+            $childMovementIds = $result['data']['sale_movement_ids'];
+            $this->assertIsInt($childSaleId);
+            $this->assertIsInt($childSessionId);
+            $this->assertSame($fixture['session_id'], $childSessionId);
+            $this->assertSame($fixture['session_id'], $result['data']['closed_session_id']);
+            $this->assertIsArray($childItemIds);
+            $this->assertCount(1, $childItemIds);
+            $this->assertIsInt($childItemIds[0] ?? null);
+            $this->assertIsArray($childMovementIds);
+            $this->assertCount(1, $childMovementIds);
+            $this->assertIsInt($childMovementIds[0] ?? null);
+            $this->assertSame('8.000', $result['data']['stock_after_sale']);
+            $this->joinWorkerSuccessfully($workers[0]);
+
+            $this->assertSame(
+                0,
+                $parentConnection->table('sales')->where('checkout_token', $token)->count(),
+                'The parent consistent snapshot must remain stale after the child commits.',
+            );
+            $sessionIdsBeforeReplay = $parentConnection->table('cash_register_sessions')
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+
+            $replayed = app(RecordSale::class)->execute(
+                User::query()->findOrFail($cashierId),
+                $token,
+                '50.00',
+                [$this->saleLine($variantId)],
+            );
+            $this->assertSame($childSaleId, (int) $replayed->getKey());
+            $this->assertSame($childSessionId, (int) $replayed->cash_register_session_id);
+
+            $parentConnection->commit();
+            $parentTransactionActive = false;
+
+            $parentConnection = $this->reconnectParentAfterFork();
+            $this->assertSame(1, $parentConnection->table('sales')->where('checkout_token', $token)->count());
+            $persistedSale = $parentConnection->table('sales')->where('checkout_token', $token)->first();
+            $this->assertNotNull($persistedSale);
+            $this->assertSame($childSaleId, (int) $persistedSale->id);
+            $this->assertSame($fixture['session_id'], (int) $persistedSale->cash_register_session_id);
+            $this->assertSame($childSessionId, (int) $persistedSale->cash_register_session_id);
+
+            $persistedItemIds = $parentConnection->table('sale_items')
+                ->where('sale_id', $persistedSale->id)
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+            $this->assertCount(1, $persistedItemIds);
+            $this->assertSame($childItemIds, $persistedItemIds);
+
+            $persistedMovementIds = $parentConnection->table('stock_movements')
+                ->whereIn('sale_item_id', $persistedItemIds)
+                ->where('movement_type', StockMovement::TYPE_SALE)
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+            $this->assertCount(1, $persistedMovementIds);
+            $this->assertSame($childMovementIds, $persistedMovementIds);
+            $this->assertSame(
+                1,
+                $parentConnection->table('stock_movements')
+                    ->where('product_variant_id', $variantId)
+                    ->where('movement_type', StockMovement::TYPE_INITIAL_STOCK)
+                    ->count(),
+            );
+            $this->assertSame(
+                $result['data']['stock_after_sale'],
+                (string) $parentConnection->table('product_variants')
+                    ->where('id', $variantId)
+                    ->value('current_stock'),
+            );
+
+            $sessionIdsAfterReplay = $parentConnection->table('cash_register_sessions')
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+            $this->assertSame(
+                $sessionIdsBeforeReplay,
+                $sessionIdsAfterReplay,
+                'Stale-snapshot replay must not create or replace a cash register session.',
+            );
+            $persistedSession = $parentConnection->table('cash_register_sessions')
+                ->where('id', $fixture['session_id'])
+                ->first();
+            $this->assertNotNull($persistedSession);
+            $this->assertNull($persistedSession->active_slot);
+            $this->assertSame($cashierId, (int) $persistedSession->closed_by);
+            $this->assertNotNull($persistedSession->closed_at);
+            $this->assertSame(0, $this->activeRegisterCount($parentConnection));
+        } finally {
+            $this->finishScenario(
+                $workers,
+                $parentConnection,
+                $fixture,
+                [$token],
+                $baseline,
+                self::CHECKOUT_TABLES,
+                $parentTransactionActive,
+            );
+        }
+    }
+
     /** @param resource $socket */
     private function runOpenWorker(
         $socket,
@@ -702,6 +874,58 @@ final class CashRegister24eConcurrencyTest extends MySql24eConcurrencyTestCase
 
             return self::CHILD_EXIT_SUCCESS;
         }
+    }
+
+    /** @param resource $socket */
+    private function runSaleThenCloseWorker(
+        $socket,
+        Connection $connection,
+        int $actorId,
+        int $variantId,
+        string $token,
+    ): int {
+        $this->guardWorkerConnection($connection);
+        $actor = User::query()->findOrFail($actorId);
+        $this->writeStatus($socket, 'ready');
+        if ($this->readStatus($socket) !== 'go') {
+            throw new RuntimeException('The sale-then-close worker did not receive the start barrier.');
+        }
+
+        $sale = app(RecordSale::class)->execute(
+            $actor,
+            $token,
+            '50.00',
+            [$this->saleLine($variantId)],
+        );
+        $saleId = (int) $sale->getKey();
+        $itemIds = $connection->table('sale_items')
+            ->where('sale_id', $saleId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+        $movementIds = $connection->table('stock_movements')
+            ->whereIn('sale_item_id', $itemIds)
+            ->where('movement_type', StockMovement::TYPE_SALE)
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+        $stockAfterSale = (string) $connection->table('product_variants')
+            ->where('id', $variantId)
+            ->value('current_stock');
+
+        $closed = app(CloseCashRegister::class)->execute($actor);
+        $this->writeResult($socket, 'committed-and-closed', [
+            'sale_id' => $saleId,
+            'sale_session_id' => (int) $sale->cash_register_session_id,
+            'sale_item_ids' => $itemIds,
+            'sale_movement_ids' => $movementIds,
+            'closed_session_id' => (int) $closed->getKey(),
+            'stock_after_sale' => $stockAfterSale,
+        ]);
+
+        return self::CHILD_EXIT_SUCCESS;
     }
 
     private function guardWorkerConnection(Connection $connection): void
