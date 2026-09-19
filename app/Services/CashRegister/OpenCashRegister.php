@@ -55,7 +55,7 @@ class OpenCashRegister
                 $session->save();
 
                 return $session;
-            });
+            }, 2);
         } catch (QueryException $exception) {
             if (! $this->isActiveSlotDuplicate($exception)) {
                 throw $exception;
