@@ -6,7 +6,7 @@ Hardware Store Sales and Inventory Management System for a single-location Phili
 
 Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 cash-only POS and Tracker #13 Receipt & Sales History are complete, including verification, browser smoke, and application checkpoints. Responsive navigation and Tracker #16 Dashboard & Reports are also implemented, verified, browser-smoked, committed, and pushed. Dashboard is shared by Admin and Staff; the seven-day trend and Sales Summary Reports are Admin-only. `SALE_VOID`, User Management UI, and supplier workflows remain unimplemented.
 
-See the [Client Problem and Requirements Baseline](docs/requirements.md) for the team-approved/project-derived requirements, assumptions, acceptance outcomes, and scope boundaries. [PROJECT_STATUS.md](PROJECT_STATUS.md) records current checkpoints and verification evidence.
+See the [Project Tracker](docs/project-tracker.md) for authoritative current status. The [Client Problem and Requirements Baseline](docs/requirements.md) records team-approved/project-derived requirements, assumptions, acceptance outcomes, and scope boundaries, while [PROJECT_STATUS.md](PROJECT_STATUS.md) retains detailed historical checkpoints and verification evidence.
 
 ## Requirements
 
