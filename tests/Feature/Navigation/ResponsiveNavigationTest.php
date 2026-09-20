@@ -22,7 +22,7 @@ class ResponsiveNavigationTest extends AuthTestCase
             'stock-in.index' => 'Stock In',
             'opening-inventory.index' => 'Opening Inventory',
             'stock-corrections.index' => 'Stock Correction',
-            'purchase-orders.create' => 'Create Purchase Order',
+            'purchase-orders.index' => 'Purchase Orders',
         ];
 
         $this->assertNavigationDestinations($html, $expected);
@@ -49,7 +49,9 @@ class ResponsiveNavigationTest extends AuthTestCase
         $this->assertStringNotContainsString('Stock Correction', $html);
         $this->assertStringNotContainsString('data-nav-route="reports.index"', $html);
         $this->assertStringNotContainsString('Reports', $html);
+        $this->assertStringNotContainsString('data-nav-route="purchase-orders.index"', $html);
         $this->assertStringNotContainsString('data-nav-route="purchase-orders.create"', $html);
+        $this->assertStringNotContainsString('Purchase Orders', $html);
         $this->assertStringNotContainsString('Create Purchase Order', $html);
     }
 

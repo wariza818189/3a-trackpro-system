@@ -541,7 +541,7 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
         }
     }
 
-    public function test_purchase_order_creation_routes_are_admin_only_and_no_future_routes_exist(): void
+    public function test_purchase_order_routes_have_the_exact_read_and_create_boundary(): void
     {
         $guestPayload = [
             'submission_token' => Str::uuid()->toString(),
@@ -560,20 +560,23 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
 
         $this->actingAs($this->admin)->get(route('purchase-orders.create'))->assertOk();
 
-        $create = Route::getRoutes()->getByName('purchase-orders.create');
-        $store = Route::getRoutes()->getByName('purchase-orders.store');
-        $this->assertNotNull($create);
-        $this->assertNotNull($store);
-        $this->assertSame(['GET', 'HEAD'], $create->methods());
-        $this->assertSame(['POST'], $store->methods());
-        foreach ([$create, $store] as $route) {
+        $routes = [
+            'purchase-orders.index' => ['GET', 'HEAD'],
+            'purchase-orders.create' => ['GET', 'HEAD'],
+            'purchase-orders.store' => ['POST'],
+            'purchase-orders.show' => ['GET', 'HEAD'],
+        ];
+        foreach ($routes as $name => $methods) {
+            $route = Route::getRoutes()->getByName($name);
+            $this->assertNotNull($route);
+            $this->assertSame($methods, $route->methods());
             $middleware = $route->gatherMiddleware();
             $this->assertContains('web', $middleware);
             $this->assertContains('auth', $middleware);
             $this->assertContains('active', $middleware);
             $this->assertContains('can:access-admin', $middleware);
         }
-        foreach (['purchase-orders.index', 'purchase-orders.show', 'purchase-orders.edit', 'purchase-orders.update', 'purchase-orders.destroy'] as $name) {
+        foreach (['purchase-orders.edit', 'purchase-orders.update', 'purchase-orders.destroy'] as $name) {
             $this->assertNull(Route::getRoutes()->getByName($name));
         }
     }
@@ -650,12 +653,12 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             ],
         ]);
 
+        $created = PurchaseOrder::query()->where('submission_token', $token)->sole();
         $response->assertSessionHasNoErrors()
-            ->assertRedirect(route('purchase-orders.create'))
+            ->assertRedirect(route('purchase-orders.show', $created))
             ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === false && $confirmation['line_count'] === 2
             );
 
-        $created = PurchaseOrder::query()->where('submission_token', $token)->sole();
         $items = $created->items()->orderBy('product_variant_id')->get();
         $this->assertSame($this->admin->id, $created->created_by);
         $this->assertSame(PurchaseOrder::STATUS_PENDING, $created->status);
@@ -730,16 +733,17 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             ->assertSessionHasErrors('items.0.ordered_quantity')
             ->assertSessionHasInput('submission_token', $token);
 
-        $this->actingAs($this->admin)
+        $response = $this->actingAs($this->admin)
             ->post(route('purchase-orders.store'), $this->payload($fractional, [
                 'items' => [[
                     'product_variant_id' => $fractional->id,
                     'ordered_quantity' => '1.250',
                     'expected_unit_cost' => '5',
                 ]],
-            ]))
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('purchase-orders.create'));
+            ]));
+        $created = PurchaseOrder::query()->sole();
+        $response->assertSessionHasNoErrors()
+            ->assertRedirect(route('purchase-orders.show', $created));
         $this->assertSame('1.250', PurchaseOrderItem::query()->sole()->ordered_quantity);
     }
 
@@ -750,7 +754,9 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
         $token = Str::uuid()->toString();
         $payload = $this->payload($variant, ['submission_token' => $token]);
 
-        $this->actingAs($this->admin)->post(route('purchase-orders.store'), $payload)
+        $createdResponse = $this->actingAs($this->admin)->post(route('purchase-orders.store'), $payload);
+        $purchaseOrder = PurchaseOrder::query()->sole();
+        $createdResponse->assertRedirect(route('purchase-orders.show', $purchaseOrder))
             ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === false);
 
         $replay = array_replace($payload, [
@@ -763,16 +769,17 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             ]],
         ]);
         $response = $this->actingAs($this->admin)->post(route('purchase-orders.store'), $replay);
-        $response->assertRedirect(route('purchase-orders.create'))
+        $response->assertRedirect(route('purchase-orders.show', $purchaseOrder))
             ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === true);
         $this->assertSame(1, PurchaseOrder::query()->count());
         $this->assertSame(1, PurchaseOrderItem::query()->count());
 
-        $page = $this->get(route('purchase-orders.create'))->assertOk()
+        $this->get(route('purchase-orders.show', $purchaseOrder))->assertOk()
             ->assertSee('Purchase Order already recorded')
             ->assertSee('no duplicate Purchase Order was created')
-            ->assertDontSee($token)
-            ->getContent();
+            ->assertDontSee($token);
+
+        $page = $this->get(route('purchase-orders.create'))->assertOk()->getContent();
         preg_match('/name="submission_token" value="([0-9a-f-]{36})"/', $page, $matches);
         $this->assertNotSame($token, $matches[1] ?? null);
     }

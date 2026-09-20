@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePurchaseOrderRequest;
 use App\Models\ProductVariant;
+use App\Models\PurchaseOrder;
 use App\Queries\Procurement\LowStockPurchaseOrderRecommendations;
 use App\Queries\Procurement\ProcurementVariantCatalogQuery;
 use App\Services\Procurement\CreatePurchaseOrder;
@@ -11,11 +12,44 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PurchaseOrderController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $validated = $request->validate([
+            'supplier' => ['nullable', 'string', 'max:150'],
+            'status' => ['nullable', 'string', Rule::in([
+                PurchaseOrder::STATUS_PENDING,
+                PurchaseOrder::STATUS_PARTIALLY_RECEIVED,
+                PurchaseOrder::STATUS_COMPLETED,
+                PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER,
+            ])],
+        ]);
+
+        $supplier = trim($validated['supplier'] ?? '');
+        $status = $validated['status'] ?? null;
+        $status = $status === '' ? null : $status;
+
+        $purchaseOrders = PurchaseOrder::query()
+            ->with('createdBy:id,name')
+            ->withCount('items')
+            ->when($supplier !== '', function ($query) use ($supplier): void {
+                $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $supplier);
+                $query->whereRaw("supplier_name LIKE ? ESCAPE '!'", ["%{$escaped}%"]);
+            })
+            ->when($status !== null, fn ($query) => $query->where('status', $status))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('purchase-orders.index', compact('purchaseOrders', 'supplier', 'status'));
+    }
+
     public function create(
         Request $request,
         LowStockPurchaseOrderRecommendations $recommendations,
@@ -91,13 +125,26 @@ class PurchaseOrderController extends Controller
                 ->withInput($oldInput);
         }
 
-        return redirect()->route('purchase-orders.create')->with('purchase_order_confirmation', [
+        return redirect()->route('purchase-orders.show', $purchaseOrder)->with('purchase_order_confirmation', [
             'id' => $purchaseOrder->getKey(),
             'supplier_name' => $purchaseOrder->supplier_name,
             'status' => $purchaseOrder->status,
             'line_count' => $purchaseOrder->items->count(),
             'replayed' => ! $purchaseOrder->wasRecentlyCreated,
         ]);
+    }
+
+    public function show(PurchaseOrder $purchaseOrder): View
+    {
+        $purchaseOrder->load([
+            'createdBy:id,name',
+            'parent:id',
+            'items' => fn ($query) => $query
+                ->orderBy('product_variant_id')
+                ->orderBy('id'),
+        ]);
+
+        return view('purchase-orders.show', compact('purchaseOrder'));
     }
 
     /**

@@ -50,7 +50,7 @@
                 ...($navigationAdmin ? [[
                     'label' => 'Procurement',
                     'items' => [
-                        ['label' => 'Create Purchase Order', 'route' => 'purchase-orders.create', 'active' => 'purchase-orders.*'],
+                        ['label' => 'Purchase Orders', 'route' => 'purchase-orders.index', 'active' => 'purchase-orders.*'],
                     ],
                 ]] : []),
             ];
