@@ -8,6 +8,8 @@ use App\Models\Category;
 use App\Models\Concerns\ImmutableRecord;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Models\Restock;
 use App\Models\RestockItem;
 use App\Models\Sale;
@@ -145,11 +147,23 @@ class ModelFoundationTest extends TestCase
         $this->assertSame('sale_item_id', (new StockMovement)->saleItem()->getForeignKeyName());
         $this->assertSame('restock_item_id', (new StockMovement)->restockItem()->getForeignKeyName());
         $this->assertSame('performed_by', (new StockMovement)->performedBy()->getForeignKeyName());
+        $this->assertSame('created_by', (new PurchaseOrder)->createdBy()->getForeignKeyName());
+        $this->assertSame('purchase_order_id', (new PurchaseOrder)->items()->getForeignKeyName());
+        $this->assertSame('parent_purchase_order_id', (new PurchaseOrder)->parent()->getForeignKeyName());
+        $this->assertSame('parent_purchase_order_id', (new PurchaseOrder)->children()->getForeignKeyName());
+        $this->assertSame('purchase_order_id', (new PurchaseOrderItem)->purchaseOrder()->getForeignKeyName());
+        $this->assertSame('product_variant_id', (new PurchaseOrderItem)->variant()->getForeignKeyName());
+        $this->assertSame('created_by', (new User)->purchaseOrders()->getForeignKeyName());
+        $this->assertSame('product_variant_id', (new ProductVariant)->purchaseOrderItems()->getForeignKeyName());
         $this->assertSame('RESTOCK', StockMovement::TYPE_RESTOCK);
         $this->assertSame('CORRECTION', StockMovement::TYPE_CORRECTION);
         $this->assertSame('SALE', StockMovement::TYPE_SALE);
         $this->assertSame('completed', Sale::STATUS_COMPLETED);
         $this->assertSame('voided', Sale::STATUS_VOIDED);
+        $this->assertSame('pending', PurchaseOrder::STATUS_PENDING);
+        $this->assertSame('partially_received', PurchaseOrder::STATUS_PARTIALLY_RECEIVED);
+        $this->assertSame('completed', PurchaseOrder::STATUS_COMPLETED);
+        $this->assertSame('closed_with_remainder', PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER);
         $this->assertSame('user_id', (new AuditLog)->user()->getForeignKeyName());
     }
 
@@ -174,9 +188,53 @@ class ModelFoundationTest extends TestCase
 
     public function test_nonhistorical_models_remain_mutable(): void
     {
-        foreach ([Product::class, ProductVariant::class, Category::class, User::class, CashRegisterSession::class] as $class) {
+        foreach ([Product::class, ProductVariant::class, Category::class, User::class, CashRegisterSession::class, PurchaseOrder::class, PurchaseOrderItem::class] as $class) {
             $this->assertArrayNotHasKey(ImmutableRecord::class, class_uses_recursive($class));
         }
+    }
+
+    public function test_purchase_order_models_use_approved_defaults_and_mass_assignment_boundaries(): void
+    {
+        $purchaseOrder = new PurchaseOrder([
+            'supplier_name' => '  Acme Supply  ',
+            'notes' => 'Deliver to receiving.',
+            'submission_token' => 'browser-controlled-token',
+            'created_by' => 99,
+            'status' => PurchaseOrder::STATUS_COMPLETED,
+            'parent_purchase_order_id' => 10,
+        ]);
+        $item = new PurchaseOrderItem([
+            'purchase_order_id' => 1,
+            'product_variant_id' => 2,
+            'product_name_snapshot' => 'Roofing Sheet',
+            'size_snapshot' => '8 ft',
+            'type_series_snapshot' => 'Corrugated',
+            'thickness_snapshot' => '0.4 mm',
+            'unit_snapshot' => 'sheet',
+            'ordered_quantity' => '1.25',
+            'expected_unit_cost' => '500',
+        ]);
+
+        $this->assertSame(['supplier_name', 'notes'], $purchaseOrder->getFillable());
+        $this->assertSame('  Acme Supply  ', $purchaseOrder->supplier_name);
+        $this->assertSame('Deliver to receiving.', $purchaseOrder->notes);
+        $this->assertNull($purchaseOrder->submission_token);
+        $this->assertNull($purchaseOrder->created_by);
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $purchaseOrder->status);
+        $this->assertNull($purchaseOrder->parent_purchase_order_id);
+        $this->assertSame('1.250', $item->ordered_quantity);
+        $this->assertSame('500.00', $item->expected_unit_cost);
+        $this->assertSame([
+            'purchase_order_id',
+            'product_variant_id',
+            'product_name_snapshot',
+            'size_snapshot',
+            'type_series_snapshot',
+            'thickness_snapshot',
+            'unit_snapshot',
+            'ordered_quantity',
+            'expected_unit_cost',
+        ], $item->getFillable());
     }
 
     public function test_legacy_sale_allows_a_null_cash_register_session_relationship(): void

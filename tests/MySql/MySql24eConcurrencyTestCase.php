@@ -39,6 +39,8 @@ abstract class MySql24eConcurrencyTestCase extends MySql24eTestCase
         'migrations',
         'product_variants',
         'products',
+        'purchase_order_items',
+        'purchase_orders',
         'restock_items',
         'restocks',
         'sale_items',
@@ -61,6 +63,10 @@ abstract class MySql24eConcurrencyTestCase extends MySql24eTestCase
         '2026_09_05_000009_create_audit_logs_table',
         '2026_09_17_000010_create_cash_register_sessions_table',
         '2026_09_17_000011_add_cash_register_session_id_to_sales_table',
+        '2026_09_20_000012_create_purchase_orders_table',
+        '2026_09_20_000013_create_purchase_order_items_table',
+        '2026_09_20_000014_add_parent_purchase_order_id_to_purchase_orders_table',
+        '2026_09_20_000015_add_variant_movement_type_index_to_stock_movements_table',
     ];
 
     /** @var list<int> */

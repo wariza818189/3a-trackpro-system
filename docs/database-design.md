@@ -128,7 +128,7 @@ The following target tables record the approved design for tracker tasks #24–#
 - status ENUM(pending, partially_received, completed, closed_with_remainder), default pending.
 - parent_purchase_order_id FK purchase_orders nullable; notes TEXT nullable; created_at, updated_at.
 - INDEX(status, created_at); INDEX(created_by, created_at); INDEX(parent_purchase_order_id).
-- CHECK: supplier name is nonblank after trimming; parent cannot equal the row's own ID.
+- CHECK: supplier name is nonblank after trimming. The parent self-FK enforces parent-row existence and referential integrity.
 - `submission_token` supplies durable create idempotency. Parent linkage provides header-level follow-up-chain navigation but is not the quantity-transfer source of truth.
 
 ### purchase_order_items
@@ -163,7 +163,7 @@ The following target tables record the approved design for tracker tasks #24–#
 ## Phase A relationships, lifecycle, and authoritative calculations
 
 - A CashRegisterSession belongs to its opening User and optional closing User and has many legacy-nullable Sales. The browser never selects the authoritative session ID.
-- A PurchaseOrder belongs to its creator, has many items and Restocks, and may belong to a parent PurchaseOrder. Parent relationships may form follow-up chains but must remain acyclic.
+- A PurchaseOrder belongs to its creator, has many items and Restocks, and may belong to a parent PurchaseOrder. Parent relationships may form follow-up chains but must remain acyclic. The future #27 transactional service uses authoritative locking/current reads to reject direct self-parenting, ancestor/descendant cycles, and invalid follow-up-parent semantics.
 - A PurchaseOrderItem belongs to a Variant, has accepted RestockItems, damage details, and at most one outgoing transfer. Transfer records connect one source item to one target follow-up item.
 - Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems and RestockDamageItems belong to the same PO and matching PO items/Variants.
 - PO status is stored for efficient filtering but must be recalculated and validated from authoritative receiving and transfer evidence in the same transaction whenever that evidence changes.
