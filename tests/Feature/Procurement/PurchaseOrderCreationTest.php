@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Procurement\CreatePurchaseOrder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
@@ -538,6 +539,303 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             $this->assertSame('0.000', $first->fresh()->current_stock);
             $this->assertSame('0.000', $second->fresh()->current_stock);
         }
+    }
+
+    public function test_purchase_order_creation_routes_are_admin_only_and_no_future_routes_exist(): void
+    {
+        $guestPayload = [
+            'submission_token' => Str::uuid()->toString(),
+            'supplier_name' => 'Supplier',
+            'items' => [],
+        ];
+        $this->get(route('purchase-orders.create'))->assertRedirect('/login');
+        $this->post(route('purchase-orders.store'), $guestPayload)->assertRedirect('/login');
+
+        $staff = User::factory()->create();
+        $this->actingAs($staff)->get(route('purchase-orders.create'))->assertForbidden();
+        $this->actingAs($staff)->post(route('purchase-orders.store'), $guestPayload)->assertForbidden();
+
+        $disabled = User::factory()->admin()->disabled()->create();
+        $this->actingAs($disabled)->get(route('purchase-orders.create'))->assertRedirect('/login');
+
+        $this->actingAs($this->admin)->get(route('purchase-orders.create'))->assertOk();
+
+        $create = Route::getRoutes()->getByName('purchase-orders.create');
+        $store = Route::getRoutes()->getByName('purchase-orders.store');
+        $this->assertNotNull($create);
+        $this->assertNotNull($store);
+        $this->assertSame(['GET', 'HEAD'], $create->methods());
+        $this->assertSame(['POST'], $store->methods());
+        foreach ([$create, $store] as $route) {
+            $middleware = $route->gatherMiddleware();
+            $this->assertContains('web', $middleware);
+            $this->assertContains('auth', $middleware);
+            $this->assertContains('active', $middleware);
+            $this->assertContains('can:access-admin', $middleware);
+        }
+        foreach (['purchase-orders.index', 'purchase-orders.show', 'purchase-orders.edit', 'purchase-orders.update', 'purchase-orders.destroy'] as $name) {
+            $this->assertNull(Route::getRoutes()->getByName($name));
+        }
+    }
+
+    public function test_create_page_groups_eligible_catalog_and_excludes_ineligible_variants(): void
+    {
+        $activeProduct = $this->product($this->category(['name' => 'Fasteners']), ['name' => 'Procurement Bolt']);
+        $uncovered = $this->variant($activeProduct, ['size' => 'Uncovered 8mm', 'current_stock' => '0.000']);
+        $covered = $this->variant($activeProduct, ['size' => 'Covered 10mm', 'current_stock' => '1.000']);
+        $healthy = $this->variant($activeProduct, ['size' => 'Healthy 12mm', 'current_stock' => '20.000']);
+        $uninitialized = $this->variant($activeProduct, ['size' => 'Uninitialized']);
+        $inactive = $this->variant($activeProduct, ['size' => 'Inactive', 'status' => ProductVariant::STATUS_ARCHIVED]);
+        $inactiveProductVariant = $this->variant($this->product($this->category(), [
+            'name' => 'Archived Product',
+            'status' => Product::STATUS_ARCHIVED,
+        ]), ['size' => 'Archived Product Variant']);
+        $inactiveCategoryVariant = $this->variant($this->product($this->category([
+            'name' => 'Archived Category',
+            'status' => Category::STATUS_ARCHIVED,
+        ]), ['name' => 'Hidden Product']), ['size' => 'Archived Category Variant']);
+
+        foreach ([$uncovered, $covered, $healthy, $inactive, $inactiveProductVariant, $inactiveCategoryVariant] as $variant) {
+            $this->initialize($variant);
+        }
+        $this->coverVariant($covered);
+
+        $response = $this->actingAs($this->admin)->get(route('purchase-orders.create'));
+
+        $response->assertOk()
+            ->assertSee('Priority — No Open PO Coverage')
+            ->assertSee('Low Stock — Already Covered')
+            ->assertSee('Other Active Initialized Variants')
+            ->assertSee('Uncovered 8mm')
+            ->assertSee('Covered 10mm')
+            ->assertSee('Healthy 12mm')
+            ->assertSee('Open PO coverage: 5.000 piece')
+            ->assertDontSee('Uninitialized')
+            ->assertDontSee('Inactive')
+            ->assertDontSee('Archived Product Variant')
+            ->assertDontSee('Archived Category Variant')
+            ->assertDontSee('Suggested order quantity')
+            ->assertSee('name="_token"', false);
+
+        $this->assertMatchesRegularExpression(
+            '/name="submission_token" value="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/',
+            $response->getContent(),
+        );
+        $this->assertSame(1, substr_count($response->getContent(), 'data-id="'.$covered->id.'" data-search='));
+    }
+
+    public function test_admin_http_submission_creates_canonical_multi_line_pending_order(): void
+    {
+        $firstProduct = $this->product($this->category(), ['name' => 'HTTP Bolt']);
+        $secondProduct = $this->product($this->category(), ['name' => 'HTTP Sand']);
+        $whole = $this->variant($firstProduct, ['size' => 'M10', 'current_stock' => '4.000']);
+        $fractional = $this->variant($secondProduct, [
+            'size' => 'Fine',
+            'unit' => 'kg',
+            'quantity_mode' => 'fractional',
+            'current_stock' => '8.500',
+        ]);
+        $this->initialize($whole, quantity: '4.000');
+        $this->initialize($fractional, quantity: '8.500');
+        $this->coverVariant($whole);
+        $token = Str::uuid()->toString();
+
+        $response = $this->actingAs($this->admin)->post(route('purchase-orders.store'), [
+            'submission_token' => strtoupper($token),
+            'supplier_name' => "  HTTP\u{2003}Supplier  ",
+            'notes' => "  Planned\n delivery  ",
+            'items' => [
+                ['product_variant_id' => $fractional->id, 'ordered_quantity' => '1.25', 'expected_unit_cost' => '025.5'],
+                ['product_variant_id' => $whole->id, 'ordered_quantity' => '2', 'expected_unit_cost' => '10'],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors()
+            ->assertRedirect(route('purchase-orders.create'))
+            ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === false && $confirmation['line_count'] === 2
+            );
+
+        $created = PurchaseOrder::query()->where('submission_token', $token)->sole();
+        $items = $created->items()->orderBy('product_variant_id')->get();
+        $this->assertSame($this->admin->id, $created->created_by);
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $created->status);
+        $this->assertNull($created->parent_purchase_order_id);
+        $this->assertSame('HTTP Supplier', $created->supplier_name);
+        $this->assertSame('Planned delivery', $created->notes);
+        $this->assertSame(['2.000', '1.250'], $items->pluck('ordered_quantity')->all());
+        $this->assertSame(['10.00', '25.50'], $items->pluck('expected_unit_cost')->all());
+        $this->assertSame(['HTTP Bolt', 'HTTP Sand'], $items->pluck('product_name_snapshot')->all());
+        $this->assertSame('4.000', $whole->fresh()->current_stock);
+        $this->assertSame('8.500', $fractional->fresh()->current_stock);
+        $this->assertSame(2, StockMovement::query()->count());
+    }
+
+    public function test_http_request_rejects_invalid_shapes_and_decimal_boundaries(): void
+    {
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant);
+        $base = $this->payload($variant);
+        $cases = [
+            [['supplier_name' => '   '], 'supplier_name'],
+            [['supplier_name' => str_repeat('S', 151)], 'supplier_name'],
+            [['notes' => str_repeat('N', 1001)], 'notes'],
+            [['items' => null], 'items'],
+            [['items' => []], 'items'],
+            [['items' => array_fill(0, 101, $base['items'][0])], 'items'],
+            [['items' => [$base['items'][0], $base['items'][0]]], 'items.1.product_variant_id'],
+            [['items' => [['product_variant_id' => 'bad', 'ordered_quantity' => '1', 'expected_unit_cost' => '1']]], 'items.0.product_variant_id'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '0', 'expected_unit_cost' => '1']]], 'items.0.ordered_quantity'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '-1', 'expected_unit_cost' => '1']]], 'items.0.ordered_quantity'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '1.0001', 'expected_unit_cost' => '1']]], 'items.0.ordered_quantity'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '100000000000.000', 'expected_unit_cost' => '1']]], 'items.0.ordered_quantity'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '1', 'expected_unit_cost' => '1.001']]], 'items.0.expected_unit_cost'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '1', 'expected_unit_cost' => '-1']]], 'items.0.expected_unit_cost'],
+            [['items' => [['product_variant_id' => $variant->id, 'ordered_quantity' => '1', 'expected_unit_cost' => '10000000000.00']]], 'items.0.expected_unit_cost'],
+            [['items' => [array_merge($base['items'][0], ['status' => 'completed'])]], 'items.0'],
+            [['status' => 'completed'], 'request'],
+            [['created_by' => 999], 'request'],
+        ];
+
+        foreach ($cases as [$change, $error]) {
+            $payload = array_replace($base, $change, ['submission_token' => Str::uuid()->toString()]);
+            $this->actingAs($this->admin)
+                ->from(route('purchase-orders.create'))
+                ->post(route('purchase-orders.store'), $payload)
+                ->assertRedirect(route('purchase-orders.create'))
+                ->assertSessionHasErrors($error);
+        }
+        $this->assertSame(0, PurchaseOrder::query()->count());
+    }
+
+    public function test_http_preserves_token_for_domain_validation_and_accepts_fractional_mode(): void
+    {
+        $product = $this->product($this->category());
+        $whole = $this->variant($product, ['size' => 'Whole']);
+        $fractional = $this->variant($product, ['size' => 'Fractional', 'unit' => 'kg', 'quantity_mode' => 'fractional']);
+        $this->initialize($whole);
+        $this->initialize($fractional);
+        $token = Str::uuid()->toString();
+
+        $this->actingAs($this->admin)
+            ->from(route('purchase-orders.create'))
+            ->post(route('purchase-orders.store'), $this->payload($whole, [
+                'submission_token' => $token,
+                'items' => [[
+                    'product_variant_id' => $whole->id,
+                    'ordered_quantity' => '1.250',
+                    'expected_unit_cost' => '5',
+                ]],
+            ]))
+            ->assertRedirect(route('purchase-orders.create'))
+            ->assertSessionHasErrors('items.0.ordered_quantity')
+            ->assertSessionHasInput('submission_token', $token);
+
+        $this->actingAs($this->admin)
+            ->post(route('purchase-orders.store'), $this->payload($fractional, [
+                'items' => [[
+                    'product_variant_id' => $fractional->id,
+                    'ordered_quantity' => '1.250',
+                    'expected_unit_cost' => '5',
+                ]],
+            ]))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('purchase-orders.create'));
+        $this->assertSame('1.250', PurchaseOrderItem::query()->sole()->ordered_quantity);
+    }
+
+    public function test_http_idempotent_replay_reuses_order_and_fresh_get_uses_new_token(): void
+    {
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant);
+        $token = Str::uuid()->toString();
+        $payload = $this->payload($variant, ['submission_token' => $token]);
+
+        $this->actingAs($this->admin)->post(route('purchase-orders.store'), $payload)
+            ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === false);
+
+        $replay = array_replace($payload, [
+            'supplier_name' => " Sample\u{2003}Supplier ",
+            'notes' => " Test\n planning note ",
+            'items' => [[
+                'product_variant_id' => $variant->id,
+                'ordered_quantity' => '02.000',
+                'expected_unit_cost' => '025.5',
+            ]],
+        ]);
+        $response = $this->actingAs($this->admin)->post(route('purchase-orders.store'), $replay);
+        $response->assertRedirect(route('purchase-orders.create'))
+            ->assertSessionHas('purchase_order_confirmation', fn (array $confirmation): bool => $confirmation['replayed'] === true);
+        $this->assertSame(1, PurchaseOrder::query()->count());
+        $this->assertSame(1, PurchaseOrderItem::query()->count());
+
+        $page = $this->get(route('purchase-orders.create'))->assertOk()
+            ->assertSee('Purchase Order already recorded')
+            ->assertSee('no duplicate Purchase Order was created')
+            ->assertDontSee($token)
+            ->getContent();
+        preg_match('/name="submission_token" value="([0-9a-f-]{36})"/', $page, $matches);
+        $this->assertNotSame($token, $matches[1] ?? null);
+    }
+
+    public function test_http_semantic_token_conflict_preserves_draft_and_replaces_token(): void
+    {
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant);
+        $token = Str::uuid()->toString();
+        $payload = $this->payload($variant, ['submission_token' => $token]);
+        $this->actingAs($this->admin)->post(route('purchase-orders.store'), $payload)->assertSessionHasNoErrors();
+
+        $conflict = array_replace($payload, ['supplier_name' => 'Changed Supplier']);
+        $response = $this->actingAs($this->admin)
+            ->post(route('purchase-orders.store'), $conflict)
+            ->assertRedirect(route('purchase-orders.create'))
+            ->assertSessionHasErrors('submission_token')
+            ->assertSessionHasInput('supplier_name', 'Changed Supplier')
+            ->assertSessionHasInput('items.0.product_variant_id', $variant->id);
+
+        $freshToken = session()->getOldInput('submission_token');
+        $this->assertIsString($freshToken);
+        $this->assertNotSame($token, $freshToken);
+        $this->assertTrue(Str::isUuid($freshToken));
+        $this->assertSame(1, PurchaseOrder::query()->count());
+
+        $response = $this->get(route('purchase-orders.create'));
+        $response->assertOk()
+            ->assertSee('Changed Supplier')
+            ->assertSee((string) $variant->id, false)
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee($token);
+    }
+
+    public function test_old_draft_removes_now_ineligible_selection_and_keeps_other_input(): void
+    {
+        $product = $this->product($this->category(), ['name' => 'Old Draft Product']);
+        $eligible = $this->variant($product, ['size' => 'Still Eligible']);
+        $removed = $this->variant($product, ['size' => 'Now Archived']);
+        $this->initialize($eligible);
+        $this->initialize($removed);
+        $removed->status = ProductVariant::STATUS_ARCHIVED;
+        $removed->save();
+
+        $response = $this->actingAs($this->admin)
+            ->withSession(['_old_input' => [
+                'submission_token' => Str::uuid()->toString(),
+                'supplier_name' => 'Preserved Supplier',
+                'notes' => 'Preserved note',
+                'items' => [
+                    ['product_variant_id' => $eligible->id, 'ordered_quantity' => '2', 'expected_unit_cost' => '3'],
+                    ['product_variant_id' => $removed->id, 'ordered_quantity' => '4', 'expected_unit_cost' => '5'],
+                ],
+            ]])
+            ->get(route('purchase-orders.create'));
+
+        $response->assertOk()
+            ->assertSee('Preserved Supplier')
+            ->assertSee('Preserved note')
+            ->assertSee('previously selected variant became unavailable')
+            ->assertSee('Still Eligible')
+            ->assertDontSee('Now Archived');
+        $this->assertSame(1, substr_count($response->getContent(), 'data-po-draft-row data-id='));
     }
 
     private function service(): CreatePurchaseOrder

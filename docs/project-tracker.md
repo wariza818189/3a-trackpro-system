@@ -14,14 +14,14 @@ project status.
 
 ## Current Focus
 
-Current development focus: **Purchase Order and Low-Stock Prioritization (former #25 / #25B query layer)**
+Current development focus: **Purchase Order creation and Low-Stock Prioritization (former #25)**
 
 Status: **In Progress**
 
-The #25A Purchase Order schema/model foundation is complete and checkpointed.
-#25B implementation has started for authoritative low-stock eligibility and
-open PO coverage queries. The broader Purchase Order workflow is not yet
-operational.
+The Purchase Order schema/model foundation, authoritative low-stock eligibility
+and open-coverage queries, and Admin-only pending Purchase Order creation are
+implemented. Purchase Order list/detail/edit and later receiving/follow-up
+lifecycle work remain outstanding.
 
 ## Status Definitions
 
@@ -76,8 +76,8 @@ operational.
 | INVENTORY | Stock Correction | Correct an incorrect stock quantity | ROBERT JAMES WARIZA | 10/09/2026 | 10/11/2026 | In Progress | Working controlled stock correction feature | Restrict corrections, require a reason, record the adjustment and audit entry, and prevent resulting negative stock. The controlled correction and immutable CORRECTION movement exist; the required separate production AuditLog entry remains incomplete. |
 | INVENTORY | Low Stock | View products reaching low-stock level | Rommel Jave Casipong | 09/30/2026 | 10/01/2026 | Completed | Working low-stock inventory list | List products or variants whose current stock is at or below their configured threshold. Implemented and verified. |
 | INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | In Progress | Working stock movement history | Display stock changes from sales, stock-in, corrections, and sale void restorations with date, quantity, reference, and user. No unified history covers all relevant movement types, references, and users; SALE_VOID restoration remains future. |
-| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | #25A schema/model foundation is complete and checkpointed. No route/controller/service/UI exists yet, so the broader Purchase Order workflow remains in progress. |
-| PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | In Progress | Working prioritized PO-planning list | Implementation started; authoritative low-stock eligibility and open PO coverage query are in progress. |
+| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | Admin-only pending Purchase Order creation is implemented with explicit quantities/costs and immutable snapshots. List/detail/edit and later receiving/follow-up lifecycle work remain outstanding. |
+| PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | In Progress | Working prioritized PO-planning list | The authoritative recommendation and open-coverage layer is surfaced in Purchase Order creation; the broader procurement deliverable remains in progress. |
 | PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | Not Started | Working PO receiving workflow | Maps to former #26. Existing legacy Stock In is not PO-based. |
 | PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | Not Started | Working follow-up purchase-order workflow | Maps to former #27. Parent-column foundation alone does not implement transfer semantics. |
 | PROCUREMENT | Damaged Item Recording | Record damaged quantities during PO receiving without adding damaged quantity to sellable stock. | TBD | — | — | Not Started | Working damaged-receiving evidence workflow | Damage is receiving evidence. It must not create a RESTOCK movement or increase sellable stock. |

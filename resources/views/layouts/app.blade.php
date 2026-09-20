@@ -47,6 +47,12 @@
                         ] : []),
                     ],
                 ],
+                ...($navigationAdmin ? [[
+                    'label' => 'Procurement',
+                    'items' => [
+                        ['label' => 'Create Purchase Order', 'route' => 'purchase-orders.create', 'active' => 'purchase-orders.*'],
+                    ],
+                ]] : []),
             ];
         @endphp
 

@@ -242,3 +242,74 @@ document.querySelectorAll('[data-pos]').forEach((pos) => {
     });
     update();
 });
+
+document.querySelectorAll('[data-purchase-order-create]').forEach((page) => {
+    const form = page.querySelector('[data-po-form]');
+    const draft = page.querySelector('[data-po-draft]');
+    const template = page.querySelector('[data-po-draft-template]');
+    const emptyDraft = page.querySelector('[data-po-empty-draft]');
+    const submit = page.querySelector('[data-po-submit]');
+    const search = page.querySelector('[data-po-search]');
+    const noResults = page.querySelector('[data-po-no-search-results]');
+
+    if (!form || !draft || !template || !emptyDraft || !submit) return;
+
+    const rows = () => [...draft.querySelectorAll('[data-po-draft-row]')];
+
+    const update = () => {
+        const selected = new Set(rows().map((row) => row.dataset.id));
+        rows().forEach((row, index) => {
+            row.querySelector('[data-po-id-input]').name = `items[${index}][product_variant_id]`;
+            row.querySelector('[data-po-quantity]').name = `items[${index}][ordered_quantity]`;
+            row.querySelector('[data-po-cost]').name = `items[${index}][expected_unit_cost]`;
+        });
+        page.querySelectorAll('[data-po-add]').forEach((button) => {
+            const alreadySelected = selected.has(button.dataset.id);
+            button.disabled = alreadySelected;
+            button.textContent = alreadySelected ? 'Added to draft' : 'Add to draft';
+        });
+        emptyDraft.hidden = rows().length !== 0;
+        submit.disabled = rows().length === 0;
+    };
+
+    const addRow = (button) => {
+        if (rows().some((row) => row.dataset.id === button.dataset.id) || rows().length >= 100) return;
+
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('[data-po-draft-row]');
+        row.dataset.id = button.dataset.id;
+        row.dataset.mode = button.dataset.mode;
+        row.querySelector('[data-po-draft-product]').textContent = button.dataset.product;
+        row.querySelector('[data-po-draft-identity]').textContent = `${button.dataset.identity} · ${button.dataset.unit}`;
+        row.querySelector('[data-po-id-input]').value = button.dataset.id;
+        row.querySelector('[data-po-mode-hint]').textContent = button.dataset.mode === 'whole'
+            ? 'Enter a whole-number quantity. Expected cost accepts up to 2 decimal places.'
+            : 'Enter a quantity with up to 3 decimal places. Expected cost accepts up to 2 decimal places.';
+        draft.append(fragment);
+        update();
+        row.querySelector('[data-po-quantity]').focus();
+    };
+
+    page.addEventListener('click', (event) => {
+        const add = event.target.closest('[data-po-add]');
+        if (add && !add.disabled) addRow(add);
+
+        const remove = event.target.closest('[data-po-remove]');
+        if (remove) {
+            remove.closest('[data-po-draft-row]').remove();
+            update();
+        }
+    });
+
+    search?.addEventListener('input', () => {
+        const term = search.value.trim().toLowerCase();
+        let visible = 0;
+        page.querySelectorAll('[data-po-variant]').forEach((variant) => {
+            variant.hidden = term !== '' && !variant.dataset.search.includes(term);
+            if (!variant.hidden) visible++;
+        });
+        noResults.hidden = visible !== 0;
+    });
+
+    update();
+});
