@@ -30,6 +30,13 @@ class PurchaseOrder extends Model
         'status' => self::STATUS_PENDING,
     ];
 
+    public function isEditable(): bool
+    {
+        // Temporary #25D gate. #26 must extend the authoritative update-time
+        // check with locked receiving, damage, and transfer evidence.
+        return $this->status === self::STATUS_PENDING;
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
