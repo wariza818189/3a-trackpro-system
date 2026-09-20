@@ -41,7 +41,7 @@ class ProductVariantController extends Controller
             ->when($categoryId, fn (Builder $query) => $query->whereHas(
                 'product', fn (Builder $product) => $product->where('category_id', $categoryId),
             ))
-            ->when($lowStock, fn (Builder $query) => $query->whereColumn('current_stock', '<=', 'low_stock_threshold'))
+            ->when($lowStock, fn (Builder $query) => $query->lowStock())
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search);
                 $pattern = "%{$escaped}%";

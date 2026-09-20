@@ -16,6 +16,11 @@ class PurchaseOrder extends Model
 
     public const STATUS_CLOSED_WITH_REMAINDER = 'closed_with_remainder';
 
+    public const OPEN_STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_PARTIALLY_RECEIVED,
+    ];
+
     protected $fillable = [
         'supplier_name',
         'notes',

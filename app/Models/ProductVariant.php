@@ -66,6 +66,20 @@ class ProductVariant extends Model
         );
     }
 
+    public function scopeInitialized(Builder $query): Builder
+    {
+        return $query->whereHas('openingInventoryMovements');
+    }
+
+    public function scopeLowStock(Builder $query): Builder
+    {
+        return $query->whereColumn(
+            'product_variants.current_stock',
+            '<=',
+            'product_variants.low_stock_threshold',
+        );
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');

@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->where('categories.status', Category::STATUS_ACTIVE)
             ->where('products.status', Product::STATUS_ACTIVE)
             ->where('product_variants.status', ProductVariant::STATUS_ACTIVE)
-            ->whereColumn('product_variants.current_stock', '<=', 'product_variants.low_stock_threshold')
+            ->lowStock()
             ->select([
                 'product_variants.id', 'product_variants.size', 'product_variants.type_series',
                 'product_variants.thickness', 'product_variants.unit', 'product_variants.quantity_mode',
