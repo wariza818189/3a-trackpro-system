@@ -1,0 +1,428 @@
+# 3A TrackPro Project Documentation
+
+## 1. Project Overview
+
+### 1.1 Project Title
+
+**3A TrackPro: Hardware Store Sales and Inventory Management System**
+
+### 1.2 Team
+
+3A TrackPro is developed by **The Visionaries**.
+
+Team members:
+
+1. Wariza
+2. Layupan
+3. Casipong
+4. Largo
+5. Amores
+
+### 1.3 Problem
+
+A hardware store needs consistent records for products, product variations, stock quantities, inventory transactions, and sales. When these records are separated or handled without clear controls, it becomes difficult to determine the available stock, trace why a quantity changed, review past sales, and identify items that need replenishment.
+
+3A TrackPro addresses this need through one controlled system for catalog records, inventory initialization, stock additions and corrections, cash sales, receipts, sales history, operational summaries, and purchasing support.
+
+### 1.4 Target Users
+
+The system has two verified user roles:
+
+- **Admin** — manages the catalog and controlled inventory activities, views management reports, and performs administrative procurement work.
+- **Staff** — performs permitted day-to-day operations such as Point of Sale and Stock In and can view the transaction history allowed to both roles.
+
+These are system-access roles rather than confirmed employee job titles.
+
+### 1.5 Purpose
+
+The purpose of 3A TrackPro is to organize a hardware store's sales and inventory processes in a centralized, authorized, and traceable system. It is intended to improve record consistency, protect inventory integrity, preserve useful transaction history, and provide information that can support routine operational decisions. These statements describe the project's intended contribution; no measured business impact or formal client validation is claimed.
+
+## 2. System Scope
+
+### 2.1 Included and Implemented Scope
+
+The current system includes the following implemented areas:
+
+- username-and-password login, logout, active-account checks, and server-side Admin/Staff authorization;
+- a shared Dashboard with operational summaries, recent completed sales, and low-stock information, plus an Admin-only seven-day sales trend;
+- category, product, and product-variant management with archive and reactivation controls;
+- Admin-only Opening Inventory, recorded as an explicit initial stock transaction;
+- Stock In for Admin and Staff, including multi-item receipts and historical received costs;
+- Admin-only Stock Correction with a required reason and an inventory movement record;
+- a cash-only Point of Sale with server-calculated prices, totals, payment sufficiency, change, and stock deductions;
+- one global cash-register session that can be opened and closed within the approved single-register scope;
+- Sales History and a printable receipt/reprint page based on historical sale data;
+- an Admin-only Sales Summary with date and cashier filters;
+- responsive navigation and layouts for the main authenticated screens;
+- low-stock procurement recommendations that separate uncovered demand from items already covered by an open Purchase Order;
+- Admin-only Purchase Order creation with supplier text, ordered quantities, expected unit costs, and duplicate-submission protection; and
+- Purchase Order listing, filtering, historical detail viewing, and backend logic for safely updating eligible pending orders.
+
+The pending-order update logic does not yet have a web route, form, or user screen.
+
+### 2.2 In-Progress and Planned Scope
+
+The following work is incomplete or planned and must not be treated as available functionality:
+
+- the Purchase Order edit web route, form, and screen;
+- Purchase Order-based receiving and partial delivery;
+- follow-up Purchase Orders for selected unfulfilled quantities;
+- damaged-item recording during receiving;
+- reports for pending Purchase Orders, unfulfilled Purchase Order lines, and damaged items;
+- dedicated product-sales, inventory, low-stock, and restocking report areas that go beyond the current operational screens;
+- Sale Void and its stock-restoration workflow;
+- User Management screens for creating, editing, disabling, viewing, and searching users;
+- audit logging across workflows and an audit-trail viewer/filter interface;
+- a unified inventory movement history screen;
+- remaining edge-case, permission, integration, and final system testing; and
+- final screenshots, documentation review, and presentation preparation.
+
+### 2.3 Explicit Exclusions
+
+The following items are outside the approved project scope. Their absence is a scope decision rather than a defect:
+
+- supplier master-data, accounting, invoice, and payment management;
+- credit sales, discounts, returns/refunds, and tax processing;
+- automatic unit conversion, automatic reorder calculation, and advanced costing or inventory valuation;
+- procurement approval workflows;
+- multiwarehouse and multiregister operation;
+- extended cash reconciliation, shift, shortage/overage, and expense management; and
+- advanced procurement export and damaged-item media features.
+
+### 2.4 Main Screens
+
+The current user-facing screens are:
+
+- Login;
+- Dashboard;
+- Point of Sale, including open/close register controls;
+- Sales History;
+- Receipt and reprint view;
+- Categories list, create, and edit screens;
+- Products list, create, and edit screens;
+- Product Variants list, create, and edit screens;
+- Opening Inventory list and entry form;
+- Stock In history, new receipt, and receipt-detail screens;
+- Stock Corrections list and correction form;
+- Sales Summary Reports;
+- Purchase Orders list;
+- Purchase Order creation; and
+- Purchase Order detail.
+
+### 2.5 Core Features
+
+The core features are controlled access, catalog organization, exact inventory tracking, traceable stock changes, cash sales, preserved transaction history, operational summaries, and early procurement support. Important values such as stock, sale totals, and the responsible user are determined by the system rather than accepted directly from the browser.
+
+### 2.6 Main Business Process
+
+The current operational process can be summarized as:
+
+**Catalog setup → Opening Inventory → Stock In and controlled corrections → Open cash register → Point of Sale → Receipt and Sales History → Dashboard and Sales Summary → Low-stock review → Purchase Order creation and monitoring**
+
+Categories, Products, and Product Variants establish the catalog. Opening Inventory records the first quantity for each Variant. Later stock additions use Stock In, while authorized physical-count corrections create separate evidence. After a register is opened, a successful cash sale records the sale, stock deductions, and inventory movements. Users can review sales and receipts, while Admin users can review summaries, low-stock information, and Purchase Orders.
+
+The procurement process currently stops at order monitoring. Receiving, follow-up ordering, and damaged-item handling remain continuing development work.
+
+### 2.7 Main Data and CRUD Entities
+
+| Entity | Purpose | Current User-Facing Support |
+| --- | --- | --- |
+| Users | Authentication, role, status, and transaction responsibility | **Some operations available** — login/logout and role/status enforcement exist; no User Management screen exists. |
+| Categories | Top level of the product catalog | **Create, view/search, edit, archive, and reactivate**. |
+| Products | Product identities within Categories | **Create, view/search, edit, archive, and reactivate**. |
+| Product Variants | Sellable or stockable units with prices and the primary stock record | **Create, view/search, edit, archive, and reactivate**; stock changes use separate inventory workflows. |
+| Cash Register Sessions | Opening and closing cash context for sales | **Some operations available** — open and close controls exist; there is no separate session-history screen. |
+| Sales | Cash checkout and saved sale/payment details | **Create and view** — history and receipt/reprint are available; editing, deletion, and Sale Void are not. |
+| Sale Items | Saved product, Variant, quantity, and price details for each sale | **Created automatically and view-only**. |
+| Restocks | Stock In receipt headers | **Create, list, and view**; historical receipts cannot be edited or deleted. |
+| Restock Items | Received quantities and historical unit costs | **Created automatically and view-only**. |
+| Stock Movements | Evidence of initial stock, restocking, corrections, and sales deductions | **Created automatically with related transactions**; no unified movement-history screen exists. |
+| Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, and view details**; backend update logic exists, but there is no edit screen. |
+| Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created through Purchase Orders and view-only in the current interface**. |
+| Audit Logs | Intended record of sensitive system activity | **Not yet implemented for normal workflows** — database/model preparation exists, but logging and a viewer are unavailable. |
+
+## 3. Technology & Architecture
+
+### 3.1 Frontend Technologies
+
+| Technology | Version Used | Use in the project |
+| --- | --- | --- |
+| Blade | Included with Laravel 13.30.1 | Server-rendered authenticated pages and reusable view components. |
+| Tailwind CSS | 4.3.3 | Responsive layouts, forms, cards, tables, status indicators, and navigation. |
+| Vanilla JavaScript | No separate framework version | Focused interaction for forms, the POS cart, and other progressive interface behavior. |
+| Vite | Version 8 | Builds and bundles frontend CSS and JavaScript assets. |
+
+### 3.2 Backend Technologies
+
+| Technology | Version Used | Use in the project |
+| --- | --- | --- |
+| PHP | Composer requirement `^8.3`; recorded development runtime 8.4.25 | Main server-side programming language, including exact decimal calculations for stock and money. |
+| Laravel | 13.30.1 locked; project requirement `^13.17` | Routing, session authentication, middleware, validation, authorization, controllers, database access, and server-rendered application structure. |
+
+### 3.3 Database Technologies
+
+| Technology | Version Used | Use in the project |
+| --- | --- | --- |
+| MySQL / InnoDB | MySQL 8.0.46 | Persistent relational application storage, foreign keys, uniqueness rules, transactions, locking, and database constraints. |
+| SQLite | In-memory test database; exact engine version not recorded | Isolated execution of the normal automated application test suite. |
+
+### 3.4 System Architecture
+
+3A TrackPro uses a **traditional server-rendered Laravel MVC architecture with focused service and query layers**. It is not a single-page application.
+
+A typical request follows this simplified flow:
+
+**Browser request → Laravel route and access checks → validation and controller → business service or model → database → Blade page response**
+
+Controllers coordinate requests and responses. Laravel validation classes check important input, while focused services handle complex inventory, sales, register, and procurement changes. Eloquent models represent stored data and relationships, and query objects organize specialized reports or procurement information where useful. Blade produces the page, with small JavaScript enhancements for interaction.
+
+Not every page needs every layer. Simple pages can read through a controller and model, while sensitive changes use additional business-service protection.
+
+### 3.5 Development and Testing Tools
+
+| Tool | Version or Type | Role |
+| --- | --- | --- |
+| Composer | Project dependency tool | PHP dependency and script management. |
+| Node.js and npm | Frontend development tooling | Frontend dependency and build-script management. |
+| PHPUnit | 12.5.34 | Automated feature and unit testing through Laravel's test runner. |
+| Laravel Pint | Code-formatting tool | Consistent PHP code formatting. |
+| Git and GitHub | Versioned repository | Change history, collaboration, and shared project storage. |
+
+### 3.6 Why These Technologies Are Used
+
+- **Laravel** supplies a structured way to implement routes, authentication integration, validation, authorization, database models, and transaction-aware business workflows.
+- **Blade** supports secure, server-rendered pages that fit the authenticated hardware-store workflow.
+- **Tailwind CSS** supports consistent responsive styling for navigation, forms, cards, and data tables.
+- **Vanilla JavaScript** provides focused interactive behavior without requiring a separate frontend application architecture.
+- **MySQL with InnoDB** provides persistent relational storage, transactions, row locking, and integrity constraints for operational data.
+- **SQLite in memory** provides fast, isolated automated application tests.
+- **PHPUnit and Laravel's test runner** verify application behavior and regression safety.
+- **Vite** bundles the frontend assets used by Laravel pages.
+- **Composer and npm** keep backend and frontend dependencies reproducible.
+- **Git and GitHub** preserve project history and support team repository management.
+
+## 4. Development Progress
+
+### 4.1 Timeline and Week-Mapping Note
+
+Development of the system began during the **first week of September 2026**. The week labels below summarize the sequence of project development; official class-week date boundaries were not separately recorded. The current documented development baseline covers work through September 21, 2026.
+
+### 4.2 Week 1–7 Milestones
+
+| Week | Major Milestones | Status/Note |
+| --- | --- | --- |
+| Week 1 | Project foundation; database and model structure; authentication and role enforcement; Category, Product, and Product Variant management; Opening Inventory; Stock In; initial branding. | Implemented. |
+| Week 2 | Stock Correction; cash Point of Sale; receipt and Sales History; responsive navigation; Dashboard and Sales Summary; requirements, product-data, UI/UX, and test-planning documents; early formal functional and edge-testing evidence. | Core application work and the 30-case functional run were completed; edge testing later remained incomplete. |
+| Week 3 | Teacher-requested scope expansion; revised requirements and database design; cash-register schema, lifecycle, POS integration, and database-specific verification; project tracker; Purchase Order foundation, low-stock recommendations, creation service, and creation interface. | Register work was implemented and verified; procurement work began and remained in progress. |
+| Week 4 | Purchase Order list, filters, detail view, and backend pending-order update logic. | Browsing is available; the pending-order edit web route, form, and screen are not yet implemented. |
+| Week 5 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
+| Week 6 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
+| Week 7 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
+
+### 4.3 Current Progress Summary
+
+The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement development has reached low-stock recommendations, Purchase Order creation and browsing, and backend pending-order update logic.
+
+The project remains in active development. Procurement, Sale Void, User Management, Audit Trail, remaining reports, post-expansion testing, and final materials are not yet complete.
+
+## 5. Technical Decisions & Issues
+
+### 5.1 Major Technical Decisions
+
+| Decision | Teacher-Friendly Explanation |
+| --- | --- |
+| Product Variant is the primary stock record. | Stock belongs to the exact sellable form—such as a size, type, thickness, or unit—instead of being stored only at the general Product level. |
+| Inventory and money use exact calculations. | Quantities and currency avoid binary floating-point rounding. Whole and fractional modes enforce the precision allowed for each Variant. |
+| Opening Inventory and later stock changes remain distinguishable. | A Variant is initialized once through an `INITIAL_STOCK` record, including when its opening count is zero. Later restocking, corrections, and sales deductions create their own Stock Movement evidence. |
+| Sensitive changes protect against conflicting updates. | Related records are changed as one database transaction, and the latest stored data is rechecked before saving where simultaneous activity is possible. |
+| Duplicate submissions are handled safely. | Durable submission identifiers prevent repeated checkout, Stock In, and Purchase Order requests from creating duplicate business transactions. |
+| Catalog records are archived instead of destructively deleted. | Historical transaction relationships are preserved while inactive records are removed from normal use. |
+| Historical transaction details do not change with the catalog. | Receipts and transaction history retain the names, units, prices, quantities, and responsible users that applied when the transaction occurred. |
+| POS calculations are performed by the backend. | Stock, prices, totals, cash sufficiency, change, and transaction ownership are verified by the system rather than trusted from the browser. |
+| Low-stock recommendations do not invent order quantities. | The system identifies eligible low-stock Variants and existing open coverage, while the Admin remains responsible for the purchase quantity. |
+
+### 5.2 Problems, Solutions, and Remaining Issues
+
+| Problem or Issue | Decision or Solution | Current Status |
+| --- | --- | --- |
+| The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | Planning was updated; expanded procurement work remains incomplete. |
+| The edge and permission testing run no longer covered the expanded final scope. | Completed results were preserved, and the run was paused instead of executing an outdated case set against changing architecture. | Paused and awaiting a refreshed test baseline. |
+| Simultaneous requests could conflict or rely on older inventory/register data. | The system rechecks the latest stored data and uses database transaction protection before saving. The single-register rule also has database-level protection and isolated MySQL-specific tests. | Applied to register and inventory services; Purchase Order updates still need final simultaneous-update verification. |
+| Current catalog values can change after a sale. | Sale and Sale Item snapshots preserve the historical receipt values instead of substituting current catalog data. | Implemented for Sales History and receipt/reprint. |
+
+### 5.3 Instructor and Team Interventions
+
+During the System Check and teacher consultation, the team received the following additional requirements:
+
+- POS should record a starting cash or opening-register amount;
+- Purchase Order creation should prioritize low-stock items;
+- delivered or received items should be processed from an existing Purchase Order;
+- remaining unfulfilled quantities should continue through a follow-up Purchase Order;
+- Reports should include Pending Purchase Orders;
+- Reports should include Unfulfilled Items; and
+- damaged items should be recorded and included in reporting.
+
+The team responded by reviewing the requirements, revising the database design and workflow, changing implementation priorities, and adjusting the testing plan for the expanded register and procurement scope. The added work was divided into manageable stages so existing catalog, inventory, and sales functions could be preserved while the new requirements were introduced. No formal client validation or sign-off is recorded in the current project documentation.
+
+## 6. Testing & System Evaluation
+
+### 6.1 Testing Approach
+
+This section records the testing approach for the **September 17–18, 2026 WST 1 System Testing Approach activity**. It describes what was ready and how the team intended to evaluate it at that historical point; it is not a statement that all later tests or features were already complete.
+
+At that time, the stable core included authentication and roles, Dashboard, catalog management, Opening Inventory, Stock In, Stock Correction, POS checkout, Sales History, receipt/reprint, Sales Summary, and the responsive interface. Opening and closing the cash register were under active implementation and focused verification during the activity window. Procurement and Purchase Order functionality began later and was not ready for testing on September 17–18.
+
+#### 6.1.1 Features Ready for Testing
+
+- login, logout, active-account handling, and Admin/Staff authorization;
+- Dashboard summaries and role-sensitive content;
+- Categories, Products, and Product Variants;
+- Opening Inventory;
+- Stock In and historical Stock In details;
+- Stock Correction;
+- cash POS checkout;
+- Sales History and receipt/reprint;
+- Sales Summary filtering and calculations; and
+- responsive navigation and the main desktop/mobile layouts.
+
+The register-opening and closing workflow was treated as active implementation/focused verification, not as a fully closed feature at the beginning of the activity. Purchase Orders, procurement receiving, follow-up ordering, and damage handling were not part of the ready-for-testing list.
+
+#### 6.1.2 Functional Testing
+
+**Purpose/Objectives:** Confirm that implemented workflows perform their intended tasks for authorized users and produce the expected visible result.
+
+**Areas Covered:** Authentication, Dashboard, catalog maintenance, Opening Inventory, Stock In, Stock Correction, POS, receipt/history, and Sales Summary.
+
+**Types of Checks:** Successful login and logout; permitted catalog creation and maintenance; first inventory entry; later restocking; authorized stock correction; a valid cash sale; correct receipt and history access; and expected Dashboard, filter, and summary behavior. Detailed case steps remain in the separate test-case document.
+
+#### 6.1.3 Input and Validation Testing
+
+**Purpose/Objectives:** Confirm that invalid, incomplete, duplicate, unauthorized, or unsafe input is rejected without corrupting inventory or transaction history.
+
+**Areas Covered:** Authentication forms, catalog forms, quantity and price fields, inventory transactions, POS cash and stock rules, search/filter fields, and role-restricted actions.
+
+**Types of Checks:** Required fields; missing, invalid, or oversized text; duplicate names; zero, negative, excessive, or over-precision quantities; whole-versus-fractional rules; insufficient stock; insufficient cash; invalid filter values; stale form values; duplicate submissions; and guest, disabled-user, Staff, and Admin access boundaries.
+
+#### 6.1.4 Interface and Responsive Testing
+
+**Purpose/Objectives:** Confirm that important tasks remain understandable and usable across the recorded desktop and mobile viewport sizes.
+
+**Areas Covered:** Responsive navigation, Dashboard cards, catalog and inventory forms, tables, POS item selection and cart, reports, validation/confirmation feedback, and receipt print view.
+
+**Types of Checks:** Visible headings and labels; usable navigation; readable cards and tables; horizontal table containment where required; form and feedback visibility; stacked mobile layouts; desktop layout use; POS cart interaction; and receipt readability in Firefox Print Preview. Recorded viewport evidence includes **1366×768**, **414×846**, **1023×720**, and **1024×720**. These sizes do not represent every possible device.
+
+#### 6.1.5 Data and Database Testing
+
+**Purpose/Objectives:** Confirm that stored relationships, inventory balances, transaction history, and failure behavior remain consistent.
+
+**Areas Covered:** Catalog relationships, Product Variant stock, Stock Movements, Stock In, corrections, sales and items, saved historical details, uniqueness rules, and transaction safety.
+
+**Types of Checks:** Valid relationships between stored records; nonnegative stock; correct before/change/after movement values; exactly one appropriate movement per successful stock change; canceling the whole operation when one part fails; saved receipt/history details that do not change; uniqueness rules; safe duplicate-submission handling; and simultaneous-operation checks where applicable.
+
+#### 6.1.6 Testers, Environment, and Input Categories
+
+**Testers:** Testing was performed by all members of The Visionaries: Wariza, Layupan, Casipong, Largo, and Amores. Casipong was the tracker-assigned member for the major testing tasks, while the team participated in functional, validation, interface/responsive, and data/database checking as the system was developed.
+
+**Test environments:**
+
+- normal automated application testing with Laravel/PHPUnit and isolated SQLite `:memory:`;
+- isolated MySQL 8.0.46/InnoDB testing for database-specific behavior;
+- manual functional review of the local Laravel application in an authenticated browser using controlled synthetic data;
+- responsive review using the recorded desktop and mobile viewport sizes; and
+- receipt-print review using Firefox Print Preview where supported.
+
+**Test input categories:** Valid normal inputs; missing, invalid, or oversized text; duplicate values; zero, negative, excessive, whole, and fractional quantities; stale and current values; sufficient and insufficient cash; available and insufficient stock; guest, Admin, Staff, and disabled-user access; valid and invalid filters; repeated submissions; and active and archived records.
+
+### 6.2 Test Coverage and Detailed Test Cases
+
+The separate [Detailed Test Cases](./test-cases.md) document contains a **79-case pre-expansion baseline**:
+
+| Category | Cases |
+| --- | ---: |
+| Functional Testing | 30 |
+| Edge Case & Permission Testing | 37 |
+| Isolated MySQL Verification | 8 |
+| Review Only | 4 |
+| **Total** | **79** |
+
+The detailed test-case catalog was first prepared on **September 9, 2026** as an early testing baseline. For the September 17–18 WST 1 activity, the team documented the four-part testing approach and identified the modules then ready for testing. Later register and procurement changes require the detailed catalog to be updated. The 79 cases are supporting planning evidence and were not all executed.
+
+### 6.3 Test Execution and Results
+
+| Date / Run | Scope | Recorded Result | Notes |
+| --- | --- | --- | --- |
+| September 8, 2026 | Historical automated application test suite using isolated SQLite in memory | 191 tests / 2,023 assertions passing | A historical regression baseline for the core application at that date; not evidence for later register or procurement features. |
+| Completed September 11, 2026 — `FT15-20260909-A` | Formal functional testing | 30 Pass / 0 Fail / 0 Blocked | All 30 cases in that functional run were finalized as passing. |
+| Began September 12, 2026 — `FT17-20260912-A` | Edge-case and permission testing | 8 Pass / 1 Fail / 0 Blocked / 28 Remaining | **Paused and incomplete.** The completed evidence is preserved, while the changed project scope requires a revised test baseline before remaining work continues. |
+
+The single FT17 failure remains recorded and is provisionally identified as a test-procedure issue; its controlled retest was deferred. It must not be changed into a passing result without completing and documenting the retest.
+
+Focused feature and isolated MySQL-specific tests cover the cash-register implementation, including simultaneous-operation behavior. The committed results document does not provide one consolidated register run count, so none is claimed here.
+
+Automated test source also exists for newer Purchase Order foundations, recommendations, creation, browsing, and pending-update behavior. A consolidated post-expansion results record is not yet available. These later tests therefore do not change the historical September 17–18 approach or make the unfinished procurement workflow complete.
+
+### 6.4 Current System Evaluation and Remaining Issues
+
+**Implemented core with existing test evidence:** Authentication and authorization, catalog management, Opening Inventory, Stock In, Stock Correction, cash POS, register open/close behavior, Sales History, receipt/reprint, Dashboard, Sales Summary, and responsive navigation have implementation and test evidence. Saved transaction details, system-calculated values, and inventory movement recording are built into these workflows.
+
+**Implemented but needing additional testing:** The register feature has focused application and MySQL-specific evidence but no consolidated result summary. New procurement work has automated test source, but the expanded formal case catalog and consolidated execution record have not yet been completed. Purchase Order updates also need final verification of simultaneous-update behavior.
+
+**Current Purchase Order state:**
+
+- Schema/models, low-stock recommendations, creation, list/filter, historical detail, and backend pending-order update logic are implemented.
+- The Purchase Order edit web route, form, and screen are not implemented, and pending-order updates still need final simultaneous-update verification.
+- Receiving and partial delivery, follow-up orders, damaged-item handling, and the related procurement reports are not implemented.
+
+**Other incomplete areas and limitations:** Sale Void, User Management, Audit Log writing/viewing, unified inventory movement history, several dedicated reports, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+
+The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
+
+## 7. Reflection & Conclusion
+
+### 7.1 Team Reflection
+
+We learned that proper code structure and organization are important when building a web system with Laravel. The MVC pattern helped us separate responsibilities and made the application easier to maintain and debug. We also learned that it is not enough to make individual pieces of code work; the team needs to understand the complete flow from user input to validation, database changes, and the page shown to the user.
+
+We learned that database accuracy is especially important in an inventory system because a small mistake can affect stock counts, reports, and later transactions. Proper validation and protected inventory transactions help prevent duplicate, missing, or incorrect records. Functional and hands-on system testing also revealed validation and inventory-update cases that were not obvious during normal development, helping us improve both reliability and usability.
+
+Git helped us track changes and preserve earlier work, while task assignments made responsibilities clearer. Regular communication reduced duplicated work and helped the team avoid conflicts. When the teacher expanded the register and procurement scope, we reviewed the requirements again, identified the database and workflow changes, and adjusted our implementation priorities and testing plan without discarding the existing catalog, inventory, and sales functions.
+
+If we started the project again, we would complete more of the requirements and system design before coding, begin testing earlier, plan tasks more clearly, and finalize the database structure sooner. These changes would reduce large revisions later and give the team more time for integration and final testing.
+
+### 7.2 Conclusion
+
+3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, and early Purchase Order functionality. Building these connected areas helped our team understand how validation, database relationships, stock movements, and saved transaction details work together in a web-based inventory system.
+
+The project is still being developed. Procurement receiving, follow-up ordering, damage handling, some reports and management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
+
+## 8. Appendices / Links
+
+### 8.1 Project Tracker
+
+- [Project Tracker](./project-tracker.md) — primary current task and progress record.
+
+### 8.2 Repository
+
+- [3A TrackPro GitHub Repository](https://github.com/wariza818189/3a-trackpro-system)
+
+### 8.3 Deployed System
+
+The system has not yet been publicly deployed.
+
+### 8.4 Selected Screenshots
+
+Selected screenshots will be added before final submission. Recommended screens include the Dashboard, Product Variants, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, and Purchase Order list/detail.
+
+### 8.5 Requirements and Database Design
+
+- [Project Requirements](./requirements.md)
+- [Database Design](./database-design.md)
+
+### 8.6 Testing Evidence
+
+- [Detailed Test Cases](./test-cases.md)
+- [Functional Test Results](./functional-test-results.md)
+
+### 8.7 User Guide
+
+- [System User Guide](./system-user-guide.md)
