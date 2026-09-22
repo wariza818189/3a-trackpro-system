@@ -541,7 +541,7 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
         }
     }
 
-    public function test_purchase_order_routes_have_the_exact_read_and_create_boundary(): void
+    public function test_purchase_order_routes_have_the_exact_read_create_and_edit_boundary(): void
     {
         $guestPayload = [
             'submission_token' => Str::uuid()->toString(),
@@ -565,6 +565,8 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             'purchase-orders.create' => ['GET', 'HEAD'],
             'purchase-orders.store' => ['POST'],
             'purchase-orders.show' => ['GET', 'HEAD'],
+            'purchase-orders.edit' => ['GET', 'HEAD'],
+            'purchase-orders.update' => ['PATCH'],
         ];
         foreach ($routes as $name => $methods) {
             $route = Route::getRoutes()->getByName($name);
@@ -576,9 +578,7 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             $this->assertContains('active', $middleware);
             $this->assertContains('can:access-admin', $middleware);
         }
-        foreach (['purchase-orders.edit', 'purchase-orders.update', 'purchase-orders.destroy'] as $name) {
-            $this->assertNull(Route::getRoutes()->getByName($name));
-        }
+        $this->assertNull(Route::getRoutes()->getByName('purchase-orders.destroy'));
     }
 
     public function test_create_page_groups_eligible_catalog_and_excludes_ineligible_variants(): void

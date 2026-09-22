@@ -70,7 +70,14 @@
                                 <td class="px-5 py-4">{{ $purchaseOrder->createdBy->name }}</td>
                                 <td class="px-5 py-4 whitespace-nowrap">{{ $purchaseOrder->created_at?->format('M j, Y g:i A') ?? '—' }}</td>
                                 <td class="px-5 py-4"><span data-po-line-count>{{ $purchaseOrder->items_count }}</span></td>
-                                <td class="px-5 py-4 text-right"><a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="font-semibold text-amber-700 hover:text-amber-800" data-po-view>View</a></td>
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex justify-end gap-3">
+                                        <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="font-semibold text-amber-700 hover:text-amber-800" data-po-view>View</a>
+                                        @if ($purchaseOrder->isEditable())
+                                            <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="font-semibold text-slate-700 hover:text-slate-900" data-po-edit>Edit</a>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -92,7 +99,12 @@
                             <div><dt class="text-slate-500">Lines</dt><dd class="font-medium" data-po-line-count>{{ $purchaseOrder->items_count }}</dd></div>
                             <div class="col-span-2"><dt class="text-slate-500">Created</dt><dd class="font-medium">{{ $purchaseOrder->created_at?->format('M j, Y g:i A') ?? '—' }}</dd></div>
                         </dl>
-                        <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="mt-4 inline-flex min-h-11 items-center font-semibold text-amber-700" data-po-view>View Purchase Order</a>
+                        <div class="mt-4 flex gap-4">
+                            <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-amber-700" data-po-view>View Purchase Order</a>
+                            @if ($purchaseOrder->isEditable())
+                                <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-slate-700" data-po-edit>Edit</a>
+                            @endif
+                        </div>
                     </article>
                 @endforeach
             </div>

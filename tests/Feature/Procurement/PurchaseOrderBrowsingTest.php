@@ -6,6 +6,7 @@ use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
@@ -50,9 +51,9 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertSee(route('purchase-orders.create'), false)
             ->assertSee(route('purchase-orders.show', $newest), false)
             ->assertSee('data-po-line-count>1<', false)
+            ->assertSee('data-po-edit', false)
             ->assertDontSee($newest->submission_token)
             ->assertDontSee('data-po-delete', false)
-            ->assertDontSee('data-po-edit', false)
             ->assertDontSee('Receive items');
         $this->assertSame(1, $newest->items()->count());
         $this->assertGreaterThan($tieHigh->id, $newest->id);
@@ -180,12 +181,13 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertSee('Saved Thickness')
             ->assertSee('12.375 kg')
             ->assertSee('₱45.60')
+            ->assertSee('Edit Purchase Order')
+            ->assertSee(route('purchase-orders.edit', $purchaseOrder), false)
             ->assertDontSee('Renamed Current Product')
             ->assertDontSee('Renamed Current Size')
             ->assertDontSee('Renamed Current Series')
             ->assertDontSee('Renamed Current Thickness')
             ->assertDontSee($purchaseOrder->submission_token)
-            ->assertDontSee('Edit Purchase Order')
             ->assertDontSee('Receive items');
     }
 
@@ -207,6 +209,55 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertSee(route('purchase-orders.show', $parent), false)
             ->assertDontSee('Edit Purchase Order')
             ->assertDontSee('Receive items');
+    }
+
+    public function test_pending_orders_offer_edit_actions_but_nonpending_orders_are_view_only(): void
+    {
+        $pending = $this->purchaseOrder('Pending Editable Supplier');
+        $completed = $this->purchaseOrder('Completed Read Only Supplier', PurchaseOrder::STATUS_COMPLETED);
+
+        $index = $this->actingAs($this->admin)->get(route('purchase-orders.index'));
+        $index->assertOk()
+            ->assertSee(route('purchase-orders.edit', $pending), false)
+            ->assertDontSee(route('purchase-orders.edit', $completed), false);
+
+        $this->get(route('purchase-orders.show', $pending))
+            ->assertOk()
+            ->assertSee('Edit Purchase Order')
+            ->assertSee(route('purchase-orders.edit', $pending), false);
+        $this->get(route('purchase-orders.show', $completed))
+            ->assertOk()
+            ->assertDontSee('Edit Purchase Order')
+            ->assertDontSee(route('purchase-orders.edit', $completed), false);
+    }
+
+    public function test_purchase_order_route_inventory_has_exactly_six_named_routes_and_no_mutation_extras(): void
+    {
+        $expected = [
+            'purchase-orders.index' => ['GET', 'HEAD'],
+            'purchase-orders.create' => ['GET', 'HEAD'],
+            'purchase-orders.store' => ['POST'],
+            'purchase-orders.show' => ['GET', 'HEAD'],
+            'purchase-orders.edit' => ['GET', 'HEAD'],
+            'purchase-orders.update' => ['PATCH'],
+        ];
+
+        foreach ($expected as $name => $methods) {
+            $route = Route::getRoutes()->getByName($name);
+            $this->assertNotNull($route);
+            $this->assertSame($methods, $route->methods());
+        }
+
+        foreach (['purchase-orders.destroy', 'purchase-orders.delete', 'purchase-orders.cancel', 'purchase-orders.receive'] as $name) {
+            $this->assertNull(Route::getRoutes()->getByName($name));
+        }
+
+        $this->assertCount(
+            6,
+            collect(Route::getRoutes()->getRoutes())->filter(
+                fn ($route): bool => str_starts_with((string) $route->getName(), 'purchase-orders.'),
+            ),
+        );
     }
 
     private function purchaseOrder(

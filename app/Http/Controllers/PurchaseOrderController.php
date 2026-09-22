@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePurchaseOrderRequest;
+use App\Http\Requests\UpdatePurchaseOrderRequest;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Queries\Procurement\LowStockPurchaseOrderRecommendations;
 use App\Queries\Procurement\ProcurementVariantCatalogQuery;
 use App\Services\Procurement\CreatePurchaseOrder;
+use App\Services\Procurement\UpdatePurchaseOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -61,36 +64,18 @@ class PurchaseOrderController extends Controller
             ? strtolower($oldToken)
             : Str::uuid()->toString();
 
-        $priorities = $recommendations->all()->get();
-        $uncovered = $priorities->where('coverage_state', 'uncovered')->values();
-        $covered = $priorities->where('coverage_state', 'covered')->values();
-        $priorityIds = $priorities->modelKeys();
-
-        $otherVariants = $catalog->query()
-            ->select([
-                'product_variants.id', 'product_variants.product_id', 'product_variants.size',
-                'product_variants.type_series', 'product_variants.thickness', 'product_variants.unit',
-                'product_variants.quantity_mode', 'product_variants.current_stock',
-                'product_variants.low_stock_threshold',
-            ])
-            ->with(['product:id,category_id,name', 'product.category:id,name'])
-            ->when($priorityIds !== [], fn ($query) => $query->whereNotIn('product_variants.id', $priorityIds))
-            ->orderBy('product_variants.product_id')
-            ->orderBy('product_variants.size')
-            ->orderBy('product_variants.type_series')
-            ->orderBy('product_variants.thickness')
-            ->orderBy('product_variants.unit')
-            ->orderBy('product_variants.id')
-            ->get();
-
-        $eligible = $priorities->concat($otherVariants)->keyBy('id');
+        [$uncovered, $covered, $otherVariants, $eligible] = $this->selectionData($recommendations, $catalog);
         [$oldDraftRows, $removedOldSelectionCount] = $this->oldDraftRows(
             $request->session()->getOldInput('items'),
             $eligible,
         );
+        $supplierName = $request->session()->getOldInput('supplier_name', '');
+        $notesValue = $request->session()->getOldInput('notes', '');
 
         return view('purchase-orders.create', compact(
             'submissionToken',
+            'supplierName',
+            'notesValue',
             'uncovered',
             'covered',
             'otherVariants',
@@ -134,6 +119,119 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
+    public function edit(
+        Request $request,
+        PurchaseOrder $purchaseOrder,
+        UpdatePurchaseOrder $updatePurchaseOrder,
+        LowStockPurchaseOrderRecommendations $recommendations,
+        ProcurementVariantCatalogQuery $catalog,
+    ): View {
+        $purchaseOrder->refresh();
+        abort_unless($purchaseOrder->isEditable(), 409, 'This Purchase Order is read-only.');
+
+        $hasOldInput = $request->session()->hasOldInput();
+        $expectedRevision = $hasOldInput
+            ? $request->session()->getOldInput('expected_revision')
+            : $updatePurchaseOrder->revision($purchaseOrder);
+
+        $purchaseOrder->refresh();
+        $purchaseOrder->load([
+            'items' => fn ($query) => $query
+                ->orderBy('product_variant_id')
+                ->orderBy('id'),
+        ]);
+        abort_unless($purchaseOrder->isEditable(), 409, 'This Purchase Order is read-only.');
+
+        [$uncovered, $covered, $otherVariants, $eligible] = $this->selectionData($recommendations, $catalog);
+        $persistedItems = $purchaseOrder->items->keyBy(
+            fn (PurchaseOrderItem $item): int => (int) $item->product_variant_id,
+        );
+        $persistedVariants = ProductVariant::query()
+            ->whereKey($persistedItems->keys()->all())
+            ->get(['id', 'quantity_mode'])
+            ->keyBy('id');
+        $retainedPickerRows = $purchaseOrder->items->mapWithKeys(function (PurchaseOrderItem $item) use ($persistedVariants, $eligible): array {
+            $variantId = (int) $item->product_variant_id;
+
+            return [$variantId => $this->historicalDraftRow(
+                $item,
+                $persistedVariants->get($variantId),
+                $eligible->has($variantId),
+            )];
+        });
+
+        if ($hasOldInput) {
+            [$draftRows, $removedOldSelectionCount] = $this->oldEditDraftRows(
+                $request->session()->getOldInput('items'),
+                $persistedItems,
+                $persistedVariants,
+                $eligible,
+            );
+            $supplierName = $request->session()->getOldInput('supplier_name', '');
+            $notesValue = $request->session()->getOldInput('notes');
+        } else {
+            $draftRows = $purchaseOrder->items->map(fn (PurchaseOrderItem $item): array => $this->historicalDraftRow(
+                $item,
+                $persistedVariants->get((int) $item->product_variant_id),
+                $eligible->has((int) $item->product_variant_id),
+            ));
+            $removedOldSelectionCount = 0;
+            $supplierName = $purchaseOrder->supplier_name;
+            $notesValue = $purchaseOrder->notes;
+        }
+
+        return view('purchase-orders.edit', compact(
+            'purchaseOrder',
+            'expectedRevision',
+            'supplierName',
+            'notesValue',
+            'uncovered',
+            'covered',
+            'otherVariants',
+            'retainedPickerRows',
+            'draftRows',
+            'removedOldSelectionCount',
+        ));
+    }
+
+    public function update(
+        UpdatePurchaseOrderRequest $request,
+        PurchaseOrder $purchaseOrder,
+        UpdatePurchaseOrder $updatePurchaseOrder,
+    ): RedirectResponse {
+        try {
+            $updated = $updatePurchaseOrder->execute(
+                $request->user(),
+                $purchaseOrder,
+                $request->validated('expected_revision'),
+                $request->validated('supplier_name'),
+                $request->validated('notes'),
+                $request->validated('items'),
+            );
+        } catch (ValidationException $exception) {
+            $errors = $exception->errors();
+            if (array_key_exists('expected_revision', $errors)) {
+                return redirect()->route('purchase-orders.edit', $purchaseOrder)
+                    ->withErrors([
+                        'expected_revision' => 'This Purchase Order changed while you were editing it. Review the latest values and try again.',
+                    ]);
+            }
+
+            if (array_key_exists('purchase_order', $errors)) {
+                $current = PurchaseOrder::query()->find($purchaseOrder->getKey());
+                if ($current !== null && ! $current->isEditable()) {
+                    return redirect()->route('purchase-orders.show', $current)
+                        ->withErrors(['purchase_order' => 'This Purchase Order is now read-only and was not updated.']);
+                }
+            }
+
+            throw $exception;
+        }
+
+        return redirect()->route('purchase-orders.show', $updated)
+            ->with('success', 'Purchase Order updated successfully.');
+    }
+
     public function show(PurchaseOrder $purchaseOrder): View
     {
         $purchaseOrder->load([
@@ -149,7 +247,17 @@ class PurchaseOrderController extends Controller
 
     /**
      * @param  Collection<int, ProductVariant>  $eligible
-     * @return array{Collection<int, array{variant: ProductVariant, ordered_quantity: string, expected_unit_cost: string}>, int}
+     * @return array{Collection<int, array{
+     *     product_variant_id: int,
+     *     product_name: string,
+     *     identity: string,
+     *     unit: string,
+     *     quantity_mode: string,
+     *     ordered_quantity: string,
+     *     expected_unit_cost: string,
+     *     historical: bool,
+     *     currently_available_for_new_ordering: bool
+     * }>, int}
      */
     private function oldDraftRows(mixed $oldItems, Collection $eligible): array
     {
@@ -174,13 +282,154 @@ class PurchaseOrderController extends Controller
                 continue;
             }
 
-            $rows->push([
-                'variant' => $variant,
-                'ordered_quantity' => is_string($item['ordered_quantity'] ?? null) ? $item['ordered_quantity'] : '',
-                'expected_unit_cost' => is_string($item['expected_unit_cost'] ?? null) ? $item['expected_unit_cost'] : '',
-            ]);
+            $rows->push($this->variantDraftRow(
+                $variant,
+                is_string($item['ordered_quantity'] ?? null) ? $item['ordered_quantity'] : '',
+                is_string($item['expected_unit_cost'] ?? null) ? $item['expected_unit_cost'] : '',
+            ));
         }
 
         return [$rows, $removed];
+    }
+
+    /**
+     * @return array{Collection<int, ProductVariant>, Collection<int, ProductVariant>, Collection<int, ProductVariant>, Collection<int, ProductVariant>}
+     */
+    private function selectionData(
+        LowStockPurchaseOrderRecommendations $recommendations,
+        ProcurementVariantCatalogQuery $catalog,
+    ): array {
+        $priorities = $recommendations->all()->get();
+        $uncovered = $priorities->where('coverage_state', 'uncovered')->values();
+        $covered = $priorities->where('coverage_state', 'covered')->values();
+        $priorityIds = $priorities->modelKeys();
+
+        $otherVariants = $catalog->query()
+            ->select([
+                'product_variants.id', 'product_variants.product_id', 'product_variants.size',
+                'product_variants.type_series', 'product_variants.thickness', 'product_variants.unit',
+                'product_variants.quantity_mode', 'product_variants.current_stock',
+                'product_variants.low_stock_threshold',
+            ])
+            ->with(['product:id,category_id,name', 'product.category:id,name'])
+            ->when($priorityIds !== [], fn ($query) => $query->whereNotIn('product_variants.id', $priorityIds))
+            ->orderBy('product_variants.product_id')
+            ->orderBy('product_variants.size')
+            ->orderBy('product_variants.type_series')
+            ->orderBy('product_variants.thickness')
+            ->orderBy('product_variants.unit')
+            ->orderBy('product_variants.id')
+            ->get();
+
+        return [
+            $uncovered,
+            $covered,
+            $otherVariants,
+            $priorities->concat($otherVariants)->keyBy('id'),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, PurchaseOrderItem>  $persistedItems
+     * @param  Collection<int, ProductVariant>  $persistedVariants
+     * @param  Collection<int, ProductVariant>  $eligible
+     * @return array{Collection<int, array<string, mixed>>, int}
+     */
+    private function oldEditDraftRows(
+        mixed $oldItems,
+        Collection $persistedItems,
+        Collection $persistedVariants,
+        Collection $eligible,
+    ): array {
+        if (! is_array($oldItems)) {
+            return [collect(), 0];
+        }
+
+        $rows = collect();
+        $removed = 0;
+        foreach (array_values($oldItems) as $item) {
+            if (! is_array($item)) {
+                $removed++;
+
+                continue;
+            }
+
+            $id = filter_var($item['product_variant_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id === false) {
+                $removed++;
+
+                continue;
+            }
+
+            $quantity = is_string($item['ordered_quantity'] ?? null) ? $item['ordered_quantity'] : '';
+            $cost = is_string($item['expected_unit_cost'] ?? null) ? $item['expected_unit_cost'] : '';
+            $persistedItem = $persistedItems->get((int) $id);
+            if ($persistedItem instanceof PurchaseOrderItem) {
+                $rows->push($this->historicalDraftRow(
+                    $persistedItem,
+                    $persistedVariants->get((int) $id),
+                    $eligible->has((int) $id),
+                    $quantity,
+                    $cost,
+                ));
+
+                continue;
+            }
+
+            $variant = $eligible->get((int) $id);
+            if ($variant instanceof ProductVariant) {
+                $rows->push($this->variantDraftRow($variant, $quantity, $cost));
+
+                continue;
+            }
+
+            $removed++;
+        }
+
+        return [$rows, $removed];
+    }
+
+    /** @return array<string, mixed> */
+    private function variantDraftRow(ProductVariant $variant, string $quantity, string $cost): array
+    {
+        return [
+            'product_variant_id' => (int) $variant->getKey(),
+            'product_name' => $variant->product->name,
+            'identity' => $this->identity($variant->size, $variant->type_series, $variant->thickness),
+            'unit' => $variant->unit,
+            'quantity_mode' => $variant->quantity_mode,
+            'ordered_quantity' => $quantity,
+            'expected_unit_cost' => $cost,
+            'historical' => false,
+            'currently_available_for_new_ordering' => true,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function historicalDraftRow(
+        PurchaseOrderItem $item,
+        ?ProductVariant $variant,
+        bool $currentlyAvailable,
+        ?string $quantity = null,
+        ?string $cost = null,
+    ): array {
+        return [
+            'product_variant_id' => (int) $item->product_variant_id,
+            'product_name' => $item->product_name_snapshot,
+            'identity' => $this->identity($item->size_snapshot, $item->type_series_snapshot, $item->thickness_snapshot),
+            'unit' => $item->unit_snapshot,
+            'quantity_mode' => $variant?->quantity_mode ?? 'fractional',
+            'ordered_quantity' => $quantity ?? (string) $item->ordered_quantity,
+            'expected_unit_cost' => $cost ?? (string) $item->expected_unit_cost,
+            'historical' => true,
+            'currently_available_for_new_ordering' => $currentlyAvailable,
+        ];
+    }
+
+    private function identity(?string $size, ?string $typeSeries, ?string $thickness): string
+    {
+        return collect([$size, $typeSeries, $thickness])
+            ->filter(fn ($value): bool => is_string($value) && $value !== '')
+            ->join(' · ') ?: 'Standard';
     }
 }

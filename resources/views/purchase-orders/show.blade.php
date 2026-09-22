@@ -26,7 +26,12 @@
             <h1 class="mt-2 text-3xl font-bold">Purchase Order #{{ $purchaseOrder->id }}</h1>
             <p class="mt-2 text-slate-600">Historical supplier and item snapshots saved with this order.</p>
         </div>
-        <span class="w-fit rounded-full bg-slate-200 px-4 py-2 text-sm font-bold capitalize text-slate-800">{{ str_replace('_', ' ', $purchaseOrder->status) }}</span>
+        <div class="flex items-center gap-3">
+            @if ($purchaseOrder->isEditable())
+                <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-edit>Edit Purchase Order</a>
+            @endif
+            <span class="w-fit rounded-full bg-slate-200 px-4 py-2 text-sm font-bold capitalize text-slate-800">{{ str_replace('_', ' ', $purchaseOrder->status) }}</span>
+        </div>
     </div>
 
     <dl class="mt-6 grid gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-3 sm:p-6">

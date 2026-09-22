@@ -243,7 +243,7 @@ document.querySelectorAll('[data-pos]').forEach((pos) => {
     update();
 });
 
-document.querySelectorAll('[data-purchase-order-create]').forEach((page) => {
+document.querySelectorAll('[data-purchase-order-form]').forEach((page) => {
     const form = page.querySelector('[data-po-form]');
     const draft = page.querySelector('[data-po-draft]');
     const template = page.querySelector('[data-po-draft-template]');
