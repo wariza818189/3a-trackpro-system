@@ -56,15 +56,12 @@ The current system includes the following implemented areas:
 - responsive navigation and layouts for the main authenticated screens;
 - low-stock procurement recommendations that separate uncovered demand from items already covered by an open Purchase Order;
 - Admin-only Purchase Order creation with supplier text, ordered quantities, expected unit costs, and duplicate-submission protection; and
-- Purchase Order listing, filtering, historical detail viewing, and backend logic for safely updating eligible pending orders.
-
-The pending-order update logic does not yet have a web route, form, or user screen.
+- Purchase Order listing, filtering, historical detail viewing, and Admin-only editing of pending orders before receiving activity begins. The edit workflow supports supplier and notes changes, line quantity and expected-cost changes, line removal, eligible new lines, retained historical lines, and protection against saving an outdated draft.
 
 ### 2.2 In-Progress and Planned Scope
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- the Purchase Order edit web route, form, and screen;
 - Purchase Order-based receiving and partial delivery;
 - follow-up Purchase Orders for selected unfulfilled quantities;
 - damaged-item recording during receiving;
@@ -106,8 +103,9 @@ The current user-facing screens are:
 - Stock Corrections list and correction form;
 - Sales Summary Reports;
 - Purchase Orders list;
-- Purchase Order creation; and
-- Purchase Order detail.
+- Purchase Order creation;
+- Purchase Order detail; and
+- Purchase Order edit for pending orders.
 
 ### 2.5 Core Features
 
@@ -117,7 +115,7 @@ The core features are controlled access, catalog organization, exact inventory t
 
 The current operational process can be summarized as:
 
-**Catalog setup → Opening Inventory → Stock In and controlled corrections → Open cash register → Point of Sale → Receipt and Sales History → Dashboard and Sales Summary → Low-stock review → Purchase Order creation and monitoring**
+**Catalog setup → Opening Inventory → Stock In and controlled corrections → Open cash register → Point of Sale → Receipt and Sales History → Dashboard and Sales Summary → Low-stock review → Purchase Order creation, editing, and monitoring**
 
 Categories, Products, and Product Variants establish the catalog. Opening Inventory records the first quantity for each Variant. Later stock additions use Stock In, while authorized physical-count corrections create separate evidence. After a register is opened, a successful cash sale records the sale, stock deductions, and inventory movements. Users can review sales and receipts, while Admin users can review summaries, low-stock information, and Purchase Orders.
 
@@ -137,8 +135,8 @@ The procurement process currently stops at order monitoring. Receiving, follow-u
 | Restocks | Stock In receipt headers | **Create, list, and view**; historical receipts cannot be edited or deleted. |
 | Restock Items | Received quantities and historical unit costs | **Created automatically and view-only**. |
 | Stock Movements | Evidence of initial stock, restocking, corrections, and sales deductions | **Created automatically with related transactions**; no unified movement-history screen exists. |
-| Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, and view details**; backend update logic exists, but there is no edit screen. |
-| Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created through Purchase Orders and view-only in the current interface**. |
+| Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, and edit pending orders**; receiving and lifecycle processing are still in development. |
+| Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; saved historical details remain available when catalog records later become inactive. |
 | Audit Logs | Intended record of sensitive system activity | **Not yet implemented for normal workflows** — database/model preparation exists, but logging and a viewer are unavailable. |
 
 ## 3. Technology & Architecture
@@ -214,14 +212,14 @@ Development of the system began during the **first week of September 2026**. The
 | Week 1 | Project foundation; database and model structure; authentication and role enforcement; Category, Product, and Product Variant management; Opening Inventory; Stock In; initial branding. | Implemented. |
 | Week 2 | Stock Correction; cash Point of Sale; receipt and Sales History; responsive navigation; Dashboard and Sales Summary; requirements, product-data, UI/UX, and test-planning documents; early formal functional and edge-testing evidence. | Core application work and the 30-case functional run were completed; edge testing later remained incomplete. |
 | Week 3 | Teacher-requested scope expansion; revised requirements and database design; cash-register schema, lifecycle, POS integration, and database-specific verification; project tracker; Purchase Order foundation, low-stock recommendations, creation service, and creation interface. | Register work was implemented and verified; procurement work began and remained in progress. |
-| Week 4 | Purchase Order list, filters, detail view, and backend pending-order update logic. | Browsing is available; the pending-order edit web route, form, and screen are not yet implemented. |
+| Week 4 | Purchase Order list, filters, detail view, backend update logic, and the pending-order edit interface. | Administrators can browse and edit pending orders before receiving activity begins; the later procurement lifecycle remains in development. |
 | Week 5 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
 | Week 6 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
 | Week 7 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
 
 ### 4.3 Current Progress Summary
 
-The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement development has reached low-stock recommendations, Purchase Order creation and browsing, and backend pending-order update logic.
+The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement development has reached low-stock recommendations and Purchase Order creation, browsing, detail viewing, and pending-order editing.
 
 The project remains in active development. Procurement, Sale Void, User Management, Audit Trail, remaining reports, post-expansion testing, and final materials are not yet complete.
 
@@ -369,8 +367,8 @@ Automated test source also exists for newer Purchase Order foundations, recommen
 
 **Current Purchase Order state:**
 
-- Schema/models, low-stock recommendations, creation, list/filter, historical detail, and backend pending-order update logic are implemented.
-- The Purchase Order edit web route, form, and screen are not implemented, and pending-order updates still need final simultaneous-update verification.
+- Schema/models, low-stock recommendations, creation, list/filter, historical detail, and Admin-only pending-order editing are implemented. The edit workflow can update supplier and notes, change or remove existing lines, add currently eligible initialized Variants, retain historical lines whose catalog hierarchy is now inactive, and reject outdated drafts.
+- Nonpending Purchase Orders remain read-only, and pending-order updates still need final simultaneous-update verification.
 - Receiving and partial delivery, follow-up orders, damaged-item handling, and the related procurement reports are not implemented.
 
 **Other incomplete areas and limitations:** Sale Void, User Management, Audit Log writing/viewing, unified inventory movement history, several dedicated reports, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
@@ -391,7 +389,7 @@ If we started the project again, we would complete more of the requirements and 
 
 ### 7.2 Conclusion
 
-3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, and early Purchase Order functionality. Building these connected areas helped our team understand how validation, database relationships, stock movements, and saved transaction details work together in a web-based inventory system.
+3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, and Purchase Order creation, browsing, detail viewing, and pending-order editing. Building these connected areas helped our team understand how validation, database relationships, stock movements, and saved transaction details work together in a web-based inventory system.
 
 The project is still being developed. Procurement receiving, follow-up ordering, damage handling, some reports and management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
 
