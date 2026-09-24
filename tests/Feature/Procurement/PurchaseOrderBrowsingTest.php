@@ -231,7 +231,7 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertDontSee(route('purchase-orders.edit', $completed), false);
     }
 
-    public function test_purchase_order_route_inventory_has_exactly_eight_named_routes_and_no_mutation_extras(): void
+    public function test_purchase_order_route_inventory_has_exactly_ten_named_routes_and_no_mutation_extras(): void
     {
         $expected = [
             'purchase-orders.index' => ['GET', 'HEAD'],
@@ -242,6 +242,8 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             'purchase-orders.update' => ['PATCH'],
             'purchase-orders.receive.create' => ['GET', 'HEAD'],
             'purchase-orders.receive.store' => ['POST'],
+            'purchase-orders.follow-up.create' => ['GET', 'HEAD'],
+            'purchase-orders.follow-up.store' => ['POST'],
         ];
 
         foreach ($expected as $name => $methods) {
@@ -255,7 +257,7 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
         }
 
         $this->assertCount(
-            8,
+            10,
             collect(Route::getRoutes()->getRoutes())->filter(
                 fn ($route): bool => str_starts_with((string) $route->getName(), 'purchase-orders.'),
             ),

@@ -9,6 +9,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseOrderFollowUpController;
 use App\Http\Controllers\PurchaseOrderReceivingController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SalesHistoryController;
@@ -45,6 +46,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
         Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+        Route::get('/purchase-orders/{purchaseOrder}/follow-up', [PurchaseOrderFollowUpController::class, 'create'])->whereNumber('purchaseOrder')->name('purchase-orders.follow-up.create');
+        Route::post('/purchase-orders/{purchaseOrder}/follow-up', [PurchaseOrderFollowUpController::class, 'store'])->whereNumber('purchaseOrder')->name('purchase-orders.follow-up.store');
         Route::get('/purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->whereNumber('purchaseOrder')->name('purchase-orders.edit');
         Route::patch('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->whereNumber('purchaseOrder')->name('purchase-orders.update');
         Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');

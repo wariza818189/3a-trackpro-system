@@ -42,6 +42,10 @@ class PurchaseOrderController extends Controller
         $purchaseOrders = PurchaseOrder::query()
             ->with('createdBy:id,name')
             ->withCount('items')
+            ->withExists(['items as has_transfer_activity' => fn ($query) => $query
+                ->where(fn ($activity) => $activity
+                    ->whereHas('outgoingTransfer')
+                    ->orWhereHas('incomingTransfer'))])
             ->when($supplier !== '', function ($query) use ($supplier): void {
                 $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $supplier);
                 $query->whereRaw("supplier_name LIKE ? ESCAPE '!'", ["%{$escaped}%"]);
@@ -244,14 +248,35 @@ class PurchaseOrderController extends Controller
         $purchaseOrder->load([
             'createdBy:id,name',
             'parent:id',
+            'children' => fn ($query) => $query->select(['id', 'parent_purchase_order_id', 'status'])->orderBy('id'),
             'items' => fn ($query) => $query
                 ->select($itemColumns)
+                ->with([
+                    'outgoingTransfer:id,source_purchase_order_item_id,target_purchase_order_item_id,quantity',
+                    'outgoingTransfer.targetItem:id,purchase_order_id',
+                    'outgoingTransfer.targetItem.purchaseOrder:id,status',
+                    'incomingTransfer:id,source_purchase_order_item_id,target_purchase_order_item_id,quantity',
+                    'incomingTransfer.sourceItem:id,purchase_order_id',
+                    'incomingTransfer.sourceItem.purchaseOrder:id,status',
+                ])
                 ->orderBy('product_variant_id')
                 ->orderBy('id'),
         ]);
         $lines = $purchaseOrder->items->mapWithKeys(fn (PurchaseOrderItem $item): array => [
-            $item->id => ['accepted' => $item->acceptedQuantity(), 'outstanding' => $item->outstandingQuantity()],
+            $item->id => [
+                'accepted' => $item->acceptedQuantity(),
+                'transferred' => $item->transferredQuantity(),
+                'outstanding' => $item->outstandingQuantity(),
+            ],
         ]);
+        $hasTransferActivity = $purchaseOrder->items->contains(fn (PurchaseOrderItem $item): bool => $item->outgoingTransfer !== null || $item->incomingTransfer !== null
+        );
+        $canEdit = $admin && $purchaseOrder->isEditable() && ! $hasTransferActivity;
+        $canFollowUp = $admin
+            && in_array($purchaseOrder->status, PurchaseOrder::OPEN_STATUSES, true)
+            && $purchaseOrder->items->contains(fn (PurchaseOrderItem $item): bool => $item->outgoingTransfer === null
+                && bccomp($lines[$item->id]['outstanding'], '0.000', 3) > 0
+            );
         $canReceive = in_array($purchaseOrder->status, PurchaseOrder::OPEN_STATUSES, true)
             && $lines->contains(fn (array $line): bool => bccomp($line['outstanding'], '0.000', 3) > 0);
 
@@ -268,7 +293,15 @@ class PurchaseOrderController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('purchase-orders.show', compact('purchaseOrder', 'admin', 'lines', 'canReceive', 'receipts'));
+        return view('purchase-orders.show', compact(
+            'purchaseOrder',
+            'admin',
+            'lines',
+            'canEdit',
+            'canFollowUp',
+            'canReceive',
+            'receipts',
+        ));
     }
 
     private function authorizeOperationalAccess(Request $request): bool

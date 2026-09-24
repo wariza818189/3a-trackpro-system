@@ -4,6 +4,15 @@
 <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
     <a href="{{ route('purchase-orders.index') }}" class="text-sm font-semibold text-amber-700">← Back to Purchase Orders</a>
 
+    @if ($errors->any())
+        <section class="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 text-red-900" role="alert">
+            <h2 class="font-bold">The Purchase Order action could not be completed</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm">
+                @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+            </ul>
+        </section>
+    @endif
+
     @if (session('purchase_order_confirmation'))
         @php
             $confirmation = session('purchase_order_confirmation');
@@ -27,8 +36,11 @@
             <p class="mt-2 text-slate-600">Historical supplier and item snapshots saved with this order.</p>
         </div>
         <div class="flex items-center gap-3">
-            @if ($admin && $purchaseOrder->isEditable())
+            @if ($canEdit)
                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-edit>Edit Purchase Order</a>
+            @endif
+            @if ($canFollowUp)
+                <a href="{{ route('purchase-orders.follow-up.create', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-follow-up>Create follow-up</a>
             @endif
             @if ($canReceive)
                 <a href="{{ route('purchase-orders.receive.create', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-receive>Receive items</a>
@@ -45,6 +57,9 @@
         <div><dt class="text-sm text-slate-500">Last updated</dt><dd class="mt-1 font-semibold">{{ $purchaseOrder->updated_at?->format('M j, Y g:i A') ?? '—' }}</dd></div>
         @if ($purchaseOrder->parent !== null)
             <div><dt class="text-sm text-slate-500">Parent Purchase Order</dt><dd class="mt-1 font-semibold"><a href="{{ route('purchase-orders.show', $purchaseOrder->parent) }}" class="text-amber-700 hover:text-amber-800">PO #{{ $purchaseOrder->parent->id }}</a></dd></div>
+        @endif
+        @if ($purchaseOrder->children->isNotEmpty())
+            <div class="sm:col-span-2 lg:col-span-3"><dt class="text-sm text-slate-500">Follow-up Purchase Orders</dt><dd class="mt-1 flex flex-wrap gap-3 font-semibold">@foreach ($purchaseOrder->children as $child)<a href="{{ route('purchase-orders.show', $child) }}" class="text-amber-700 hover:text-amber-800" data-po-child="{{ $child->id }}">PO #{{ $child->id }} · {{ str_replace('_', ' ', $child->status) }}</a>@endforeach</dd></div>
         @endif
         @if ($purchaseOrder->notes !== null)
             <div class="sm:col-span-2 lg:col-span-3"><dt class="text-sm text-slate-500">Notes</dt><dd class="mt-1 whitespace-pre-line font-medium">{{ $purchaseOrder->notes }}</dd></div>
@@ -65,7 +80,9 @@
                         <th class="px-5 py-3">Variant snapshot</th>
                         <th class="px-5 py-3">Ordered quantity</th>
                         <th class="px-5 py-3">Accepted quantity</th>
+                        <th class="px-5 py-3">Transferred quantity</th>
                         <th class="px-5 py-3">Outstanding quantity</th>
+                        <th class="px-5 py-3">Transfer lineage</th>
                         @if ($admin)<th class="px-5 py-3">Expected unit cost</th>@endif
                     </tr>
                 </thead>
@@ -81,7 +98,17 @@
                             <td class="px-5 py-4 text-slate-600">{{ $identity }} · {{ $item->unit_snapshot }}</td>
                             <td class="px-5 py-4 font-medium">{{ $item->ordered_quantity }} {{ $item->unit_snapshot }}</td>
                             <td class="px-5 py-4 font-medium">{{ $lines[$item->id]['accepted'] }} {{ $item->unit_snapshot }}</td>
+                            <td class="px-5 py-4 font-medium">{{ $lines[$item->id]['transferred'] }} {{ $item->unit_snapshot }}</td>
                             <td class="px-5 py-4 font-medium">{{ $lines[$item->id]['outstanding'] }} {{ $item->unit_snapshot }}</td>
+                            <td class="px-5 py-4 text-slate-600">
+                                @if ($item->outgoingTransfer?->targetItem?->purchaseOrder)
+                                    To <a href="{{ route('purchase-orders.show', $item->outgoingTransfer->targetItem->purchaseOrder) }}" class="font-semibold text-amber-700">PO #{{ $item->outgoingTransfer->targetItem->purchase_order_id }}</a>
+                                @elseif ($item->incomingTransfer?->sourceItem?->purchaseOrder)
+                                    From <a href="{{ route('purchase-orders.show', $item->incomingTransfer->sourceItem->purchaseOrder) }}" class="font-semibold text-amber-700">PO #{{ $item->incomingTransfer->sourceItem->purchase_order_id }}</a>
+                                @else
+                                    —
+                                @endif
+                            </td>
                             @if ($admin)<td class="px-5 py-4 font-medium">₱{{ $item->expected_unit_cost }}</td>@endif
                         </tr>
                     @endforeach
@@ -102,7 +129,13 @@
                     <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div><dt class="text-slate-500">Ordered quantity</dt><dd class="font-semibold">{{ $item->ordered_quantity }} {{ $item->unit_snapshot }}</dd></div>
                         <div><dt class="text-slate-500">Accepted quantity</dt><dd class="font-semibold">{{ $lines[$item->id]['accepted'] }} {{ $item->unit_snapshot }}</dd></div>
+                        <div><dt class="text-slate-500">Transferred quantity</dt><dd class="font-semibold">{{ $lines[$item->id]['transferred'] }} {{ $item->unit_snapshot }}</dd></div>
                         <div><dt class="text-slate-500">Outstanding quantity</dt><dd class="font-semibold">{{ $lines[$item->id]['outstanding'] }} {{ $item->unit_snapshot }}</dd></div>
+                        @if ($item->outgoingTransfer?->targetItem?->purchaseOrder)
+                            <div><dt class="text-slate-500">Transfer lineage</dt><dd class="font-semibold">To <a href="{{ route('purchase-orders.show', $item->outgoingTransfer->targetItem->purchaseOrder) }}" class="text-amber-700">PO #{{ $item->outgoingTransfer->targetItem->purchase_order_id }}</a></dd></div>
+                        @elseif ($item->incomingTransfer?->sourceItem?->purchaseOrder)
+                            <div><dt class="text-slate-500">Transfer lineage</dt><dd class="font-semibold">From <a href="{{ route('purchase-orders.show', $item->incomingTransfer->sourceItem->purchaseOrder) }}" class="text-amber-700">PO #{{ $item->incomingTransfer->sourceItem->purchase_order_id }}</a></dd></div>
+                        @endif
                         @if ($admin)<div><dt class="text-slate-500">Expected unit cost</dt><dd class="font-semibold">₱{{ $item->expected_unit_cost }}</dd></div>@endif
                     </dl>
                 </article>

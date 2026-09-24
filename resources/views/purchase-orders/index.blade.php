@@ -73,7 +73,7 @@
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex justify-end gap-3">
                                         <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="font-semibold text-amber-700 hover:text-amber-800" data-po-view>View</a>
-                                        @if ($admin && $purchaseOrder->isEditable())
+                                        @if ($admin && $purchaseOrder->isEditable() && ! $purchaseOrder->has_transfer_activity)
                                             <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="font-semibold text-slate-700 hover:text-slate-900" data-po-edit>Edit</a>
                                         @endif
                                     </div>
@@ -101,7 +101,7 @@
                         </dl>
                         <div class="mt-4 flex gap-4">
                             <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-amber-700" data-po-view>View Purchase Order</a>
-                            @if ($admin && $purchaseOrder->isEditable())
+                            @if ($admin && $purchaseOrder->isEditable() && ! $purchaseOrder->has_transfer_activity)
                                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-slate-700" data-po-edit>Edit</a>
                             @endif
                         </div>
