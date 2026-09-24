@@ -47,9 +47,33 @@ abstract class RestockTestCase extends TestCase
             $table->string('status')->default('active');
             $table->timestamps();
         });
+        Schema::create('purchase_orders', function (Blueprint $table): void {
+            $table->id();
+            $table->uuid('submission_token')->unique();
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('supplier_name', 150);
+            $table->string('status')->default('pending');
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('purchase_order_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('product_name_snapshot', 150);
+            $table->string('size_snapshot', 80)->default('');
+            $table->string('type_series_snapshot', 80)->default('');
+            $table->string('thickness_snapshot', 40)->default('');
+            $table->string('unit_snapshot', 30);
+            $table->decimal('ordered_quantity', 14, 3);
+            $table->decimal('expected_unit_cost', 12, 2);
+            $table->timestamps();
+            $table->unique(['purchase_order_id', 'product_variant_id']);
+        });
         Schema::create('restocks', function (Blueprint $table): void {
             $table->id();
             $table->uuid('submission_token')->unique();
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->restrictOnDelete()->restrictOnUpdate();
             $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
             $table->text('reference_text')->nullable();
             $table->text('notes')->nullable();
@@ -60,6 +84,7 @@ abstract class RestockTestCase extends TestCase
             $table->id();
             $table->foreignId('restock_id')->constrained('restocks')->restrictOnDelete()->restrictOnUpdate();
             $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('purchase_order_item_id')->nullable()->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
             $table->string('product_name_snapshot', 150);
             $table->string('size_snapshot', 80)->default('');
             $table->string('type_series_snapshot', 80)->default('');

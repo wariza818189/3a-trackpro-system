@@ -28,6 +28,8 @@ class RecordRestock
 
     private const MAX_MONEY = '99999999999999.99';
 
+    public function __construct(private readonly PostRestockInventory $inventory) {}
+
     /**
      * @param  list<array<string, mixed>>  $submittedItems
      */
@@ -164,54 +166,13 @@ class RecordRestock
             }
         }
 
-        $createdItems = collect();
-        foreach ($variants as $variant) {
-            $itemData = $operation['items'][$variant->id];
-            $index = $itemData['index'];
-            $this->validateQuantityMode($itemData['quantity'], $variant->quantity_mode, $index);
-
-            $before = (string) $variant->current_stock;
-            $after = bcadd($before, $itemData['quantity'], 3);
-            if (bccomp($after, self::MAX_QUANTITY, 3) === 1) {
-                throw ValidationException::withMessages([
-                    "items.{$index}.quantity" => 'This receipt would exceed the maximum stock quantity.',
-                ]);
-            }
-
-            $product = $products->get((int) $variant->product_id);
-            $item = new RestockItem;
-            $item->restock_id = $restock->getKey();
-            $item->product_variant_id = $variant->getKey();
-            $item->product_name_snapshot = $product->name;
-            $item->size_snapshot = $variant->size;
-            $item->type_series_snapshot = $variant->type_series;
-            $item->thickness_snapshot = $variant->thickness;
-            $item->unit_snapshot = $variant->unit;
-            $item->quantity = $itemData['quantity'];
-            $item->unit_cost = $itemData['unit_cost'];
-            $item->line_total = $itemData['line_total'];
-            $item->save();
-
-            $variant->current_stock = $after;
-            $variant->cost_price = $itemData['unit_cost'];
-            $variant->save();
-
-            $movement = new StockMovement;
-            $movement->product_variant_id = $variant->getKey();
-            $movement->movement_type = StockMovement::TYPE_RESTOCK;
-            $movement->quantity_before = $before;
-            $movement->quantity_change = $itemData['quantity'];
-            $movement->quantity_after = $after;
-            $movement->performed_by = $operation['actor_id'];
-            $movement->sale_item_id = null;
-            $movement->restock_item_id = $item->getKey();
-            $movement->reason = null;
-            $movement->save();
-            $item->setRelation('stockMovement', $movement);
-            $createdItems->push($item);
-        }
-
-        $restock->setRelation('items', $createdItems);
+        $restock->setRelation('items', $this->inventory->post(
+            $restock,
+            $operation['actor_id'],
+            $variants,
+            $products,
+            $operation['items'],
+        ));
 
         return $restock;
     }
@@ -350,16 +311,6 @@ class RecordRestock
         }
 
         return $normalized;
-    }
-
-    private function validateQuantityMode(string $quantity, string $quantityMode, int $index): void
-    {
-        if (! in_array($quantityMode, ProductVariant::QUANTITY_MODES, true)) {
-            throw ValidationException::withMessages(["items.{$index}.quantity" => 'The variant quantity mode is invalid.']);
-        }
-        if ($quantityMode === 'whole' && ! str_ends_with($quantity, '.000')) {
-            throw ValidationException::withMessages(["items.{$index}.quantity" => 'The received quantity must be a whole number for this variant.']);
-        }
     }
 
     /** @param array<string, mixed> $operation */
