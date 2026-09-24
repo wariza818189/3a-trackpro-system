@@ -8,9 +8,9 @@
             <h1 class="mt-2 text-3xl font-bold">Purchase Orders</h1>
             <p class="mt-2 text-slate-600">Review saved supplier plans and their historical line snapshots.</p>
         </div>
-        <a href="{{ route('purchase-orders.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-create-action>
+        @if ($admin)<a href="{{ route('purchase-orders.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-create-action>
             Create Purchase Order
-        </a>
+        </a>@endif
     </div>
 
     <form method="GET" action="{{ route('purchase-orders.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.35fr)_auto] sm:items-end">
@@ -73,7 +73,7 @@
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex justify-end gap-3">
                                         <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="font-semibold text-amber-700 hover:text-amber-800" data-po-view>View</a>
-                                        @if ($purchaseOrder->isEditable())
+                                        @if ($admin && $purchaseOrder->isEditable())
                                             <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="font-semibold text-slate-700 hover:text-slate-900" data-po-edit>Edit</a>
                                         @endif
                                     </div>
@@ -101,7 +101,7 @@
                         </dl>
                         <div class="mt-4 flex gap-4">
                             <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-amber-700" data-po-view>View Purchase Order</a>
-                            @if ($purchaseOrder->isEditable())
+                            @if ($admin && $purchaseOrder->isEditable())
                                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center font-semibold text-slate-700" data-po-edit>Edit</a>
                             @endif
                         </div>

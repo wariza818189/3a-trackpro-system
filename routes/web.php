@@ -9,6 +9,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseOrderReceivingController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
@@ -35,15 +36,17 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/stock-in/create', [StockInController::class, 'create'])->name('stock-in.create');
     Route::post('/stock-in', [StockInController::class, 'store'])->name('stock-in.store');
     Route::get('/stock-in/{restock}', [StockInController::class, 'show'])->name('stock-in.show');
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+    Route::get('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderReceivingController::class, 'create'])->whereNumber('purchaseOrder')->name('purchase-orders.receive.create');
+    Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderReceivingController::class, 'store'])->whereNumber('purchaseOrder')->name('purchase-orders.receive.store');
+    Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->whereNumber('purchaseOrder')->name('purchase-orders.show');
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
-        Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
         Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
         Route::get('/purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->whereNumber('purchaseOrder')->name('purchase-orders.edit');
         Route::patch('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->whereNumber('purchaseOrder')->name('purchase-orders.update');
-        Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->whereNumber('purchaseOrder')->name('purchase-orders.show');
         Route::get('/opening-inventory', [OpeningInventoryController::class, 'index'])->name('opening-inventory.index');
         Route::get('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'create'])->name('opening-inventory.create');
         Route::post('/product-variants/{productVariant}/opening-inventory', [OpeningInventoryController::class, 'store'])->name('opening-inventory.store');

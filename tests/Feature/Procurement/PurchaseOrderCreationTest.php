@@ -567,6 +567,8 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             'purchase-orders.show' => ['GET', 'HEAD'],
             'purchase-orders.edit' => ['GET', 'HEAD'],
             'purchase-orders.update' => ['PATCH'],
+            'purchase-orders.receive.create' => ['GET', 'HEAD'],
+            'purchase-orders.receive.store' => ['POST'],
         ];
         foreach ($routes as $name => $methods) {
             $route = Route::getRoutes()->getByName($name);
@@ -576,7 +578,11 @@ final class PurchaseOrderCreationTest extends PurchaseOrderCreationTestCase
             $this->assertContains('web', $middleware);
             $this->assertContains('auth', $middleware);
             $this->assertContains('active', $middleware);
-            $this->assertContains('can:access-admin', $middleware);
+            if (in_array($name, ['purchase-orders.create', 'purchase-orders.store', 'purchase-orders.edit', 'purchase-orders.update'], true)) {
+                $this->assertContains('can:access-admin', $middleware);
+            } else {
+                $this->assertNotContains('can:access-admin', $middleware);
+            }
         }
         $this->assertNull(Route::getRoutes()->getByName('purchase-orders.destroy'));
     }

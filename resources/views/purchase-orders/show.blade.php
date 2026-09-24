@@ -27,8 +27,11 @@
             <p class="mt-2 text-slate-600">Historical supplier and item snapshots saved with this order.</p>
         </div>
         <div class="flex items-center gap-3">
-            @if ($purchaseOrder->isEditable())
+            @if ($admin && $purchaseOrder->isEditable())
                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-edit>Edit Purchase Order</a>
+            @endif
+            @if ($canReceive)
+                <a href="{{ route('purchase-orders.receive.create', $purchaseOrder) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-600 px-4 py-2 font-bold text-white hover:bg-amber-700" data-po-receive>Receive items</a>
             @endif
             <span class="w-fit rounded-full bg-slate-200 px-4 py-2 text-sm font-bold capitalize text-slate-800">{{ str_replace('_', ' ', $purchaseOrder->status) }}</span>
         </div>
@@ -61,7 +64,9 @@
                         <th class="px-5 py-3">Product snapshot</th>
                         <th class="px-5 py-3">Variant snapshot</th>
                         <th class="px-5 py-3">Ordered quantity</th>
-                        <th class="px-5 py-3">Expected unit cost</th>
+                        <th class="px-5 py-3">Accepted quantity</th>
+                        <th class="px-5 py-3">Outstanding quantity</th>
+                        @if ($admin)<th class="px-5 py-3">Expected unit cost</th>@endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -75,7 +80,9 @@
                             <td class="px-5 py-4 font-semibold">{{ $item->product_name_snapshot }}</td>
                             <td class="px-5 py-4 text-slate-600">{{ $identity }} · {{ $item->unit_snapshot }}</td>
                             <td class="px-5 py-4 font-medium">{{ $item->ordered_quantity }} {{ $item->unit_snapshot }}</td>
-                            <td class="px-5 py-4 font-medium">₱{{ $item->expected_unit_cost }}</td>
+                            <td class="px-5 py-4 font-medium">{{ $lines[$item->id]['accepted'] }} {{ $item->unit_snapshot }}</td>
+                            <td class="px-5 py-4 font-medium">{{ $lines[$item->id]['outstanding'] }} {{ $item->unit_snapshot }}</td>
+                            @if ($admin)<td class="px-5 py-4 font-medium">₱{{ $item->expected_unit_cost }}</td>@endif
                         </tr>
                     @endforeach
                 </tbody>
@@ -94,11 +101,31 @@
                     <p class="mt-1 text-sm text-slate-600">{{ $identity }} · {{ $item->unit_snapshot }}</p>
                     <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div><dt class="text-slate-500">Ordered quantity</dt><dd class="font-semibold">{{ $item->ordered_quantity }} {{ $item->unit_snapshot }}</dd></div>
-                        <div><dt class="text-slate-500">Expected unit cost</dt><dd class="font-semibold">₱{{ $item->expected_unit_cost }}</dd></div>
+                        <div><dt class="text-slate-500">Accepted quantity</dt><dd class="font-semibold">{{ $lines[$item->id]['accepted'] }} {{ $item->unit_snapshot }}</dd></div>
+                        <div><dt class="text-slate-500">Outstanding quantity</dt><dd class="font-semibold">{{ $lines[$item->id]['outstanding'] }} {{ $item->unit_snapshot }}</dd></div>
+                        @if ($admin)<div><dt class="text-slate-500">Expected unit cost</dt><dd class="font-semibold">₱{{ $item->expected_unit_cost }}</dd></div>@endif
                     </dl>
                 </article>
             @endforeach
         </div>
+    </section>
+
+    <section class="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="receipt-history-heading">
+        <h2 id="receipt-history-heading" class="text-xl font-bold">Receipt history</h2>
+        @forelse ($receipts as $receipt)
+            <article class="mt-5 border-t border-slate-200 pt-4" data-po-receipt="{{ $receipt->id }}">
+                <h3 class="font-semibold">{{ $receipt->restockNumber() }}</h3>
+                <p class="mt-1 text-sm text-slate-600">{{ $receipt->created_at?->format('M j, Y g:i A') ?? '—' }} · {{ $receipt->recordedBy->name }}@if ($receipt->reference_text) · Reference: {{ $receipt->reference_text }}@endif</p>
+                <ul class="mt-3 space-y-1 text-sm">
+                    @foreach ($receipt->items as $receivedItem)
+                        <li>{{ $receivedItem->product_name_snapshot }} · {{ $receivedItem->quantity }} {{ $receivedItem->unit_snapshot }}@if ($admin) · Actual unit cost: ₱{{ $receivedItem->unit_cost }} · Line total: ₱{{ $receivedItem->line_total }}@endif</li>
+                    @endforeach
+                </ul>
+                @if ($admin)<p class="mt-2 text-sm font-semibold">Receipt total: ₱{{ $receipt->total_cost }}</p>@endif
+            </article>
+        @empty
+            <p class="mt-3 text-sm text-slate-500">No linked receipts yet.</p>
+        @endforelse
     </section>
 </main>
 @endsection

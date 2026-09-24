@@ -91,10 +91,26 @@ abstract class PurchaseOrderCreationTestCase extends TestCase
             $table->timestamps();
             $table->unique(['purchase_order_id', 'product_variant_id']);
         });
+        Schema::create('restocks', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('recorded_by')->nullable()->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->text('reference_text')->nullable();
+            $table->decimal('total_cost', 16, 2)->nullable();
+            $table->timestamp('created_at')->nullable();
+        });
         Schema::create('restock_items', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('restock_id')->nullable()->constrained('restocks')->restrictOnDelete()->restrictOnUpdate();
             $table->foreignId('purchase_order_item_id')->nullable()->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('product_name_snapshot')->nullable();
+            $table->string('size_snapshot')->nullable();
+            $table->string('type_series_snapshot')->nullable();
+            $table->string('thickness_snapshot')->nullable();
+            $table->string('unit_snapshot')->nullable();
             $table->decimal('quantity', 14, 3);
+            $table->decimal('unit_cost', 12, 2)->nullable();
+            $table->decimal('line_total', 16, 2)->nullable();
         });
 
         $this->admin = User::factory()->admin()->create();

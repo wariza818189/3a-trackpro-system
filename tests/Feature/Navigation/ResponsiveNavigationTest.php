@@ -28,7 +28,7 @@ class ResponsiveNavigationTest extends AuthTestCase
         $this->assertNavigationDestinations($html, $expected);
     }
 
-    public function test_staff_navigation_uses_exactly_the_seven_permitted_destinations_in_both_menus(): void
+    public function test_staff_navigation_uses_exactly_the_eight_permitted_destinations_in_both_menus(): void
     {
         $staff = User::factory()->create();
         $html = $this->actingAs($staff)->get(route('home'))->assertOk()->getContent();
@@ -40,6 +40,7 @@ class ResponsiveNavigationTest extends AuthTestCase
             'products.index' => 'Products',
             'product-variants.index' => 'Variants',
             'stock-in.index' => 'Stock In',
+            'purchase-orders.index' => 'Purchase Orders',
         ];
 
         $this->assertNavigationDestinations($html, $expected);
@@ -49,9 +50,7 @@ class ResponsiveNavigationTest extends AuthTestCase
         $this->assertStringNotContainsString('Stock Correction', $html);
         $this->assertStringNotContainsString('data-nav-route="reports.index"', $html);
         $this->assertStringNotContainsString('Reports', $html);
-        $this->assertStringNotContainsString('data-nav-route="purchase-orders.index"', $html);
         $this->assertStringNotContainsString('data-nav-route="purchase-orders.create"', $html);
-        $this->assertStringNotContainsString('Purchase Orders', $html);
         $this->assertStringNotContainsString('Create Purchase Order', $html);
     }
 

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePurchaseOrderRequest;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\User;
 use App\Queries\Procurement\LowStockPurchaseOrderRecommendations;
 use App\Queries\Procurement\ProcurementVariantCatalogQuery;
 use App\Services\Procurement\CreatePurchaseOrder;
@@ -23,6 +24,7 @@ class PurchaseOrderController extends Controller
 {
     public function index(Request $request): View
     {
+        $admin = $this->authorizeOperationalAccess($request);
         $validated = $request->validate([
             'supplier' => ['nullable', 'string', 'max:150'],
             'status' => ['nullable', 'string', Rule::in([
@@ -50,7 +52,7 @@ class PurchaseOrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('purchase-orders.index', compact('purchaseOrders', 'supplier', 'status'));
+        return view('purchase-orders.index', compact('purchaseOrders', 'supplier', 'status', 'admin'));
     }
 
     public function create(
@@ -232,17 +234,49 @@ class PurchaseOrderController extends Controller
             ->with('success', 'Purchase Order updated successfully.');
     }
 
-    public function show(PurchaseOrder $purchaseOrder): View
+    public function show(Request $request, PurchaseOrder $purchaseOrder): View
     {
+        $admin = $this->authorizeOperationalAccess($request);
+        $itemColumns = ['id', 'purchase_order_id', 'product_variant_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'ordered_quantity'];
+        if ($admin) {
+            $itemColumns[] = 'expected_unit_cost';
+        }
         $purchaseOrder->load([
             'createdBy:id,name',
             'parent:id',
             'items' => fn ($query) => $query
+                ->select($itemColumns)
                 ->orderBy('product_variant_id')
                 ->orderBy('id'),
         ]);
+        $lines = $purchaseOrder->items->mapWithKeys(fn (PurchaseOrderItem $item): array => [
+            $item->id => ['accepted' => $item->acceptedQuantity(), 'outstanding' => $item->outstandingQuantity()],
+        ]);
+        $canReceive = in_array($purchaseOrder->status, PurchaseOrder::OPEN_STATUSES, true)
+            && $lines->contains(fn (array $line): bool => bccomp($line['outstanding'], '0.000', 3) > 0);
 
-        return view('purchase-orders.show', compact('purchaseOrder'));
+        $receiptColumns = ['id', 'purchase_order_id', 'recorded_by', 'reference_text', 'created_at'];
+        $receiptItemColumns = ['id', 'restock_id', 'purchase_order_item_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'quantity'];
+        if ($admin) {
+            $receiptColumns[] = 'total_cost';
+            $receiptItemColumns[] = 'unit_cost';
+            $receiptItemColumns[] = 'line_total';
+        }
+        $receipts = $purchaseOrder->restocks()
+            ->select($receiptColumns)
+            ->with(['recordedBy:id,name', 'items' => fn ($query) => $query->select($receiptItemColumns)->orderBy('id')])
+            ->orderBy('id')
+            ->get();
+
+        return view('purchase-orders.show', compact('purchaseOrder', 'admin', 'lines', 'canReceive', 'receipts'));
+    }
+
+    private function authorizeOperationalAccess(Request $request): bool
+    {
+        $role = $request->user()?->role;
+        abort_unless(in_array($role, [User::ROLE_ADMIN, 'staff'], true), 403);
+
+        return $role === User::ROLE_ADMIN;
     }
 
     /**

@@ -47,12 +47,12 @@
                         ] : []),
                     ],
                 ],
-                ...($navigationAdmin ? [[
+                [
                     'label' => 'Procurement',
                     'items' => [
                         ['label' => 'Purchase Orders', 'route' => 'purchase-orders.index', 'active' => 'purchase-orders.*'],
                     ],
-                ]] : []),
+                ],
             ];
         @endphp
 

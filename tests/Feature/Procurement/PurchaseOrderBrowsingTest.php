@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
 {
-    public function test_index_and_show_are_available_only_to_active_admins(): void
+    public function test_index_and_show_are_available_to_active_admins_and_staff(): void
     {
         $purchaseOrder = $this->purchaseOrder('Authorization Supplier');
 
@@ -19,8 +19,8 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
         $this->get(route('purchase-orders.show', $purchaseOrder))->assertRedirect('/login');
 
         $staff = User::factory()->create();
-        $this->actingAs($staff)->get(route('purchase-orders.index'))->assertForbidden();
-        $this->actingAs($staff)->get(route('purchase-orders.show', $purchaseOrder))->assertForbidden();
+        $this->actingAs($staff)->get(route('purchase-orders.index'))->assertOk();
+        $this->actingAs($staff)->get(route('purchase-orders.show', $purchaseOrder))->assertOk();
 
         $disabled = User::factory()->admin()->disabled()->create();
         $this->actingAs($disabled)->get(route('purchase-orders.index'))->assertRedirect('/login');
@@ -188,7 +188,7 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertDontSee('Renamed Current Series')
             ->assertDontSee('Renamed Current Thickness')
             ->assertDontSee($purchaseOrder->submission_token)
-            ->assertDontSee('Receive items');
+            ->assertSee('Receive items');
     }
 
     public function test_nonpending_child_order_remains_readable_with_parent_reference(): void
@@ -231,7 +231,7 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             ->assertDontSee(route('purchase-orders.edit', $completed), false);
     }
 
-    public function test_purchase_order_route_inventory_has_exactly_six_named_routes_and_no_mutation_extras(): void
+    public function test_purchase_order_route_inventory_has_exactly_eight_named_routes_and_no_mutation_extras(): void
     {
         $expected = [
             'purchase-orders.index' => ['GET', 'HEAD'],
@@ -240,6 +240,8 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
             'purchase-orders.show' => ['GET', 'HEAD'],
             'purchase-orders.edit' => ['GET', 'HEAD'],
             'purchase-orders.update' => ['PATCH'],
+            'purchase-orders.receive.create' => ['GET', 'HEAD'],
+            'purchase-orders.receive.store' => ['POST'],
         ];
 
         foreach ($expected as $name => $methods) {
@@ -253,7 +255,7 @@ final class PurchaseOrderBrowsingTest extends PurchaseOrderCreationTestCase
         }
 
         $this->assertCount(
-            6,
+            8,
             collect(Route::getRoutes()->getRoutes())->filter(
                 fn ($route): bool => str_starts_with((string) $route->getName(), 'purchase-orders.'),
             ),
