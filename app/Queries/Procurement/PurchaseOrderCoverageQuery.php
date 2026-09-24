@@ -27,6 +27,16 @@ class PurchaseOrderCoverageQuery
                 '=',
                 'purchase_order_items.id',
             )
+            ->leftJoinSub(
+                DB::table('purchase_order_item_transfers')
+                    ->select('source_purchase_order_item_id')
+                    ->selectRaw('SUM(quantity) as transferred_quantity')
+                    ->groupBy('source_purchase_order_item_id'),
+                'outgoing_transfers',
+                'outgoing_transfers.source_purchase_order_item_id',
+                '=',
+                'purchase_order_items.id',
+            )
             ->join(
                 'purchase_orders',
                 'purchase_orders.id',
@@ -36,7 +46,7 @@ class PurchaseOrderCoverageQuery
             ->whereIn('purchase_orders.status', PurchaseOrder::OPEN_STATUSES)
             ->groupBy('purchase_order_items.product_variant_id')
             ->select('purchase_order_items.product_variant_id')
-            ->selectRaw('ROUND(SUM(CASE WHEN purchase_order_items.ordered_quantity > COALESCE(accepted_receipts.accepted_quantity, 0) THEN purchase_order_items.ordered_quantity - COALESCE(accepted_receipts.accepted_quantity, 0) ELSE 0 END), 3) as open_coverage_quantity');
+            ->selectRaw('ROUND(SUM(CASE WHEN purchase_order_items.ordered_quantity > COALESCE(accepted_receipts.accepted_quantity, 0) + COALESCE(outgoing_transfers.transferred_quantity, 0) THEN purchase_order_items.ordered_quantity - COALESCE(accepted_receipts.accepted_quantity, 0) - COALESCE(outgoing_transfers.transferred_quantity, 0) ELSE 0 END), 3) as open_coverage_quantity');
     }
 
     /** @param EloquentBuilder<ProductVariant> $variants

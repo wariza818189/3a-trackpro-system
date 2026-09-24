@@ -70,6 +70,16 @@ abstract class RestockTestCase extends TestCase
             $table->timestamps();
             $table->unique(['purchase_order_id', 'product_variant_id']);
         });
+        Schema::create('purchase_order_item_transfers', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('source_purchase_order_item_id')->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('target_purchase_order_item_id')->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->decimal('quantity', 14, 3);
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->timestamp('created_at')->nullable();
+            $table->unique('source_purchase_order_item_id');
+            $table->unique('target_purchase_order_item_id');
+        });
         Schema::create('restocks', function (Blueprint $table): void {
             $table->id();
             $table->uuid('submission_token')->unique();

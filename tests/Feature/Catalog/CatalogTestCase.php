@@ -92,6 +92,16 @@ abstract class CatalogTestCase extends TestCase
             $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
             $table->decimal('ordered_quantity', 14, 3);
         });
+        Schema::create('purchase_order_item_transfers', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('source_purchase_order_item_id')->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('target_purchase_order_item_id')->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->decimal('quantity', 14, 3);
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->timestamp('created_at')->nullable();
+            $table->unique('source_purchase_order_item_id');
+            $table->unique('target_purchase_order_item_id');
+        });
 
         // Opening-inventory behavior scaffolding only. Production StockMovement
         // ENUM/CHECK/index DDL remains exclusively covered by the guarded MySQL suite.

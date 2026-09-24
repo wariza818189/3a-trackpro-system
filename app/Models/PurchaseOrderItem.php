@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PurchaseOrderItem extends Model
 {
@@ -43,6 +44,16 @@ class PurchaseOrderItem extends Model
         return $this->hasMany(RestockItem::class, 'purchase_order_item_id');
     }
 
+    public function outgoingTransfer(): HasOne
+    {
+        return $this->hasOne(PurchaseOrderItemTransfer::class, 'source_purchase_order_item_id');
+    }
+
+    public function incomingTransfer(): HasOne
+    {
+        return $this->hasOne(PurchaseOrderItemTransfer::class, 'target_purchase_order_item_id');
+    }
+
     public function acceptedQuantity(): string
     {
         $accepted = '0.000';
@@ -55,8 +66,19 @@ class PurchaseOrderItem extends Model
 
     public function outstandingQuantity(): string
     {
-        $outstanding = bcsub((string) $this->ordered_quantity, $this->acceptedQuantity(), 3);
+        $outstanding = bcsub(
+            bcsub((string) $this->ordered_quantity, $this->acceptedQuantity(), 3),
+            $this->transferredQuantity(),
+            3,
+        );
 
         return bccomp($outstanding, '0.000', 3) > 0 ? $outstanding : '0.000';
+    }
+
+    public function transferredQuantity(): string
+    {
+        $quantity = $this->outgoingTransfer()->first(['quantity'])?->quantity;
+
+        return bcadd('0.000', (string) ($quantity ?? '0.000'), 3);
     }
 }

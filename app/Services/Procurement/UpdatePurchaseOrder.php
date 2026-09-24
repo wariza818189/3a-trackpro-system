@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrderItemTransfer;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
@@ -155,7 +156,22 @@ class UpdatePurchaseOrder
             ]);
         }
 
-        $lockedItemIds = $lockedItems->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $itemIds = $lockedItems->pluck('id');
+        $transfer = PurchaseOrderItemTransfer::query()
+            ->where(function ($query) use ($itemIds): void {
+                $query->whereIn('source_purchase_order_item_id', $itemIds)
+                    ->orWhereIn('target_purchase_order_item_id', $itemIds);
+            })
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first(['id']);
+        if ($transfer !== null) {
+            throw ValidationException::withMessages([
+                'purchase_order' => 'A Purchase Order with transfer activity cannot be edited.',
+            ]);
+        }
+
+        $lockedItemIds = $itemIds->map(fn ($id): int => (int) $id)->all();
         $lockedVariantIds = $lockedItems->pluck('product_variant_id')
             ->map(fn ($id): int => (int) $id)
             ->sort()

@@ -34,6 +34,12 @@ final class PurchaseOrderReceivingFoundationTest extends TestCase
             $table->decimal('quantity', 14, 3);
         });
 
+        Schema::create('purchase_order_item_transfers', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('source_purchase_order_item_id');
+            $table->decimal('quantity', 14, 3);
+        });
+
         (require database_path('migrations/2026_09_24_000001_add_purchase_order_links_to_restocks.php'))->up();
     }
 
