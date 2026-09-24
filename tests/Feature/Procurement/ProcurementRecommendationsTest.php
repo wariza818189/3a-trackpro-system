@@ -92,6 +92,11 @@ final class ProcurementRecommendationsTest extends TestCase
             $table->timestamps();
             $table->unique(['purchase_order_id', 'product_variant_id']);
         });
+        Schema::create('restock_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('purchase_order_item_id')->nullable()->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->decimal('quantity', 14, 3);
+        });
 
         $this->actor = User::factory()->admin()->create();
     }
@@ -188,8 +193,6 @@ final class ProcurementRecommendationsTest extends TestCase
         $closed = $this->purchaseOrder(PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER);
 
         $this->purchaseOrderItem($pending, $variant, '1.125');
-        // Until #26/#27 evidence exists, partially received coverage deliberately
-        // uses the full ordered quantity and therefore may overstate outstanding demand.
         $this->purchaseOrderItem($partiallyReceivedChild, $variant, '2.250');
         $this->purchaseOrderItem($completed, $variant, '10.000');
         $this->purchaseOrderItem($closed, $variant, '20.000');
@@ -225,6 +228,35 @@ final class ProcurementRecommendationsTest extends TestCase
         $this->assertSame('uncovered', $result->coverage_state);
         $this->assertSame([$variant->id], $recommendations->uncovered()->pluck('product_variants.id')->all());
         $this->assertSame([], $recommendations->covered()->pluck('product_variants.id')->all());
+    }
+
+    public function test_accepted_receipts_reduce_open_coverage_without_negative_demand(): void
+    {
+        $variant = $this->variant($this->product($this->category()), [
+            'unit' => 'kg', 'quantity_mode' => 'fractional',
+        ]);
+        $this->initialize($variant);
+        $pending = $this->purchaseOrder(PurchaseOrder::STATUS_PENDING);
+        $partial = $this->purchaseOrder(PurchaseOrder::STATUS_PARTIALLY_RECEIVED);
+        $pendingLine = $this->purchaseOrderItem($pending, $variant, '1.000');
+        $partialLine = $this->purchaseOrderItem($partial, $variant, '0.500');
+
+        foreach ([
+            [$pendingLine->id, '0.125'],
+            [$pendingLine->id, '0.250'],
+            [$partialLine->id, '0.500'],
+            [$partialLine->id, '0.001'],
+        ] as [$lineId, $quantity]) {
+            DB::table('restock_items')->insert([
+                'purchase_order_item_id' => $lineId, 'quantity' => $quantity,
+            ]);
+        }
+
+        $result = app(LowStockPurchaseOrderRecommendations::class)->all()->sole();
+        $this->assertSame('0.625', $result->open_coverage_quantity);
+        $this->assertSame('covered', $result->coverage_state);
+        $this->assertSame('0.625', $pendingLine->outstandingQuantity());
+        $this->assertSame('0.000', $partialLine->outstandingQuantity());
     }
 
     public function test_recommendations_exclude_healthy_variants_but_keep_covered_low_stock_visible(): void

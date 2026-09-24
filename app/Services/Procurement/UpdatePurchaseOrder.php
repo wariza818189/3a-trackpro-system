@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -143,8 +144,16 @@ class UpdatePurchaseOrder
             ->lockForUpdate()
             ->get();
 
-        // #26 must lock and reject accepted receiving, damage, and outgoing
-        // transfer evidence here, after the header/items and before writes.
+        $acceptedReceiving = RestockItem::query()
+            ->whereIn('purchase_order_item_id', $lockedItems->pluck('id'))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first(['id']);
+        if ($acceptedReceiving !== null) {
+            throw ValidationException::withMessages([
+                'purchase_order' => 'A Purchase Order with accepted receiving cannot be edited.',
+            ]);
+        }
 
         $lockedItemIds = $lockedItems->pluck('id')->map(fn ($id): int => (int) $id)->all();
         $lockedVariantIds = $lockedItems->pluck('product_variant_id')

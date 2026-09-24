@@ -79,6 +79,18 @@ abstract class CatalogTestCase extends TestCase
         Schema::create('restock_items', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+            $table->foreignId('purchase_order_item_id')->nullable();
+            $table->decimal('quantity', 14, 3)->default(0);
+        });
+        Schema::create('purchase_orders', function (Blueprint $table): void {
+            $table->id();
+            $table->string('status')->default('pending');
+        });
+        Schema::create('purchase_order_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->restrictOnDelete();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+            $table->decimal('ordered_quantity', 14, 3);
         });
 
         // Opening-inventory behavior scaffolding only. Production StockMovement

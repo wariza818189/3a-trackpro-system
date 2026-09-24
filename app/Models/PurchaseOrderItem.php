@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrderItem extends Model
 {
@@ -35,5 +36,27 @@ class PurchaseOrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    public function restockItems(): HasMany
+    {
+        return $this->hasMany(RestockItem::class, 'purchase_order_item_id');
+    }
+
+    public function acceptedQuantity(): string
+    {
+        $accepted = '0.000';
+        foreach ($this->restockItems()->pluck('quantity') as $quantity) {
+            $accepted = bcadd($accepted, (string) $quantity, 3);
+        }
+
+        return $accepted;
+    }
+
+    public function outstandingQuantity(): string
+    {
+        $outstanding = bcsub((string) $this->ordered_quantity, $this->acceptedQuantity(), 3);
+
+        return bccomp($outstanding, '0.000', 3) > 0 ? $outstanding : '0.000';
     }
 }

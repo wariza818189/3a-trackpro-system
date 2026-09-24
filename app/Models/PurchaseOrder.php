@@ -32,8 +32,7 @@ class PurchaseOrder extends Model
 
     public function isEditable(): bool
     {
-        // Temporary #25D gate. #26 must extend the authoritative update-time
-        // check with locked receiving, damage, and transfer evidence.
+        // The update service also checks accepted receiving evidence under lock.
         return $this->status === self::STATUS_PENDING;
     }
 
@@ -45,6 +44,11 @@ class PurchaseOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseOrderItem::class, 'purchase_order_id');
+    }
+
+    public function restocks(): HasMany
+    {
+        return $this->hasMany(Restock::class, 'purchase_order_id');
     }
 
     public function parent(): BelongsTo

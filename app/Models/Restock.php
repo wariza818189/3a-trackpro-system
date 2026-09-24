@@ -46,4 +46,9 @@ class Restock extends Model
     {
         return $this->hasMany(RestockItem::class, 'restock_id');
     }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
+    }
 }

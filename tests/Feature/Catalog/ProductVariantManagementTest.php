@@ -190,6 +190,81 @@ class ProductVariantManagementTest extends CatalogTestCase
         $this->assertSame(0, DB::table('stock_movements')->count());
     }
 
+    public function test_open_purchase_order_commitment_blocks_archive_but_completed_and_fully_accepted_do_not(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()));
+        $poId = DB::table('purchase_orders')->insertGetId(['status' => 'pending']);
+        $lineId = DB::table('purchase_order_items')->insertGetId([
+            'purchase_order_id' => $poId,
+            'product_variant_id' => $variant->id,
+            'ordered_quantity' => '2.000',
+        ]);
+
+        $this->actingAs($admin)->patch(route('product-variants.archive', $variant))->assertSessionHasErrors('status');
+        $this->assertSame(ProductVariant::STATUS_ACTIVE, $variant->fresh()->status);
+
+        DB::table('restock_items')->insert([
+            'product_variant_id' => $variant->id,
+            'purchase_order_item_id' => $lineId,
+            'quantity' => '1.000',
+        ]);
+        $this->actingAs($admin)->patch(route('product-variants.archive', $variant))->assertSessionHasErrors('status');
+        DB::table('restock_items')->insert([
+            'product_variant_id' => $variant->id,
+            'purchase_order_item_id' => $lineId,
+            'quantity' => '1.000',
+        ]);
+        $this->actingAs($admin)->patch(route('product-variants.archive', $variant))->assertSessionHasNoErrors();
+        $this->assertSame(ProductVariant::STATUS_ARCHIVED, $variant->fresh()->status);
+
+        $other = $this->variant($variant->product, ['size' => 'Other']);
+        $terminalId = DB::table('purchase_orders')->insertGetId(['status' => 'completed']);
+        DB::table('purchase_order_items')->insert([
+            'purchase_order_id' => $terminalId,
+            'product_variant_id' => $other->id,
+            'ordered_quantity' => '3.000',
+        ]);
+        $this->actingAs($admin)->patch(route('product-variants.archive', $other))->assertSessionHasNoErrors();
+        $this->assertSame(ProductVariant::STATUS_ARCHIVED, $other->fresh()->status);
+        $this->assertSame(2, DB::table('purchase_order_items')->count());
+    }
+
+    public function test_purchase_order_history_guards_identity_and_inactive_history_stays_inactive(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $category = $this->category();
+        $product = $this->product($category);
+        $variant = $this->variant($product);
+        $poId = DB::table('purchase_orders')->insertGetId(['status' => 'completed']);
+        DB::table('purchase_order_items')->insert([
+            'purchase_order_id' => $poId,
+            'product_variant_id' => $variant->id,
+            'ordered_quantity' => '1.000',
+        ]);
+
+        foreach ([
+            ['size' => 'Different'], ['type_series' => 'Different'],
+            ['thickness' => 'Different'], ['unit' => 'kg'],
+            ['quantity_mode' => 'fractional'],
+        ] as $change) {
+            $this->actingAs($admin)->patch(
+                route('product-variants.update', $variant),
+                $this->validVariant($change),
+            )->assertSessionHasErrors('size');
+        }
+
+        $this->actingAs($admin)->patch(route('product-variants.archive', $variant))->assertSessionHasNoErrors();
+        $product->status = Product::STATUS_ARCHIVED;
+        $product->save();
+        $category->status = Category::STATUS_ARCHIVED;
+        $category->save();
+        $this->assertSame(ProductVariant::STATUS_ARCHIVED, $variant->fresh()->status);
+        $this->assertSame(Product::STATUS_ARCHIVED, $product->fresh()->status);
+        $this->assertSame(Category::STATUS_ARCHIVED, $category->fresh()->status);
+        $this->assertSame(1, DB::table('purchase_order_items')->where('product_variant_id', $variant->id)->count());
+    }
+
     public function test_reactivation_requires_active_product_and_category(): void
     {
         $admin = User::factory()->admin()->create();

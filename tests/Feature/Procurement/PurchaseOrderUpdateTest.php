@@ -63,6 +63,33 @@ final class PurchaseOrderUpdateTest extends PurchaseOrderCreationTestCase
         }
     }
 
+    public function test_pending_order_with_accepted_receiving_is_frozen_without_partial_mutation(): void
+    {
+        $variant = $this->eligibleVariant();
+        $purchaseOrder = $this->createOrder([$this->line($variant)]);
+        $item = $purchaseOrder->items()->sole();
+        DB::table('restock_items')->insert([
+            'purchase_order_item_id' => $item->id,
+            'quantity' => '1.000',
+        ]);
+
+        $this->assertTrue($purchaseOrder->fresh()->isEditable());
+        $before = $this->storedState($purchaseOrder);
+        $this->assertServiceValidation(
+            fn () => $this->updatePurchaseOrder->execute(
+                $this->admin,
+                $purchaseOrder,
+                $this->updatePurchaseOrder->revision($purchaseOrder),
+                'Changed Supplier',
+                'Changed notes',
+                [$this->line($variant, '3', '30')],
+            ),
+            'purchase_order',
+        );
+        $this->assertSame($before, $this->storedState($purchaseOrder));
+        $this->assertSame(1, DB::table('restock_items')->count());
+    }
+
     public function test_only_persisted_active_admins_may_update_and_creator_remains_immutable(): void
     {
         $variant = $this->eligibleVariant();

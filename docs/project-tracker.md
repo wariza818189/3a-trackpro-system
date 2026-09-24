@@ -78,7 +78,7 @@ follow-up, damage handling, and procurement reporting remain outstanding.
 | INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | In Progress | Working stock movement history | Display stock changes from sales, stock-in, corrections, and sale void restorations with date, quantity, reference, and user. No unified history covers all relevant movement types, references, and users; SALE_VOID restoration remains future. |
 | PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | Admin-only pending Purchase Order creation, list/detail browsing, and pending/no-activity editing are implemented with explicit quantities/costs and immutable snapshots. Receiving, lifecycle transitions, follow-up Purchase Orders, damage handling, and procurement reports remain outstanding. |
 | PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | In Progress | Working prioritized PO-planning list | The authoritative recommendation and open-coverage layer is surfaced in Purchase Order creation; the broader procurement deliverable remains in progress. |
-| PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | Not Started | Working PO receiving workflow | Maps to former #26. Existing legacy Stock In is not PO-based. |
+| PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | In Progress | Working PO receiving workflow | Maps to former #26. #26A schema links, accepted/outstanding coverage, PO edit freeze, and Variant lifecycle foundation are implemented. Receiving service/UI and status lifecycle remain outstanding. Existing legacy Stock In is not PO-based. |
 | PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | Not Started | Working follow-up purchase-order workflow | Maps to former #27. Parent-column foundation alone does not implement transfer semantics. |
 | PROCUREMENT | Damaged Item Recording | Record damaged quantities during PO receiving without adding damaged quantity to sellable stock. | TBD | — | — | Not Started | Working damaged-receiving evidence workflow | Damage is receiving evidence. It must not create a RESTOCK movement or increase sellable stock. |
 | REPORTS | Sales Report | Display sales within a selected date range | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working sales report | Show valid sales and totals for a selected period while handling voided transactions correctly. Completed-only report filtering is implemented and verified. |
@@ -111,8 +111,8 @@ follow-up, damage handling, and procurement reporting remain outstanding.
 ## Status Summary
 
 - Completed: 37
-- In Progress: 15
-- Not Started: 19
+- In Progress: 16
+- Not Started: 18
 - Total: 71
 
 ## Excel Sync

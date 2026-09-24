@@ -91,6 +91,11 @@ abstract class PurchaseOrderCreationTestCase extends TestCase
             $table->timestamps();
             $table->unique(['purchase_order_id', 'product_variant_id']);
         });
+        Schema::create('restock_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('purchase_order_item_id')->nullable()->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->decimal('quantity', 14, 3);
+        });
 
         $this->admin = User::factory()->admin()->create();
     }

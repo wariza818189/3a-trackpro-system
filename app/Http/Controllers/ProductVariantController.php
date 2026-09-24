@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateProductVariantRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Queries\Procurement\PurchaseOrderCoverageQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -120,6 +121,7 @@ class ProductVariantController extends Controller
 
         $hasRestock = $productVariant->restockItems()->exists();
         $identityLocked = $hasRestock
+            || $productVariant->purchaseOrderItems()->exists()
             || $productVariant->saleItems()->exists()
             || $productVariant->stockMovements()->exists()
             || (float) $productVariant->current_stock !== 0.0;
@@ -178,8 +180,11 @@ class ProductVariantController extends Controller
 
     public function archive(ProductVariant $productVariant): RedirectResponse
     {
-        DB::transaction(function () use ($productVariant): void {
-            $productSnapshot = Product::query()->findOrFail($productVariant->product_id);
+        // Resolve the lock plan before the transaction so PO coverage reads a
+        // snapshot taken after the Variant lock, not before it.
+        $productSnapshot = Product::query()->findOrFail($productVariant->product_id);
+
+        DB::transaction(function () use ($productVariant, $productSnapshot): void {
             $category = Category::query()->whereKey($productSnapshot->category_id)->lockForUpdate()->firstOrFail();
             $product = Product::query()->whereKey($productVariant->product_id)->lockForUpdate()->firstOrFail();
             $variant = ProductVariant::query()->lockForUpdate()->findOrFail($productVariant->getKey());
@@ -193,6 +198,12 @@ class ProductVariantController extends Controller
             }
             if ((float) $variant->current_stock > 0.0) {
                 throw ValidationException::withMessages(['status' => 'A variant with stock on hand cannot be archived.']);
+            }
+            if (DB::query()->fromSub(app(PurchaseOrderCoverageQuery::class)->aggregate(), 'po_coverage')
+                ->where('product_variant_id', $variant->getKey())
+                ->where('open_coverage_quantity', '>', 0)
+                ->exists()) {
+                throw ValidationException::withMessages(['status' => 'A variant with an outstanding Purchase Order cannot be archived.']);
             }
 
             $variant->status = ProductVariant::STATUS_ARCHIVED;
@@ -235,7 +246,8 @@ class ProductVariantController extends Controller
 
     private function hasActivity(ProductVariant $variant, bool $hasRestock): bool
     {
-        return $hasRestock || $variant->saleItems()->exists() || $variant->stockMovements()->exists();
+        return $hasRestock || $variant->purchaseOrderItems()->exists()
+            || $variant->saleItems()->exists() || $variant->stockMovements()->exists();
     }
 
     private function throwIfDuplicate(QueryException $exception): void

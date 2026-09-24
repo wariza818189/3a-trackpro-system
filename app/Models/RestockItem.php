@@ -46,6 +46,11 @@ class RestockItem extends Model
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 
+    public function purchaseOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderItem::class, 'purchase_order_item_id');
+    }
+
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'restock_item_id');
