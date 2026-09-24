@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrderItemTransfer;
 use App\Models\Restock;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
@@ -177,6 +178,17 @@ class ReceivePurchaseOrder
             $acceptedByItem[$itemId] = bcadd($acceptedByItem[$itemId] ?? '0.000', (string) $evidence->quantity, 3);
         }
 
+        $outgoingEvidence = PurchaseOrderItemTransfer::query()
+            ->whereIn('source_purchase_order_item_id', $purchaseOrderItems->keys())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['source_purchase_order_item_id', 'quantity']);
+        $transferredByItem = [];
+        foreach ($outgoingEvidence as $evidence) {
+            $itemId = (int) $evidence->source_purchase_order_item_id;
+            $transferredByItem[$itemId] = bcadd($transferredByItem[$itemId] ?? '0.000', (string) $evidence->quantity, 3);
+        }
+
         $tokenRestock = Restock::query()
             ->where('submission_token', $operation['submission_token'])
             ->lockForUpdate()
@@ -196,7 +208,11 @@ class ReceivePurchaseOrder
 
         foreach ($operation['items'] as $purchaseOrderItemId => $itemData) {
             $purchaseOrderItem = $purchaseOrderItems->get($purchaseOrderItemId);
-            $outstanding = bcsub((string) $purchaseOrderItem->ordered_quantity, $acceptedByItem[$purchaseOrderItemId] ?? '0.000', 3);
+            $outstanding = bcsub(
+                bcsub((string) $purchaseOrderItem->ordered_quantity, $acceptedByItem[$purchaseOrderItemId] ?? '0.000', 3),
+                $transferredByItem[$purchaseOrderItemId] ?? '0.000',
+                3,
+            );
             if (bccomp($itemData['quantity'], $outstanding, 3) === 1) {
                 throw ValidationException::withMessages([
                     "items.{$itemData['index']}.accepted_quantity" => 'The accepted quantity exceeds the current outstanding quantity.',
@@ -242,15 +258,22 @@ class ReceivePurchaseOrder
 
         $hasOutstanding = false;
         foreach ($purchaseOrderItems as $purchaseOrderItem) {
-            $accepted = $acceptedByItem[(int) $purchaseOrderItem->getKey()] ?? '0.000';
-            if (bccomp((string) $purchaseOrderItem->ordered_quantity, $accepted, 3) === 1) {
+            $itemId = (int) $purchaseOrderItem->getKey();
+            $outstanding = bcsub(
+                bcsub((string) $purchaseOrderItem->ordered_quantity, $acceptedByItem[$itemId] ?? '0.000', 3),
+                $transferredByItem[$itemId] ?? '0.000',
+                3,
+            );
+            if (bccomp($outstanding, '0.000', 3) === 1) {
                 $hasOutstanding = true;
                 break;
             }
         }
         $purchaseOrder->status = $hasOutstanding
             ? PurchaseOrder::STATUS_PARTIALLY_RECEIVED
-            : PurchaseOrder::STATUS_COMPLETED;
+            : ($outgoingEvidence->isNotEmpty()
+                ? PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER
+                : PurchaseOrder::STATUS_COMPLETED);
         $purchaseOrder->save();
 
         return $restock;

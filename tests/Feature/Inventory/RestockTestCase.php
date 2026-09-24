@@ -49,6 +49,7 @@ abstract class RestockTestCase extends TestCase
         });
         Schema::create('purchase_orders', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('parent_purchase_order_id')->nullable()->constrained('purchase_orders')->restrictOnDelete()->restrictOnUpdate();
             $table->uuid('submission_token')->unique();
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
             $table->string('supplier_name', 150);

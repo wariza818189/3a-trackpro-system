@@ -7,10 +7,12 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrderItemTransfer;
 use App\Models\Restock;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Services\Procurement\CreateFollowUpPurchaseOrder;
 use App\Services\Procurement\ReceivePurchaseOrder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +122,109 @@ final class ReceivePurchaseOrderTest extends RestockTestCase
         $this->assertCount(2, $second->items);
         $this->assertSame(PurchaseOrder::STATUS_COMPLETED, $purchaseOrder->fresh()->status);
         $this->assertSame(['4.000', '1.250'], [$whole->fresh()->current_stock, $fractional->fresh()->current_stock]);
+    }
+
+    public function test_transfer_removes_source_receiving_quantity_and_final_other_line_receipt_closes_with_remainder(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $firstVariant = $this->variant($product, ['size' => 'First']);
+        $secondVariant = $this->variant($product, ['size' => 'Second']);
+        $this->initialize($firstVariant, $actor);
+        $this->initialize($secondVariant, $actor);
+        [$source, $items] = $this->purchaseOrder($actor, [
+            [$firstVariant, '3.000', '10.00'],
+            [$secondVariant, '2.000', '11.00'],
+        ]);
+        $child = app(CreateFollowUpPurchaseOrder::class)->execute(
+            $actor,
+            $source,
+            Str::uuid()->toString(),
+            'Replacement Supplier',
+            null,
+            [['source_purchase_order_item_id' => $items[0]->id, 'expected_unit_cost' => '12.00']],
+        );
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $source->fresh()->status);
+        $this->assertSame('3.000', PurchaseOrderItemTransfer::query()->sole()->quantity);
+        $this->assertSame('0.000', $items[0]->outstandingQuantity());
+
+        $this->assertValidation(fn () => $this->receive($actor, $source, [$this->line($items[0], '0.001', '15.00')]), 'items.0.accepted_quantity');
+        $this->assertValidation(fn () => $this->receive($actor, $source, [$this->line($items[1], '2.001', '15.00')]), 'items.0.accepted_quantity');
+        $this->assertSame(0, Restock::query()->count());
+        $this->assertSame('0.000', $firstVariant->fresh()->current_stock);
+
+        $token = Str::uuid()->toString();
+        $line = [$this->line($items[1], '2.000', '15.00')];
+        $receipt = $this->receive($actor, $source, $line, $token);
+        $this->assertSame(PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER, $source->fresh()->status);
+        $replay = $this->receive($actor, $source, $line, strtoupper($token));
+        $this->assertSame($receipt->id, $replay->id);
+        $this->assertSame(1, Restock::query()->count());
+
+        $childLine = $child->items()->sole();
+        $this->receive($actor, $child, [$this->line($childLine, '3.000', '16.00')]);
+        $this->assertSame(PurchaseOrder::STATUS_COMPLETED, $child->fresh()->status);
+        $this->assertSame('3.000', $firstVariant->fresh()->current_stock);
+        $this->assertSame('2.000', $secondVariant->fresh()->current_stock);
+    }
+
+    public function test_prior_accepted_plus_transferred_quantity_limits_source_receiving(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $firstVariant = $this->variant($product, ['size' => 'First']);
+        $secondVariant = $this->variant($product, ['size' => 'Second']);
+        $this->initialize($firstVariant, $actor);
+        $this->initialize($secondVariant, $actor);
+        [$source, $items] = $this->purchaseOrder($actor, [
+            [$firstVariant, '3.000', '10.00'],
+            [$secondVariant, '1.000', '11.00'],
+        ]);
+        $this->receive($actor, $source, [$this->line($items[0], '1.000', '12.00')]);
+        $child = app(CreateFollowUpPurchaseOrder::class)->execute(
+            $actor,
+            $source,
+            Str::uuid()->toString(),
+            'Replacement Supplier',
+            null,
+            [['source_purchase_order_item_id' => $items[0]->id, 'expected_unit_cost' => '12.00']],
+        );
+        $this->assertSame('1.000', $items[0]->acceptedQuantity());
+        $this->assertSame('2.000', PurchaseOrderItemTransfer::query()->sole()->quantity);
+        $this->assertSame('0.000', $items[0]->outstandingQuantity());
+        $this->assertValidation(fn () => $this->receive($actor, $source, [$this->line($items[0], '0.001', '13.00')]), 'items.0.accepted_quantity');
+        $this->assertSame(1, Restock::query()->count());
+
+        $this->receive($actor, $source, [$this->line($items[1], '1.000', '13.00')]);
+        $this->assertSame(PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER, $source->fresh()->status);
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $child->fresh()->status);
+    }
+
+    public function test_follow_up_child_with_its_own_outgoing_transfer_closes_after_other_line_is_received(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $firstVariant = $this->variant($product, ['size' => 'First']);
+        $secondVariant = $this->variant($product, ['size' => 'Second']);
+        $this->initialize($firstVariant, $actor);
+        $this->initialize($secondVariant, $actor);
+        [$source, $items] = $this->purchaseOrder($actor, [
+            [$firstVariant, '2.000', '10.00'],
+            [$secondVariant, '1.000', '11.00'],
+        ]);
+        $service = app(CreateFollowUpPurchaseOrder::class);
+        $child = $service->execute($actor, $source, Str::uuid()->toString(), 'Supplier', null, [
+            ['source_purchase_order_item_id' => $items[0]->id, 'expected_unit_cost' => '12.00'],
+            ['source_purchase_order_item_id' => $items[1]->id, 'expected_unit_cost' => '13.00'],
+        ]);
+        $childItems = $child->items()->orderBy('id')->get();
+        $service->execute($actor, $child, Str::uuid()->toString(), 'Next Supplier', null, [
+            ['source_purchase_order_item_id' => $childItems[0]->id, 'expected_unit_cost' => '14.00'],
+        ]);
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $child->fresh()->status);
+
+        $this->receive($actor, $child, [$this->line($childItems[1], '1.000', '15.00')]);
+        $this->assertSame(PurchaseOrder::STATUS_CLOSED_WITH_REMAINDER, $child->fresh()->status);
     }
 
     public function test_invalid_receipt_shapes_and_domain_values_are_rejected_without_mutation(): void
