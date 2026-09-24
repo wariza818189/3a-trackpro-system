@@ -1,10 +1,10 @@
 # Stage 1 — Schema and model foundation
 
-Status: the existing repository schema is implemented and live-verified on MySQL 8.0.46. Separate least-privilege local and destructive-test databases are configured through ignored environment files. All ten existing application migrations are applied locally; no seeder or client catalog import was run. The Phase A teacher-expansion design below is an approved additive target only: no corresponding migrations or application implementation exist yet. This document supersedes the earlier Stage 1A proposal where they differ.
+Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, and #26 PO receiving schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The remaining #27–#30 damage, transfer, and procurement-report design below is planned, not implemented. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
 
 ## Scope and conventions
 
-The implemented baseline has ten domain tables plus Laravel's migrations bookkeeping table. The approved additive target introduces five more domain tables and nullable legacy-compatible foreign keys on three existing transaction tables. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; other records have a nullable `timestamp('created_at')` populated by Eloquent and `UPDATED_AT = null`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
+The implemented schema has thirteen domain tables plus Laravel's migrations bookkeeping table, including the register and Purchase Order tables. The remaining approved additive design includes damage and transfer evidence tables. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; other records have a nullable `timestamp('created_at')` populated by Eloquent and `UPDATED_AT = null`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
 
 All tables use auto-increment unsigned BIGINT primary keys. All foreign keys are ordinary unsigned BIGINT keys with RESTRICT on delete and update. No cascading deletes or generated columns exist. Names/identity strings use the configured case-insensitive database collation; live uniqueness behavior was verified on MySQL.
 
@@ -69,7 +69,7 @@ All quantities use DECIMAL(14,3). Whole-unit rules and rejection of inputs excee
 - reference_text TEXT nullable; notes TEXT nullable; total_cost DECIMAL(16,2); created_at.
 - INDEX(recorded_by, created_at); INDEX(created_at); CHECK total_cost >= 0.
 - `restockNumber()` derives RST-000123 from the ID. Reference is plain text, with no supplier relationship/table.
-- Phase A additive target: nullable `purchase_order_id` FK for historical compatibility, indexed with `created_at`. New regular receiving requires a PO at the application level; existing Restocks remain valid and are not backfilled.
+- Implemented #26A: nullable unsigned BIGINT `purchase_order_id` FK to `purchase_orders.id`, with a supporting index and RESTRICT update/delete. Legacy manual Stock In Restocks remain valid with a NULL PO link; historical rows are not backfilled. New PO-based receipts carry a PO link.
 
 ### restock_items
 
@@ -78,7 +78,7 @@ All quantities use DECIMAL(14,3). Whole-unit rules and rejection of inputs excee
 - quantity DECIMAL(14,3); unit_cost DECIMAL(12,2); line_total DECIMAL(16,2); created_at.
 - UNIQUE(restock_id, product_variant_id): one actual cost per variant per restock document.
 - CHECK: positive quantity; nonnegative cost; line total = ROUND(quantity * unit_cost, 2).
-- Phase A additive target: nullable `purchase_order_item_id` FK for historical compatibility, with an index supporting accepted-quantity aggregation. New accepted PO receiving lines require this relationship at the application level; existing RestockItems are not backfilled.
+- Implemented #26A: nullable unsigned BIGINT `purchase_order_item_id` FK to `purchase_order_items.id`, with a supporting index and RESTRICT update/delete. Legacy RestockItems remain valid with a NULL PO item link; historical rows are not backfilled. Accepted quantity is derived from linked RestockItems.
 
 ### stock_movements
 
@@ -107,9 +107,9 @@ All quantities use DECIMAL(14,3). Whole-unit rules and rejection of inputs excee
 
 Foreign key columns are indexed by Laravel/MySQL as required, in addition to the indexes listed above.
 
-## Phase A additive target tables
+## Phase A additive schema and implementation status
 
-The following target tables record the approved design for tracker tasks #24–#30. They are not present in the current schema and no migration has been created.
+The register and Purchase Order tables below are implemented for #24–#26. Damage and transfer tables remain planned for #27–#30 and are not present in the current schema.
 
 ### cash_register_sessions
 
@@ -164,18 +164,18 @@ The following target tables record the approved design for tracker tasks #24–#
 
 - A CashRegisterSession belongs to its opening User and optional closing User and has many legacy-nullable Sales. The browser never selects the authoritative session ID.
 - A PurchaseOrder belongs to its creator, has many items and Restocks, and may belong to a parent PurchaseOrder. Parent relationships may form follow-up chains but must remain acyclic. The future #27 transactional service uses authoritative locking/current reads to reject direct self-parenting, ancestor/descendant cycles, and invalid follow-up-parent semantics.
-- A PurchaseOrderItem belongs to a Variant, has accepted RestockItems, damage details, and at most one outgoing transfer. Transfer records connect one source item to one target follow-up item.
-- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems and RestockDamageItems belong to the same PO and matching PO items/Variants.
-- PO status is stored for efficient filtering but must be recalculated and validated from authoritative receiving and transfer evidence in the same transaction whenever that evidence changes.
+- A PurchaseOrderItem belongs to a Variant and has accepted RestockItems. Damage details and outgoing transfers are planned extensions; transfer records would connect one source item to one target follow-up item.
+- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems belong to the same PO and matching PO item/Variant through the #26 links. RestockDamageItems remain planned.
+- PO status is stored for efficient filtering. Current #26 status is recalculated from accepted receiving evidence in the same transaction; future transfer/damage evidence will extend those calculations.
 
 For each PO item:
 
 - `accepted_qty = SUM(PO-linked RestockItem.quantity)`
-- `damaged_qty = SUM(RestockDamageItem.damaged_quantity)`
-- `transferred_qty = SUM(outgoing PurchaseOrderItemTransfer.quantity)`
-- `open_outstanding_qty = ordered_quantity - accepted_qty - transferred_qty`
+- Current #26 outstanding: `outstanding_qty = ordered_quantity - accepted_qty`.
+- Future #27 transfer extension: `open_outstanding_qty = ordered_quantity - accepted_qty - transferred_qty`.
+- Future #30 damage evidence is tracked separately and does not increase sellable stock.
 
-Damage is delivery-condition evidence and does not reduce outstanding quantity. `pending` means the PO has no accepted or damaged receiving activity and no outgoing transfer activity. An incoming transfer is lineage evidence that establishes a target follow-up item's ordered demand; it does not disqualify that target PO from `pending`. `partially_received` means accepted/damaged receiving or outgoing transfer activity exists while open outstanding remains. `completed` means every ordered quantity was accepted. `closed_with_remainder` means no open outstanding remains and at least some remainder was transferred out rather than accepted. `completed` and `closed_with_remainder` are terminal for receiving and PO editing.
+In #26, `pending` means no accepted receiving activity exists; `partially_received` means accepted quantity exists while outstanding remains; `completed` means all ordered quantity was accepted. Follow-up transfer, damage-driven states, and `closed_with_remainder` are future #27/#30 behavior. Completed POs are terminal for receiving and editing.
 
 A `pending` PO may be edited by Admin before activity begins. Its creator,
 supplier snapshot, item Variant/identity/unit snapshots, ordered quantities, and
@@ -192,11 +192,11 @@ PO line activity is history-sensitive Variant evidence. Once identity preservati
 - Checkout locks/validates the active CashRegisterSession along with its existing deterministic catalog locks and writes the session FK from server-authoritative state. Close Register must lock the active session so checkout-versus-close has a serialized outcome: either the Sale commits against the still-open session, or checkout fails because the session closed first.
 - Active Admin and Staff may open. Staff may close only the session they opened; Admin may close any active session. No reconciliation, closing amount, cash-in/out, expense, shortage/overage, or shift fields are part of this design.
 - Opening cash is excluded from Sale totals, Dashboard sales totals, and Sales Summary calculations. Receipt/history need not display register-session details in this version.
-- Admin creates and edits pending POs and creates follow-ups. Admin and Staff may receive against nonterminal POs. Staff-facing PO/receiving queries must not expose protected expected or actual purchase costs.
-- PO receiving reuses the existing transactional Restock/RestockItem/RESTOCK movement engine. `RestockItem.quantity` remains accepted sellable quantity; only it increases `current_stock`, updates latest received cost, and creates one RESTOCK movement. Damage creates no StockMovement type or ledger row.
+- Admin creates and edits pending POs. Admin and Staff may receive against eligible open POs. Staff-facing PO/receiving queries redact expected and prior actual purchase costs while allowing entry of a new actual cost. Follow-up creation remains planned.
+- Implemented #26 PO receiving reuses the transactional Restock/RestockItem/RESTOCK movement engine. `RestockItem.quantity` is accepted sellable quantity; only it increases `current_stock`, updates latest received cost, and creates one RESTOCK movement. Damage evidence is not implemented.
 - Actual receiving `unit_cost` is immutable RestockItem evidence distinct from expected PO cost. A cost difference never rewrites the PO item.
-- Inventory-mutating PO receiving extends the existing global lock order: relevant Categories in stable ascending-ID order, relevant Products in stable ascending-ID order, relevant ProductVariants in stable ascending-ID order, the PurchaseOrder header, relevant PurchaseOrderItems in stable ascending-ID order, then authoritative accepted/damage/transfer evidence as necessary before Restock, RestockItem, damage, movement, stock, and PO-status writes. This preserves Category → Product → ProductVariant ordering and serializes receive-versus-receive and receive-versus-follow-up without a PO → Variant inversion. All authoritative limits use locking/current reads under MySQL REPEATABLE READ.
-- Over-receiving is rejected against `ordered_quantity - accepted_qty - transferred_qty`. Durable submission tokens and atomic transactions prevent duplicate Restocks and partial effects. Follow-up transfer records its evidence and target PO/items atomically under the PO-relative locks described below.
+- Implemented PO receiving locks Categories, Products, and ProductVariants in stable ascending-ID order, then the PurchaseOrder header, PurchaseOrderItems, and authoritative accepted evidence before writing receipt, item, movement, stock, and PO status. Limits use locking/current reads under MySQL REPEATABLE READ. Guarded #26D tests verified receive-versus-receive, receive-versus-edit, receive-versus-legacy-Stock-In, overlapping Variant sets, and equivalent-token replay.
+- #26 over-receiving is rejected against `ordered_quantity - accepted_qty`. Durable submission tokens and atomic transactions prevent duplicate Restocks and partial effects. Follow-up transfer records and its PO-relative lock rules remain planned for #27.
 - Follow-up transfers that do not mutate inventory lock the relevant PO headers and PO items in the same stable PO-relative order and do not introduce a reverse Variant/PO dependency.
 - Catalog lifecycle operations that require PO-history locks preserve the same global Category → Product → ProductVariant → PurchaseOrder → PurchaseOrderItem order, then recheck procurement evidence so identity or archive transitions cannot race a receipt or transfer.
 
@@ -226,9 +226,9 @@ These reports add no reporting tables, cached totals, export schema, or write be
 2. Add nullable `sales.cash_register_session_id` and its FK/index; do not backfill historical Sales.
 3. Create `purchase_orders`, initially without the self-parent FK if required by migration tooling, then create `purchase_order_items`.
 4. Add the nullable `purchase_orders.parent_purchase_order_id` self-FK/index.
-5. Add nullable `restocks.purchase_order_id` and `restock_items.purchase_order_item_id` with FKs/indexes; do not backfill historical rows.
-6. Create `restock_damage_items`.
-7. Create `purchase_order_item_transfers` after both source and target PO item relationships exist.
+5. Add nullable `restocks.purchase_order_id` and `restock_items.purchase_order_item_id` with FKs/indexes; implemented for #26 without backfilling historical rows.
+6. Create `restock_damage_items` for planned #30 damage evidence.
+7. Create `purchase_order_item_transfers` for planned #27 follow-up POs after source and target PO item relationships exist.
 
 MySQL requires compatible unsigned types and supporting indexes for every FK. ENUM changes are migration-sensitive; application and database status values must be deployed together. Cross-row totals, complete-remainder transfer, acyclic follow-up chains, and status/evidence agreement cannot be enforced by ordinary row-local CHECK constraints and therefore require transactional services and focused MySQL concurrency tests during implementation.
 
@@ -288,10 +288,11 @@ Names and identity fields are trimmed and have internal whitespace collapsed bef
 
 Category archive is blocked by active Products. Product archive is blocked by active Variants, and category moves are blocked by any Variant history or nonzero stock. Variant identity/unit/quantity mode are frozen after any sale item, restock item, stock movement, or nonzero stock. Cost price is editable until the first restock item; later restock workflows own its updates. Variants with positive stock cannot be archived. Reactivation requires active parents. These cross-record transitions use short transactions and Category → Product → Product Variant lock ordering.
 
-The Phase A target extends this history-sensitive lifecycle to PO item activity.
-Identity, unit, and quantity mode must remain frozen once procurement evidence
-requires its snapshots, and lifecycle changes must preserve valid open-PO
-receiving as described above. This extension is not implemented yet.
+Implemented #26A extends this history-sensitive lifecycle to PO item activity.
+Identity, unit, and quantity mode remain frozen where PO evidence depends on
+their snapshots, and lifecycle changes preserve valid open-PO receiving.
+Inactive historical PO lines remain historical and require reactivation of a
+valid Category → Product → Variant hierarchy before future receiving.
 
 `current_stock` and catalog `status` are excluded from ordinary model mass assignment. FormRequests prohibit submitted stock, status, and route-owned parent identifiers. Trusted controller code assigns lifecycle status explicitly. Variant creation relies on the `0.000` stock default and Stage 3A never writes `stock_movements`.
 
