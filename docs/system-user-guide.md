@@ -424,6 +424,14 @@ Current reports are:
 
 - **Sales Summary** — completed sales within a selected date range, optionally
   filtered by cashier.
+- **Low Stock Report** — active-hierarchy Product Variants with current stock
+  at or below their configured low-stock threshold. The report shows one row
+  per Variant with Category, Product, size, type/series, thickness, unit,
+  current stock, threshold, and stock state. Zero stock is included and labeled
+  **Out of stock**; other qualifying rows are labeled **Low stock**. The
+  report uses the active Category → Product → Variant hierarchy and does not
+  require inventory initialization. It has no filters or pagination and shows
+  no cost, procurement coverage, or Product-level or cross-unit total.
 - **Pending Purchase Orders Report** — open orders that currently have
   outstanding demand.
 - **Unfulfilled Items Report** — individual PO lines that remain unfulfilled,
@@ -440,6 +448,9 @@ The Damaged Items Report does not combine rows by Variant, does not show a
 global quantity total across different units, and provides no date, actor, or
 receipt filter. Damaged receiving remains visible operationally in PO history
 for Admin and Staff; the dedicated report is available only to Admin.
+
+Reports are Admin-only. Staff can still see permitted stock information in
+operational Dashboard and catalog screens, but cannot access this report.
 
 For the **Sales Summary**:
 
@@ -462,10 +473,10 @@ The Sales Summary contains:
 Only completed Sales contribute. Reports do not calculate profit, cost of goods
 sold, or inventory valuation.
 
-Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are not
-currently implemented. Catalog and dashboard views may show current stock or
-low-stock information, and Stock In history is available operationally, but
-these do not replace those dedicated reports.
+Dedicated Product Sales, Inventory, and Restocking reports are not currently
+implemented. Catalog and dashboard views may show current stock, and Stock In
+history is available operationally, but these do not replace those dedicated
+reports.
 
 ## 15. Windows and Classroom Demo Data
 
@@ -577,7 +588,7 @@ The current interface does not provide:
 - Sale Void or `SALE_VOID` stock restoration.
 - A unified inventory Movement History or Recent Stock Activity dashboard.
 - A populated general AuditLog workflow or Audit Viewer/filter screen.
-- Dedicated Product Sales, Inventory, Low Stock, or Restocking reports.
+- Dedicated Product Sales, Inventory, or Restocking reports.
 - Unit conversion.
 - Multiple store locations.
 - Cost-of-goods-sold, profit, or inventory-valuation reports.
@@ -606,8 +617,8 @@ Suggested evidence:
 8. Purchase Orders list, create/edit screen, and order detail.
 9. PO receiving screen showing accepted quantity and damaged quantity/note.
 10. Follow-up PO screen and its source/child context.
-11. Reports index, Sales Summary, Pending Purchase Orders, Unfulfilled Items,
-    and Damaged Items reports.
+11. Reports index, Sales Summary, Low Stock Report, Pending Purchase Orders,
+    Unfulfilled Items, and Damaged Items reports.
 12. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions

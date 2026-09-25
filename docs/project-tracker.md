@@ -88,7 +88,7 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 | REPORTS | Sales Report | Display sales within a selected date range | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working sales report | Show valid sales and totals for a selected period while handling voided transactions correctly. Completed-only report filtering is implemented and verified. |
 | REPORTS | Product Sales | Display sales grouped by product | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working product sales report | Summarize quantities sold and sales amounts by product or variant for the selected reporting period. Existing reporting does not yet provide the required Product/Variant-grouped quantity and sales-amount report. |
 | REPORTS | Inventory Report | Display current inventory status | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working inventory report | Show current stock quantities, units, categories, and stock status using current inventory data. Operational inventory data exists, but the dedicated report surface remains incomplete. |
-| REPORTS | Low Stock Report | Display products at or below stock threshold | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | In Progress | Working low-stock report | Report active products or variants requiring attention based on their configured low-stock threshold. Operational low-stock data exists, but the dedicated report surface remains incomplete. |
+| REPORTS | Low Stock Report | Display products at or below stock threshold | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | Completed | Working low-stock report | Dedicated Admin-only read-only report shows one row per active-hierarchy ProductVariant at or below its configured threshold, including current stock, threshold, and stock state. Zero-stock Variants are included; initialization and procurement coverage are not required. |
 | REPORTS | Restocking Report | Display historical stock-in records | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | In Progress | Working restocking report | Show stock-in history including product or variant, quantity, historical purchase cost, date, and responsible user. Operational Stock In history exists, but the dedicated report surface remains incomplete. |
 | REPORTS | Pending Purchase Orders | Display pending/open purchase orders and their remaining outstanding demand. | TBD | — | — | Completed | Working pending-purchase-orders report | Maps to former #28 / expansion item #6. Admin-only, GET-only monitoring report includes pending or partially_received POs only when authoritative accepted and transfer evidence yields positive outstanding demand. |
 | REPORTS | Unfulfilled Items | Display purchase-order items with remaining unfulfilled quantities. | TBD | — | — | Completed | Working unfulfilled-items report | Maps to former #29 / expansion item #7. Admin-only, GET-only line report shows each positive-outstanding PO item independently with historical snapshot identity and accepted/transfer-aware quantities. |
@@ -114,8 +114,8 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 
 ## Status Summary
 
-- Completed: 47
-- In Progress: 11
+- Completed: 48
+- In Progress: 10
 - Not Started: 13
 - Total: 71
 

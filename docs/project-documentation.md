@@ -53,6 +53,7 @@ The current system includes the following implemented areas:
 - one global cash-register session that can be opened and closed within the approved single-register scope;
 - Sales History and a printable receipt/reprint page based on historical sale data;
 - an Admin-only Sales Summary with date and cashier filters;
+- an Admin-only, read-only Low Stock Report with one row per active-hierarchy ProductVariant at or below its configured stock threshold;
 - responsive navigation and layouts for the main authenticated screens;
 - low-stock procurement recommendations that separate uncovered demand from items already covered by an open Purchase Order;
 - Admin-only Purchase Order creation with supplier text, ordered quantities, expected unit costs, and duplicate-submission protection;
@@ -66,7 +67,7 @@ The current system includes the following implemented areas:
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- dedicated product-sales, inventory, low-stock, and restocking report areas that go beyond the current operational screens;
+- dedicated product-sales, inventory, and restocking report areas that go beyond the current operational screens;
 - Sale Void and its stock-restoration workflow;
 - User Management screens for creating, editing, disabling, viewing, and searching users;
 - audit logging across workflows and an audit-trail viewer/filter interface;
@@ -376,6 +377,8 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 **Implemented core with existing test evidence:** Authentication and authorization, catalog management, Opening Inventory, Stock In, Stock Correction, cash POS, register open/close behavior, Sales History, receipt/reprint, Dashboard, Sales Summary, and responsive navigation have implementation and test evidence. Saved transaction details, system-calculated values, and inventory movement recording are built into these workflows.
 
 **Current Product Search state:** The existing searchable Product listing opens a dedicated read-only Product detail page. Admin can inspect active and archived Products and Variants; Staff is limited to an active Product and Category hierarchy and active Variants, with hidden Product URLs returning 404. The page shows Product identity/status and each permitted Variant's selling price, stock, threshold, and derived stock state separately, without cost or a Product-level stock sum. No schema change or new mutation route was needed. Current engineering verification passed Product detail (9 tests / 61 assertions), Catalog authorization (4 / 43), Catalog route security (5 / 135), Product management (7 / 41), Product Variant management (15 / 126), and the full ordinary SQLite suite (455 / 4,688). Rendering 12 Variants used no more than six SELECTs and no database writes. The frontend build, targeted Pint, and `git diff --check` passed. MySQL was not run for this detail-page implementation. These are current engineering checks, separate from historical teacher/manual testing, FT15, and paused FT17 records.
+
+**Current Low Stock Report state:** The Admin-only, read-only Reports page returns one row per active Variant under an active Product and Category when `current_stock <= low_stock_threshold`. Zero-stock Variants remain eligible, and inventory initialization is not required. The report shows each Variant's Category, Product, identity, unit, current stock, threshold, and stock state, with no Product-level or cross-unit quantity total and no procurement/open-PO coverage. It requires no schema or migration change. Current engineering verification passed the focused Low Stock Report suite (5 tests / 64 assertions), Reports authorization (5 / 23), generic Reports (6 / 77), Dashboard (7 / 43), Product Variant management (15 / 126), and the full ordinary SQLite suite (460 / 4,752). The report rendered 12 Variants with at most six SELECTs and no database writes. `npm run build`, targeted Pint, and `git diff --check` passed; MySQL was not run. These are current engineering checks, separate from historical teacher/manual results, FT15, and paused FT17 records.
 
 **Implemented but needing additional testing:** The register feature has focused application and MySQL-specific evidence but no consolidated result summary. The expanded formal case catalog and consolidated execution record still need completion. Purchase Order edit-versus-edit behavior also needs its own simultaneous-update verification.
 
