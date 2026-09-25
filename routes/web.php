@@ -16,6 +16,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseOrderFollowUpController;
 use App\Http\Controllers\PurchaseOrderReceivingController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\RestockingReportController;
 use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
@@ -52,6 +53,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('/reports/inventory', [InventoryReportController::class, 'index'])->name('reports.inventory');
         Route::get('/reports/low-stock', [LowStockReportController::class, 'index'])->name('reports.low-stock');
+        Route::get('/reports/restocking', [RestockingReportController::class, 'index'])->name('reports.restocking');
         Route::get('/reports/pending-purchase-orders', [PendingPurchaseOrdersReportController::class, 'index'])->name('reports.pending-purchase-orders');
         Route::get('/reports/unfulfilled-items', [UnfulfilledItemsReportController::class, 'index'])->name('reports.unfulfilled-items');
         Route::get('/reports/damaged-items', [DamagedItemsReportController::class, 'index'])->name('reports.damaged-items');
