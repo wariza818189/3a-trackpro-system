@@ -116,8 +116,8 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-STOCKIN-03 | Preserve historical actual received cost. | Admin, Staff | Actual cost is immutable on each RestockItem; later receipts and actual cost do not rewrite expected PO cost. | Implemented for legacy and PO receiving; #14/#26 |
 | FR-STOCKIN-04 | Maintain the latest accepted received-cost reference. | Admin, Staff | Successful accepted receiving updates the Variant reference to actual received cost; damage-only receipt does not change cost. | Implemented for accepted and damage-only PO receiving; #14/#26/#30 |
 | FR-STOCKIN-05 | Record receiving movement evidence. | Admin, Staff | Each accepted RestockItem has one RESTOCK movement; damage-only lines create no StockMovement. | Implemented for accepted and damaged PO receiving; #14/#26/#30 |
-| FR-PO-01 | **Teacher-requested:** Create Purchase Orders. | Admin | Admin can create and edit a pending PO with required historical supplier text, Variant lines, quantities, and expected costs before activity; accepted receiving, damaged receiving, or outgoing transfer activity freezes protected fields. | Planned; #25 |
-| FR-PO-02 | **Teacher-requested:** Prioritize/recommend low-stock items for PO creation. | Admin | Active initialized low-stock Variants without open coverage appear first; already-covered low-stock Variants remain visible/searchable with their open quantity; no reorder quantity is invented. | Planned; #25 |
+| FR-PO-01 | **Teacher-requested:** Create Purchase Orders. | Admin | Admin can create and edit a pending PO with required historical supplier text, Variant lines, quantities, and expected costs before activity; accepted receiving, damaged receiving, or outgoing transfer activity freezes protected fields. | Implemented; #25 |
+| FR-PO-02 | **Teacher-requested:** Prioritize/recommend low-stock items for PO creation. | Admin | Active initialized low-stock Variants without open coverage appear first; already-covered low-stock Variants remain visible/searchable with their open quantity; no reorder quantity is invented. | Implemented; #25 |
 | FR-RECV-01 | **Teacher-requested:** Receive inventory from a PO and support partial delivery. | Admin, Staff | A new receipt references a PO and may accept less than a line's open outstanding quantity while preserving remaining demand; Admin can view expected/prior actual costs and Staff can enter a new actual cost without viewing protected costs. | Implemented; #26A–#26C |
 | FR-RECV-02 | **Derived:** Increase sellable stock only for accepted quantity. | Admin, Staff | Accepted quantity alone updates current stock, latest received cost, and RESTOCK movement evidence. | Implemented atomically with linked receipt evidence; #26B |
 | FR-RECV-03 | **Derived:** Preserve auditable damaged receiving evidence without a stock increase. | Admin, Staff | Damage, including damage-only receiving, records positive DECIMAL(14,3) quantity, required normalized note, and historical snapshots; actor/receipt/time context comes through Restock, PO context through PurchaseOrderItem. Damage creates no stock or cost change or StockMovement and remains outstanding. | Implemented; immutable `RestockDamageItem` under the existing Restock token; #30A–#30D |
@@ -127,7 +127,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-CORR-01 | Restrict stock correction to Admin. | Admin | Staff direct requests are forbidden. | Implemented; #14 |
 | FR-CORR-02 | Require a physical target and reason for correction. | Admin | An eligible nonnegative target and nonblank reason are required. | Implemented; #14 |
 | FR-CORR-03 | Reject stale and no-op corrections. | Admin | Intervening movement invalidates the form; unchanged targets cause no write. | Implemented; #14 |
-| FR-CORR-04 | Correct quantity with movement evidence only. | Admin | Stock changes with one CORRECTION movement; cost stays unchanged. | Implemented; #14 |
+| FR-CORR-04 | Correct quantity with movement evidence only. | Admin | Stock changes with one CORRECTION movement; cost stays unchanged. | Implemented; immutable CORRECTION StockMovement is the required correction evidence; #14 |
 | FR-REG-01 | **Teacher-requested:** Record a starting cash box/opening register amount. | Admin, Staff | Either role can open the single register with a nonnegative amount, including zero. | Planned; #24 |
 | FR-REG-02 | **Derived:** Enforce at most one active register session and provide minimal closure. | Admin, Staff | Concurrent opens cannot create two active sessions; Staff may close their own session and Admin may close any session without reconciliation. | Planned; #24 |
 | FR-REG-03 | **Derived:** Require and retain the authoritative active register relationship for new Sales. | Admin, Staff | New checkout is blocked without an active session; the server selects and locks it; legacy Sales may have no session link. | Planned; #24 |
@@ -252,13 +252,12 @@ boundaries; requirement acceptance concerns their resulting values and access.
 - Admin follow-up POs for selected lines at full current outstanding quantity,
   with source/child lineage, immutable transfer evidence, idempotent replay, and
   no inventory effect.
+- Admin-only #28 Pending Purchase Orders, #29 Unfulfilled Items, and #31
+  Damaged Items reports; #30 damaged receiving is described above.
 - Responsive navigation, shared Dashboard, and Admin Sales Summary Reports.
 
 ### Planned current-project future work
 
-- #27 follow-up POs, the #28 Pending Purchase Orders report, the #29
-  Unfulfilled Items report, #30 damaged receiving, and the #31 Damaged Items
-  Report are implemented.
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
 - User Management UI.
 - Final integration and remaining testing, documentation, and presentation work.

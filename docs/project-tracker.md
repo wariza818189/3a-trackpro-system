@@ -14,7 +14,7 @@ project status.
 
 ## Current Focus
 
-Current development focus: **Purchase Order management and Low-Stock Prioritization (former #25)**
+Current development focus: **Final integration, remaining testing, documentation, and presentation preparation**
 
 Status: **In Progress**
 
@@ -77,11 +77,11 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 | SALES HISTORY | Void | Void an existing sale with authorization | ROBERT JAMES WARIZA | 10/07/2026 | 10/08/2026 | Not Started | Working controlled sale void feature | Restrict voiding, require a reason, preserve the original sale, restore applicable stock, log movements/audit records, and prevent double voiding. The SALE_VOID workflow remains unimplemented. |
 | INVENTORY | View Stock | Display current product stock | Rommel Jave Casipong | 09/29/2026 | 10/01/2026 | Completed | Working inventory stock view | Display current stock per product or variant together with unit, threshold, and stock status. Implemented and verified. |
 | INVENTORY | Stock-In | Add or restock product quantities | ROBERT JAMES WARIZA | 10/06/2026 | 10/09/2026 | Completed | Working stock-in feature | Record restocked quantities and historical purchase cost, increase inventory, and create stock movement records. Implemented and verified for the legacy Stock In workflow. |
-| INVENTORY | Stock Correction | Correct an incorrect stock quantity | ROBERT JAMES WARIZA | 10/09/2026 | 10/11/2026 | In Progress | Working controlled stock correction feature | Restrict corrections, require a reason, record the adjustment and audit entry, and prevent resulting negative stock. The controlled correction and immutable CORRECTION movement exist; the required separate production AuditLog entry remains incomplete. |
+| INVENTORY | Stock Correction | Correct an incorrect stock quantity | ROBERT JAMES WARIZA | 10/09/2026 | 10/11/2026 | Completed | Working controlled stock correction feature | Implemented. The immutable CORRECTION StockMovement records the before/change/after quantities, actor, timestamp, and required reason; this movement is the required correction audit evidence, with cost unchanged. The broader Audit Trail / Record Activity remains a separate In Progress item. |
 | INVENTORY | Low Stock | View products reaching low-stock level | Rommel Jave Casipong | 09/30/2026 | 10/01/2026 | Completed | Working low-stock inventory list | List products or variants whose current stock is at or below their configured threshold. Implemented and verified. |
 | INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | In Progress | Working stock movement history | Display stock changes from sales, stock-in, corrections, and sale void restorations with date, quantity, reference, and user. No unified history covers all relevant movement types, references, and users; SALE_VOID restoration remains future. |
-| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | Admin-only pending Purchase Order creation, list/detail browsing, and pending/no-activity editing are implemented with explicit quantities/costs and immutable snapshots. #26 receiving and its pending → partially_received/completed transitions are implemented; #27 follow-up and #28–#29 procurement reports are complete. #30 damage receiving and #31 Damaged Items Report are complete. |
-| PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | In Progress | Working prioritized PO-planning list | The authoritative recommendation and open-coverage layer is surfaced in Purchase Order creation; the broader procurement deliverable remains in progress. |
+| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | Completed | Working purchase-order creation and management | Implemented: Admin creates and edits pending POs with supplier/item snapshots, quantities, and expected costs; Admin and Staff browse and receive orders; partial/full receiving, follow-up POs, and reports #28–#31 are implemented. |
+| PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | Completed | Working prioritized PO-planning list | Implemented in PO creation: uncovered low-stock Variants appear first; covered low-stock Variants remain visible/searchable with open coverage; current stock is shown and Admin chooses order quantities without an invented reorder quantity. |
 | PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | Completed | Working PO receiving workflow | Maps to former #26. Partial/full PO-linked receiving is available to Admin and Staff, tracks accepted and outstanding quantities, records immutable actual receipt costs while preserving expected PO costs, and posts inventory with one RESTOCK movement per accepted line. Linked receipt history and idempotent replay are implemented; guarded MySQL concurrency verification passed (6 tests / 220 assertions). Legacy manual Stock In remains supported. |
 | PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | Completed | Working follow-up purchase-order workflow | Maps to former #27 / expansion item #5. Admin transfers each selected source line's full current outstanding quantity to a traceable child PO; immutable transfer evidence, idempotent replay, lineage, edit freeze, and no-inventory-mutation behavior are implemented and guarded MySQL concurrency-verified. |
 | PROCUREMENT | Damaged Item Recording | Record damaged quantities during PO receiving without adding damaged quantity to sellable stock. | TBD | — | — | Completed | Working damaged-receiving evidence workflow | Maps to #30 / expansion item #8. Admin and Staff record immutable damage evidence during PO receiving. Damage does not change stock, cost, accepted/transferred quantities, outstanding demand, or StockMovements. Verified with guarded MySQL concurrency tests. |
@@ -114,8 +114,8 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 
 ## Status Summary
 
-- Completed: 43
-- In Progress: 15
+- Completed: 46
+- In Progress: 12
 - Not Started: 13
 - Total: 71
 
