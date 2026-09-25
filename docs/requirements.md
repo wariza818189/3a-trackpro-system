@@ -88,7 +88,8 @@ process.
   is not implemented.
 - **User Management:** Admin-only User Management is implemented under the
   approved policy in section 9, with transactional account lifecycle AuditLogs.
-  Audit Log viewing/filtering remains future.
+  The Admin-only Audit Log viewer and approved actor/action/date filters are
+  implemented; future non-account event writers remain separate.
 
 | ID | Assumption / basis |
 | --- | --- |
@@ -298,8 +299,8 @@ boundaries; requirement acceptance concerns their resulting values and access.
 ### Planned current-project future work
 
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
-- Admin-only Audit Log viewing/filtering; account lifecycle AuditLog writers
-  are implemented under the policy below.
+- Future non-account AuditLog event writers; account lifecycle writers and the
+  Admin-only Audit Log viewer/filtering are implemented under the policy below.
 - Final integration and remaining testing, documentation, and presentation work.
 
 ### Approved User Management policy and implementation state
@@ -326,20 +327,22 @@ transactionally with safe allowlisted details. After Sale Void is implemented,
 AuditLog requirement. Account AuditLogs reference the authenticated Admin and
 affected User and are written in the same transaction as the account change.
 No password, password hash, token, or full request body is logged. Login/logout
-AuditLog events are not implemented or required. The Admin-only Audit Log
-viewer and filters remain future.
+AuditLog events are not implemented or required. The Admin-only, read-only
+Audit Log viewer is implemented with actor, stored-action, and optional date
+filters; details and behavior are documented in the current implementation
+sections of the project documentation and user guide.
 
 Account-change before/after details contain only safe allowlisted values such
 as name, username, role, and status. Passwords, password hashes,
 remember/session/CSRF/checkout/submission tokens, and entire request bodies are
 never logged. Password reset records only that a reset occurred. Login/logout
-AuditLog events are not implemented or required. The future Audit Log viewer is
-Admin-only with initial user, action, and date filters. Audit records are
+AuditLog events are not implemented or required. The Admin-only viewer filters
+by acting user, stored action, and optional date bounds. Audit records are
 retained; no pruning subsystem is required for this academic project.
 
 Schema support for void status/fields/movement types is preparation only; no
 void transition or stock-restoration workflow is implemented. Account
-management is implemented; its Audit Log viewer/filter UI is not.
+management and its Admin-only Audit Log viewer/filter UI are implemented.
 
 ### Currently outside the recorded teacher-requested expansion unless later requested
 

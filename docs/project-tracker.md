@@ -30,8 +30,9 @@ The dedicated Product Sales, Inventory, Low Stock, and Restocking Reports are
 also complete. Remaining work is final integration, testing, documentation, and
 presentation preparation; unified Movement History remains incomplete.
 User Management is implemented; its account workflows, role/access controls,
-and transactional account AuditLogs are documented below. Audit viewing/filtering,
-Sale Void, Recent Stock Activity, and final screenshots remain future work.
+transactional account AuditLogs, and Admin-only Audit Log viewer/filtering are
+documented below. Sale Void, Recent Stock Activity, and final screenshots remain
+future work.
 
 ## Status Definitions
 
@@ -106,9 +107,9 @@ Sale Void, Recent Stock Activity, and final screenshots remain future work.
 | USER | Archive | Archive an existing user | ROBERT JAMES WARIZA | 09/26/2026 | 09/27/2026 | Completed | Working user archive feature | Archive disables the account and preserves historical references; reactivation restores active status. No hard delete or DELETE route exists. Self-disable is rejected and at least one active Admin is preserved transactionally, verified under guarded MySQL concurrency. |
 | USER | Search | View a specific user | Jonel Layupan | 09/25/2026 | 09/26/2026 | Completed | Working user search and view feature | Admin User Management searches name and username with literal wildcard handling, displays active and disabled accounts, orders by name/username/ID, paginates 20 rows, and preserves the query across pages. |
 | USER | Role & Access | Manage user roles and access permissions | ROBERT JAMES WARIZA | 09/24/2026 | 09/27/2026 | Completed | Working role-based access control | Active Admin-only account management, Admin/Staff assignment, active/disabled status operations, self-demotion/self-disable protection, and the transactional last-active-Admin invariant are implemented. The invariant passed guarded MySQL concurrency verification. Audit viewer features remain separate. |
-| AUDIT TRAIL | Record Activity | Record critical user and system activities | ROBERT JAMES WARIZA | 09/26/2026 | 10/11/2026 | In Progress | Working audit logging system | Production account lifecycle AuditLogs are implemented transactionally and contain only privacy-scoped allowlisted state: USER_CREATED, USER_UPDATED, USER_ROLE_CHANGED, USER_DISABLED, USER_REACTIVATED, and USER_PASSWORD_RESET. SALE_VOIDED remains future until Sale Void is implemented. Stock Correction remains movement-only under FR-CORR-04; CORRECTION StockMovement is its evidence, with no duplicate AuditLog requirement. |
-| AUDIT TRAIL | View Logs | Display audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Not Started | Working audit trail viewer | Allow authorized users to review recorded system activities and their relevant details. No audit viewer UI exists. |
-| AUDIT TRAIL | Filter Logs | Search and filter audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Not Started | Working audit log filtering | Filter audit records using relevant criteria such as user, action, and date range. No audit viewer/filter UI exists. |
+| AUDIT TRAIL | Record Activity | Record critical user and system activities | ROBERT JAMES WARIZA | 09/26/2026 | 10/11/2026 | In Progress | Working audit logging system | Production account lifecycle AuditLogs are implemented transactionally and contain only privacy-scoped allowlisted state: USER_CREATED, USER_UPDATED, USER_ROLE_CHANGED, USER_DISABLED, USER_REACTIVATED, and USER_PASSWORD_RESET. SALE_VOIDED remains future until Sale Void is implemented. Stock Correction remains movement-only under FR-CORR-04; CORRECTION StockMovement is its evidence, with no duplicate AuditLog requirement. The Admin-only viewer/filter UI is implemented; this does not complete future event writers. |
+| AUDIT TRAIL | View Logs | Display audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Completed | Working audit trail viewer | Admin-only read-only `/audit-logs` page; one row per AuditLog with Manila timestamp, current actor account context, action, affected-record context, description, and allowlisted change summary. |
+| AUDIT TRAIL | Filter Logs | Search and filter audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Completed | Working audit log filtering | Actor (`audit_logs.user_id`), stored action, and optional inclusive Manila `date_from` / `date_to` filters compose with AND; all-time default, partial dates, fail-closed validation, and pagination persistence are implemented. |
 | TESTING | Functional Testing | Test all completed modules and document errors or unexpected results | Rommel Jave Casipong | 10/12/2026 | 10/13/2026 | Completed | Functional test results | Report discovered bugs to the project lead and retest after fixes. Formal run `FT15-20260909-A`: 30/30 Passed, 0 Failed, 0 Blocked, 0 Remaining. |
 | TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | In Progress | Edge-case / security test report | Include permission checks and transaction failure scenarios. PAUSED after teacher scope expansion. Historical FT17: 8 Pass, 1 Fail, 0 Blocked, 28 Remaining. AUTH006 retains its initial formal FAIL and provisional `TEST_SPEC_PROCEDURE_DEFECT`; controlled cross-origin retest is deferred. |
 | DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | In Progress | User guide draft | Cover login, sales, products, inventory, reports, and other final user-facing features. A substantial user-guide draft exists; final screenshots and teacher-expansion updates remain. |
@@ -120,12 +121,12 @@ Sale Void, Recent Stock Activity, and final screenshots remain future work.
 
 ## Status Summary
 
-- Completed: 58
+- Completed: 60
 - In Progress: 4
-- Not Started: 9
+- Not Started: 7
 - Total: 71
 
-Arithmetic check: **58 + 4 + 9 = 71**.
+Arithmetic check: **60 + 4 + 7 = 71**.
 
 ## Excel Sync
 

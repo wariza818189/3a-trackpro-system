@@ -84,6 +84,7 @@ Useful application paths are:
 | Stock Correction | `/stock-corrections` | Admin |
 | Purchase Orders | `/purchase-orders` | Admin and Staff |
 | User Management | `/users` | Admin |
+| Audit Logs | `/audit-logs` | Admin |
 
 ## 4.1 Admin User Management
 
@@ -106,6 +107,42 @@ Admin navigation to search and manage accounts. Staff cannot open this area.
 - An Admin may edit their own name and username or reset their own password,
   but cannot demote or disable their own account. The system also prevents a
   change that would leave no active Admin; another active Admin must remain.
+
+## 4.2 Reviewing Audit Logs — Admin Only
+
+Open **Audit Logs** from the Admin Administration area beside User Management.
+The page is read-only and shows recorded events newest first, with 20 records
+per page. Staff cannot open it, and guests or disabled accounts cannot access
+the protected page.
+
+Each row represents one recorded event. Review its Manila timestamp, actor,
+action, affected-record context, description, and safe change summary. The
+actor is the user who performed the action; the affected record is the account
+or other record the action concerns. For account events, the stable User #ID
+identifies the affected account, and the page may also show that account's
+current context. The actor's displayed name and username are current account
+details, not a saved historical identity snapshot. A disabled actor can still
+appear in older history.
+
+Use the filters as needed:
+
+- **Actor** selects the user who performed the action.
+- **Action** selects a recorded activity type.
+- **Date From** and **Date To** set optional calendar-date bounds in Manila
+  time. Both blank means all time; either date may be used by itself. Selected
+  dates include the whole calendar day.
+- Filters work together, so a record must match every selected filter.
+- Choose a page number or **Next**/**Previous** to browse results. Selected
+  filters remain in place as you move between pages.
+
+For account changes, summaries show only the safe fields **name**,
+**username**, **role**, and **status**. Password values are never shown;
+password-reset events do not display before/after password values. Descriptions
+are shown as text. The page does not create, edit, delete, clear, prune, or
+acknowledge Audit Logs, and viewing a record does not create another event.
+Current account activity includes user creation, profile updates, role changes,
+disabling, reactivation, and password resets. Sale Void activity is not yet
+recorded because Sale Void is unavailable.
 
 ## 4. User Roles and Access
 
@@ -656,9 +693,9 @@ The current interface does not provide:
 - Discounts or promotions.
 - Credit or utang sales.
 - Returns or refunds.
-- Sale Void or `SALE_VOID` stock restoration.
+- Sale Void or `SALE_VOID` stock restoration; its future `SALE_VOIDED` event is
+  not currently recorded.
 - A unified inventory Movement History or Recent Stock Activity dashboard.
-- A populated general AuditLog workflow or Audit Viewer/filter screen.
 - Unit conversion.
 - Multiple store locations.
 - Cost-of-goods-sold, profit, or inventory-valuation reports.
@@ -692,7 +729,9 @@ Suggested evidence:
     Items reports.
 12. Admin User Management list/search, create form, profile edit, role change,
     archive/reactivate actions, and password reset form.
-13. Responsive mobile navigation.
+13. Admin Audit Logs page showing the filters and representative account
+    lifecycle events.
+14. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions
 that state what the screenshot proves. Crop or retake any image that exposes a

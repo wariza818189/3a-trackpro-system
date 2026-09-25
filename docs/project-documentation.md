@@ -84,14 +84,15 @@ The current system includes the following implemented areas:
 - Admin follow-up Purchase Order creation from selected source lines, transferring each selected line's full current outstanding quantity to one traceable child PO with idempotent replay and no inventory mutation; and
 - damaged-item recording during PO receiving for Admin and Staff, as immutable receipt evidence separate from accepted inventory; and
 - the Admin-only #31 Damaged Items Report, a GET-only read-only Reports page presenting immutable receiving evidence; and
-- Admin-only User Management for searching, creating, editing, changing roles, disabling/reactivating, and resetting account passwords. Accounts are never hard-deleted; account changes retain transactional AuditLog evidence and the last-active-Admin invariant.
+- Admin-only User Management for searching, creating, editing, changing roles, disabling/reactivating, and resetting account passwords. Accounts are never hard-deleted; account changes retain transactional AuditLog evidence and the last-active-Admin invariant; and
+- an Admin-only, read-only Audit Log viewer with actor, action, and optional Manila date filters over the six current User Management event types.
 
 ### 2.2 In-Progress and Planned Scope
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
 - Sale Void and its stock-restoration workflow;
-- the Audit Log viewer/filter interface and non-account workflow logging; account lifecycle AuditLogs are implemented;
+- future non-account workflow logging; account lifecycle AuditLogs and the Admin-only viewer/filter interface are implemented;
 - a unified inventory movement history screen;
 - remaining edge-case, permission, integration, and final system testing; and
 - final screenshots, documentation review, and presentation preparation.
@@ -134,9 +135,48 @@ safe allowlisted values. Passwords, hashes, tokens, and full request bodies are
 never logged. Login/logout events are not implemented or required. `SALE_VOIDED`
 remains future until Sale Void exists. Stock Correction remains movement-only
 under FR-CORR-04: `CORRECTION` StockMovement is the required evidence, with no
-duplicate AuditLog requirement. Audit Log viewing and filtering are not
-implemented; the approved Admin-only viewer's initial filters are user, action,
-and date range. Records are retained without a pruning subsystem.
+duplicate AuditLog requirement. Audit Log viewing and filtering are provided
+by the Admin-only, read-only Audit Log page at `/audit-logs`. The route uses
+`auth`, `active`, and `can:access-admin` middleware. The
+page is GET/HEAD only, has no mutation routes, and shows exactly one row per
+AuditLog without aggregation or event merging. Each row shows a Manila
+timestamp, the actor's current name and username, a people-friendly action
+label, affected-record context, escaped description text, and a safe change
+summary. The schema does not preserve a historical actor-name/username
+snapshot. Account events show a stable User #ID and may separately show the
+target account's current context; event before/after values are the historical
+evidence. Known and future entity types have safe context, unknown entity
+types use a neutral fallback, and a null entity reference is presented as a
+system event. Unknown action values also render safely.
+
+Change summaries render before/after values only for the explicit `name`,
+`username`, `role`, and `status` allowlist. Raw JSON, unexpected keys and
+values, passwords, password hashes, remember/session/CSRF/checkout/submission
+tokens, arbitrary tokens, and raw request bodies are not displayed. Password
+reset events show no before/after secret values. Descriptions are escaped
+text, not raw HTML. The currently implemented event writers remain the six
+account actions listed above; `SALE_VOIDED` is still future until Sale Void is
+implemented, and login/logout events are not implemented or required.
+
+The Actor filter uses `audit_logs.user_id` and selects the acting user; choices
+come from users represented in audit history and can include disabled
+accounts. Action choices come from distinct stored action values. Optional
+`date_from` and `date_to` filters default to all time, allow either boundary
+alone, use inclusive Asia/Manila calendar dates, and translate to half-open
+database bounds at Manila midnight. There is no 366-day maximum. Active filters
+compose with AND, persist through pagination, and malformed/unsupported or
+reversed input fails closed with controlled errors. Results use deterministic
+`created_at DESC, id DESC` ordering and 20 rows per page. Separate controlled
+empty states distinguish no AuditLogs from no filter matches; validation
+errors remain separate. Admin is allowed; Staff is forbidden; guests and
+disabled accounts are denied by the existing server-side authorization. The
+Audit Logs link appears only in the Admin Administration navigation beside
+User Management.
+
+Viewing/filtering logs does not create, edit, delete, clear, prune, or
+acknowledge AuditLogs and does not mutate Users. GET and HEAD are read-only; no
+`VIEWED_AUDIT_LOGS` event is recorded. Records are retained without a pruning
+subsystem.
 
 ### 2.5 Main Screens
 
@@ -154,6 +194,7 @@ The current user-facing screens are:
 - Stock In history, new receipt, and receipt-detail screens;
 - Stock Corrections list and correction form;
 - Admin-only User Management list/search, create, edit, role, status, and password-reset screens;
+- Admin-only Audit Logs viewer with actor/action/date filters;
 - Sales Summary Reports;
 - Purchase Orders list;
 - Purchase Order creation;
@@ -198,7 +239,7 @@ The separate Admin-only #31 Damaged Items Report presents this evidence as one r
 | Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, receive partial or full deliveries including damaged quantities, and create follow-up POs**; source-to-child lineage is visible. Operational damage history appears in PO details; the dedicated #31 report is linked from Reports and remains Admin-only. |
 | Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities, linked actual receipt costs, and transferred quantities are represented by history evidence. Saved historical details remain available when catalog records later become inactive. |
 | Purchase Order Item Transfers | Immutable source-to-child procurement-demand evidence | **Created automatically and view-only**; records the full quantity transferred, source/target item relationship, actor, and creation time. Transfers do not affect inventory. |
-| Audit Logs | Sensitive account activity records | **Account lifecycle writers implemented transactionally**; the Audit Log viewer and filters remain unavailable. |
+| Audit Logs | Sensitive account activity records | **Admin-only read-only viewer and actor/action/date filters available**; six account lifecycle writers are implemented transactionally. Future event writers remain separate. |
 
 ## 3. Technology & Architecture
 
@@ -282,7 +323,7 @@ Development of the system began during the **first week of September 2026**. The
 
 The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are complete, alongside the procurement reports #28, #29, and #31. Procurement also includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full and damaged PO receiving, and Admin follow-up POs with source/child lineage and full-current-remainder transfers.
 
-The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, and User Management are implemented; the last-active-Admin invariant is concurrency-verified. Sale Void, Audit Log viewing/filtering, unified Movement History, expanded formal testing, and final materials remain incomplete.
+The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, and the Admin-only Audit Log viewer/filtering are implemented; the last-active-Admin invariant is concurrency-verified. Sale Void, unified Movement History, expanded formal testing, and final materials remain incomplete.
 
 ## 5. Technical Decisions & Issues
 
@@ -471,7 +512,9 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 
 **Current engineering verification for User Management (Phase C):** guarded MySQL concurrency passed **1 test / 37 assertions**, proving the last-active-Admin invariant and atomic AuditLog result under concurrent opposing archive requests. An initial sandbox attempt failed safely at the identity guard; the approved socket-access run passed. Service regression passed **15 / 128**, HTTP regression **17 / 192**, and full ordinary SQLite **509 / 5,353**. Targeted Pint and `git diff --check` passed. No schema or migration change was needed. The guarded MySQL run used fixture-scoped cleanup and no broad destructive SQL.
 
-**Other incomplete areas and limitations:** Sale Void and its `SALE_VOIDED` event, Audit Log viewing/filtering and non-account event writers, unified inventory movement history, Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Account lifecycle AuditLogs are implemented. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+**Current engineering verification for the Audit Log viewer and filters:** the focused Audit Log suite passed **12 tests / 188 assertions**; User Management service passed **15 / 128**; User Management HTTP passed **17 / 192**; and auth/navigation passed **28 / 334**. The full ordinary SQLite suite passed **521 tests / 5,548 assertions**. Read-only proof passed: plain GET, filtered GET, and HEAD issued no write SQL and did not change User or AuditLog row counts. Bounded-query verification kept a full 20-row page at no more than 12 SELECTs and at most two SELECTs above the one-row case, with no affected-User N+1. A production UserManagementService-created AuditLog rendered successfully. `npm run build`, targeted Pint, and `git diff --check` passed. No migration/schema change was made; MySQL was not executed. These are current engineering results, separate from historical teacher/manual testing and FT15/FT17 records.
+
+**Other incomplete areas and limitations:** Sale Void and its future `SALE_VOIDED` event, non-account AuditLog event writers, unified inventory movement history, Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Account lifecycle AuditLogs and the Admin-only viewer/filter interface are implemented. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
 The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
 
@@ -509,7 +552,7 @@ The system has not yet been publicly deployed.
 
 ### 8.4 Selected Screenshots
 
-Selected screenshots will be added before final submission. Recommended screens include the Dashboard, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, and Purchase Order list/detail.
+Selected screenshots will be added before final submission; screenshots remain pending. Recommended screens include the Dashboard, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, Purchase Order list/detail, and the Admin Audit Logs page with filters and representative account lifecycle events.
 
 ### 8.5 Requirements and Database Design
 
