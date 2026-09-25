@@ -9,6 +9,7 @@
     </div>
 
     <a href="{{ route('reports.pending-purchase-orders') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Pending Purchase Orders Report</a>
+    <a href="{{ route('reports.product-sales') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Product Sales Report<span class="text-sm font-normal">Quantity sold and sales amount by historical Product/Variant for a selected period.</span></a>
     <a href="{{ route('reports.inventory') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Inventory Report<span class="text-sm font-normal">Current inventory quantities, units, categories, and stock status.</span></a>
     <a href="{{ route('reports.low-stock') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Low Stock Report<span class="text-sm font-normal">Active Variants at or below their stock threshold.</span></a>
     <a href="{{ route('reports.restocking') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Restocking Report<span class="text-sm font-normal">Accepted Stock In and Purchase Order receiving history with quantities, actual purchase costs, dates, and responsible users.</span></a>

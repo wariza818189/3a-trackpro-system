@@ -17,42 +17,15 @@ class ReportsController extends Controller
 {
     public function index(Request $request): View
     {
-        $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
-        $datesSubmitted = $request->query->has('date_from') || $request->query->has('date_to');
-
-        if ($datesSubmitted) {
-            [$dateFrom, $from, $fromError] = $this->date(
-                $request->query('date_from'),
-                'Enter a valid from date in YYYY-MM-DD format.',
-            );
-            [$dateTo, $to, $toError] = $this->date(
-                $request->query('date_to'),
-                'Enter a valid to date in YYYY-MM-DD format.',
-            );
-        } else {
-            $from = $today->subDays(6);
-            $to = $today;
-            $dateFrom = $from->format('Y-m-d');
-            $dateTo = $to->format('Y-m-d');
-            $fromError = null;
-            $toError = null;
-        }
+        [$dateFrom, $dateTo, $from, $to, $dateErrors] = self::reportDates($request);
+        $filterErrors = $dateErrors;
 
         [$cashier, $cashierId, $cashierError] = $this->positiveInteger(
             $request->query('cashier'),
             'Select a valid cashier.',
         );
-
-        $filterErrors = array_filter([
-            'date_from' => $fromError,
-            'date_to' => $toError,
-            'cashier' => $cashierError,
-        ]);
-
-        if ($from !== null && $to !== null && $from->isAfter($to)) {
-            $filterErrors['date_to'] = 'The to date must be on or after the from date.';
-        } elseif ($from !== null && $to !== null && $from->diff($to)->days > 365) {
-            $filterErrors['date_to'] = 'The report range must not exceed 366 calendar days.';
+        if ($cashierError !== null) {
+            $filterErrors['cashier'] = $cashierError;
         }
 
         $cashiers = User::query()
@@ -113,6 +86,44 @@ class ReportsController extends Controller
         ));
     }
 
+    /** @return array{string, string, CarbonImmutable|null, CarbonImmutable|null, array<string, string>} */
+    public static function reportDates(Request $request): array
+    {
+        $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
+        $datesSubmitted = $request->query->has('date_from') || $request->query->has('date_to');
+
+        if ($datesSubmitted) {
+            [$dateFrom, $from, $fromError] = self::date(
+                $request->query('date_from'),
+                'Enter a valid from date in YYYY-MM-DD format.',
+            );
+            [$dateTo, $to, $toError] = self::date(
+                $request->query('date_to'),
+                'Enter a valid to date in YYYY-MM-DD format.',
+            );
+        } else {
+            $from = $today->subDays(6);
+            $to = $today;
+            $dateFrom = $from->format('Y-m-d');
+            $dateTo = $to->format('Y-m-d');
+            $fromError = null;
+            $toError = null;
+        }
+
+        $filterErrors = array_filter([
+            'date_from' => $fromError,
+            'date_to' => $toError,
+        ]);
+
+        if ($from !== null && $to !== null && $from->isAfter($to)) {
+            $filterErrors['date_to'] = 'The to date must be on or after the from date.';
+        } elseif ($from !== null && $to !== null && $from->diff($to)->days > 365) {
+            $filterErrors['date_to'] = 'The report range must not exceed 366 calendar days.';
+        }
+
+        return [$dateFrom, $dateTo, $from, $to, $filterErrors];
+    }
+
     private function qualifyingSales(CarbonImmutable $from, CarbonImmutable $end, ?int $cashierId): Builder
     {
         return Sale::query()
@@ -140,7 +151,7 @@ class ReportsController extends Controller
     }
 
     /** @return array{string, CarbonImmutable|null, string|null} */
-    private function date(mixed $value, string $message): array
+    private static function date(mixed $value, string $message): array
     {
         if (! is_string($value)) {
             return ['', null, $message];

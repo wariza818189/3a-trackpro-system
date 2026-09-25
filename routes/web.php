@@ -11,6 +11,7 @@ use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\PendingPurchaseOrdersReportController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductSalesReportController;
 use App\Http\Controllers\ProductVariantController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseOrderFollowUpController;
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+        Route::get('/reports/product-sales', [ProductSalesReportController::class, 'index'])->name('reports.product-sales');
         Route::get('/reports/inventory', [InventoryReportController::class, 'index'])->name('reports.inventory');
         Route::get('/reports/low-stock', [LowStockReportController::class, 'index'])->name('reports.low-stock');
         Route::get('/reports/restocking', [RestockingReportController::class, 'index'])->name('reports.restocking');
