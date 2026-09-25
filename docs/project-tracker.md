@@ -24,7 +24,7 @@ list/detail browsing, and pending/no-activity editing are implemented. #26
 PO-based partial/full receiving is complete, including Admin/Staff access,
 accepted/outstanding tracking, actual-cost evidence, inventory and movement
 posting, idempotent replay, and guarded MySQL concurrency verification.
-Follow-up POs, damage handling, and procurement reporting remain outstanding.
+Follow-up POs are complete. Damage handling and procurement reporting remain outstanding.
 
 ## Status Definitions
 
@@ -79,10 +79,10 @@ Follow-up POs, damage handling, and procurement reporting remain outstanding.
 | INVENTORY | Stock Correction | Correct an incorrect stock quantity | ROBERT JAMES WARIZA | 10/09/2026 | 10/11/2026 | In Progress | Working controlled stock correction feature | Restrict corrections, require a reason, record the adjustment and audit entry, and prevent resulting negative stock. The controlled correction and immutable CORRECTION movement exist; the required separate production AuditLog entry remains incomplete. |
 | INVENTORY | Low Stock | View products reaching low-stock level | Rommel Jave Casipong | 09/30/2026 | 10/01/2026 | Completed | Working low-stock inventory list | List products or variants whose current stock is at or below their configured threshold. Implemented and verified. |
 | INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | In Progress | Working stock movement history | Display stock changes from sales, stock-in, corrections, and sale void restorations with date, quantity, reference, and user. No unified history covers all relevant movement types, references, and users; SALE_VOID restoration remains future. |
-| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | Admin-only pending Purchase Order creation, list/detail browsing, and pending/no-activity editing are implemented with explicit quantities/costs and immutable snapshots. #26 receiving and its pending → partially_received/completed transitions are implemented; follow-up Purchase Orders, damage handling, and procurement reports remain outstanding. |
+| PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | In Progress | Working purchase-order creation and management | Admin-only pending Purchase Order creation, list/detail browsing, and pending/no-activity editing are implemented with explicit quantities/costs and immutable snapshots. #26 receiving and its pending → partially_received/completed transitions are implemented; #27 follow-up is complete, while damage handling and procurement reports remain outstanding. |
 | PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | In Progress | Working prioritized PO-planning list | The authoritative recommendation and open-coverage layer is surfaced in Purchase Order creation; the broader procurement deliverable remains in progress. |
 | PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | Completed | Working PO receiving workflow | Maps to former #26. Partial/full PO-linked receiving is available to Admin and Staff, tracks accepted and outstanding quantities, records immutable actual receipt costs while preserving expected PO costs, and posts inventory with one RESTOCK movement per accepted line. Linked receipt history and idempotent replay are implemented; guarded MySQL concurrency verification passed (6 tests / 220 assertions). Legacy manual Stock In remains supported. |
-| PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | In Progress | Working follow-up purchase-order workflow | Maps to former #27. Parent-column foundation alone does not implement transfer semantics. |
+| PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | Completed | Working follow-up purchase-order workflow | Maps to former #27 / expansion item #5. Admin transfers each selected source line's full current outstanding quantity to a traceable child PO; immutable transfer evidence, idempotent replay, lineage, edit freeze, and no-inventory-mutation behavior are implemented and guarded MySQL concurrency-verified. |
 | PROCUREMENT | Damaged Item Recording | Record damaged quantities during PO receiving without adding damaged quantity to sellable stock. | TBD | — | — | Not Started | Working damaged-receiving evidence workflow | Damage is receiving evidence. It must not create a RESTOCK movement or increase sellable stock. |
 | REPORTS | Sales Report | Display sales within a selected date range | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working sales report | Show valid sales and totals for a selected period while handling voided transactions correctly. Completed-only report filtering is implemented and verified. |
 | REPORTS | Product Sales | Display sales grouped by product | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working product sales report | Summarize quantities sold and sales amounts by product or variant for the selected reporting period. Existing reporting does not yet provide the required Product/Variant-grouped quantity and sales-amount report. |
@@ -113,8 +113,8 @@ Follow-up POs, damage handling, and procurement reporting remain outstanding.
 
 ## Status Summary
 
-- Completed: 38
-- In Progress: 16
+- Completed: 39
+- In Progress: 15
 - Not Started: 17
 - Total: 71
 

@@ -57,13 +57,13 @@ The current system includes the following implemented areas:
 - low-stock procurement recommendations that separate uncovered demand from items already covered by an open Purchase Order;
 - Admin-only Purchase Order creation with supplier text, ordered quantities, expected unit costs, and duplicate-submission protection;
 - Purchase Order listing, filtering, historical detail viewing, and Admin-only editing of pending orders before receiving activity begins. The edit workflow supports supplier and notes changes, line quantity and expected-cost changes, line removal, eligible new lines, retained historical lines, and protection against saving an outdated draft; and
-- PO-based partial and full receiving for Admin and Staff, with accepted/outstanding quantities, actual receipt-cost evidence, linked receipt history, inventory and StockMovement posting, completed/partially_received status progression, Admin cost visibility, Staff cost redaction, and safe duplicate submission replay.
+- PO-based partial and full receiving for Admin and Staff, with accepted/outstanding quantities, actual receipt-cost evidence, linked receipt history, inventory and StockMovement posting, completed/partially_received status progression, Admin cost visibility, Staff cost redaction, and safe duplicate submission replay; and
+- Admin follow-up Purchase Order creation from selected source lines, transferring each selected line's full current outstanding quantity to one traceable child PO with idempotent replay and no inventory mutation.
 
 ### 2.2 In-Progress and Planned Scope
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- follow-up Purchase Orders for selected unfulfilled quantities;
 - damaged-item recording during receiving;
 - reports for pending Purchase Orders, unfulfilled Purchase Order lines, and damaged items;
 - dedicated product-sales, inventory, low-stock, and restocking report areas that go beyond the current operational screens;
@@ -106,7 +106,8 @@ The current user-facing screens are:
 - Purchase Order creation;
 - Purchase Order detail;
 - Purchase Order edit for pending orders; and
-- Purchase Order receive form and linked receipt history.
+- Purchase Order receive form and linked receipt history; and
+- follow-up Purchase Order creation and source/child lineage in PO browsing and detail.
 
 ### 2.5 Core Features
 
@@ -116,11 +117,11 @@ The core features are controlled access, catalog organization, exact inventory t
 
 The current operational process can be summarized as:
 
-**Catalog setup → Opening Inventory → Stock In and controlled corrections → Open cash register → Point of Sale → Receipt and Sales History → Dashboard and Sales Summary → Low-stock review → Purchase Order creation, editing, receiving, and monitoring**
+**Catalog setup → Opening Inventory → Stock In and controlled corrections → Open cash register → Point of Sale → Receipt and Sales History → Dashboard and Sales Summary → Low-stock review → Purchase Order creation, editing, receiving, follow-up ordering, and lineage monitoring**
 
 Categories, Products, and Product Variants establish the catalog. Opening Inventory records the first quantity for each Variant. Later stock additions use Stock In, while authorized physical-count corrections create separate evidence. After a register is opened, a successful cash sale records the sale, stock deductions, and inventory movements. Users can review sales and receipts, while Admin users can review summaries, low-stock information, and Purchase Orders.
 
-Purchase Orders can now be received partially or in full. Accepted quantity updates inventory and creates linked receipt and movement evidence; outstanding quantity remains available for later deliveries. Follow-up ordering, damaged-item handling, and procurement reports remain continuing development work.
+Purchase Orders can now be received partially or in full. Accepted quantity updates inventory and creates linked receipt and movement evidence; outstanding quantity remains available for later deliveries. Admins can transfer selected lines' full current outstanding quantities into traceable child POs. A follow-up transfer records procurement demand without changing stock or creating a StockMovement. Damage recording and procurement reports remain continuing development work.
 
 ### 2.7 Main Data and CRUD Entities
 
@@ -136,8 +137,9 @@ Purchase Orders can now be received partially or in full. Accepted quantity upda
 | Restocks | Stock In receipt headers | **Create, list, and view** for legacy manual Stock In and PO-based receiving; PO receipts link to their Purchase Order. Historical receipts cannot be edited or deleted. |
 | Restock Items | Received quantities and historical unit costs | **Created automatically and view-only**; PO receipt lines link to their Purchase Order Items. |
 | Stock Movements | Evidence of initial stock, restocking, corrections, and sales deductions | **Created automatically with related transactions**; no unified movement-history screen exists. |
-| Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, and receive partial or full deliveries**; follow-up, damage, and reporting workflows remain in development. |
-| Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities and linked actual receipt costs are available in receiving history. Saved historical details remain available when catalog records later become inactive. |
+| Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, receive partial or full deliveries, and create follow-up POs**; source-to-child lineage is visible. Damage and reporting workflows remain in development. |
+| Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities, linked actual receipt costs, and transferred quantities are represented by history evidence. Saved historical details remain available when catalog records later become inactive. |
+| Purchase Order Item Transfers | Immutable source-to-child procurement-demand evidence | **Created automatically and view-only**; records the full quantity transferred, source/target item relationship, actor, and creation time. Transfers do not affect inventory. |
 | Audit Logs | Intended record of sensitive system activity | **Not yet implemented for normal workflows** — database/model preparation exists, but logging and a viewer are unavailable. |
 
 ## 3. Technology & Architecture
@@ -214,15 +216,15 @@ Development of the system began during the **first week of September 2026**. The
 | Week 2 | Stock Correction; cash Point of Sale; receipt and Sales History; responsive navigation; Dashboard and Sales Summary; requirements, product-data, UI/UX, and test-planning documents; early formal functional and edge-testing evidence. | Core application work and the 30-case functional run were completed; edge testing later remained incomplete. |
 | Week 3 | Teacher-requested scope expansion; revised requirements and database design; cash-register schema, lifecycle, POS integration, and database-specific verification; project tracker; Purchase Order foundation, low-stock recommendations, creation service, and creation interface. | Register work was implemented and verified; procurement work began and remained in progress. |
 | Week 4 | Purchase Order list, filters, detail view, backend update logic, and the pending-order edit interface. | Administrators can browse and edit pending orders before receiving activity begins; the later procurement lifecycle remains in development. |
-| Week 5 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
+| Week 5 | Follow-up Purchase Order (#27A–#27D): transfer evidence foundation, transactional service, HTTP/UI, and guarded MySQL concurrency closeout. | Completed; current engineering verification passed. |
 | Week 6 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
 | Week 7 | No completed milestone recorded yet at the current documentation date. | Development is continuing. |
 
 ### 4.3 Current Progress Summary
 
-The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement includes low-stock recommendations, Purchase Order creation/browsing/editing, and Admin/Staff partial/full PO receiving with linked receipt history and concurrency-tested stock updates.
+The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full PO receiving, and Admin follow-up POs with source/child lineage, full-current-remainder transfers, and guarded MySQL concurrency verification.
 
-The project remains in active development. PO-based receiving is implemented and concurrency-verified. Follow-up Purchase Orders, damage handling, procurement reports, Sale Void, User Management, Audit Trail, other remaining reports, expanded formal testing, and final materials are not yet complete.
+The project remains in active development. PO-based receiving and #27 follow-up ordering are implemented and concurrency-verified. Damage handling, procurement reports, Sale Void, User Management, Audit Trail, other remaining reports, expanded formal testing, and final materials are not yet complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -244,7 +246,7 @@ The project remains in active development. PO-based receiving is implemented and
 
 | Problem or Issue | Decision or Solution | Current Status |
 | --- | --- | --- |
-| The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | Planning was updated; expanded procurement work remains incomplete. |
+| The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | Planning was updated; #27 follow-up ordering is complete, while damage handling and procurement reporting remain incomplete. |
 | The edge and permission testing run no longer covered the expanded final scope. | Completed results were preserved, and the run was paused instead of executing an outdated case set against changing architecture. | Paused and awaiting a refreshed test baseline. |
 | Simultaneous requests could conflict or rely on older inventory/register data. | The system rechecks the latest stored data and uses database transaction protection before saving. The single-register rule also has database-level protection and isolated MySQL-specific tests. | Applied to register and inventory services; Purchase Order updates still need final simultaneous-update verification. |
 | Current catalog values can change after a sale. | Sale and Sale Item snapshots preserve the historical receipt values instead of substituting current catalog data. | Implemented for Sales History and receipt/reprint. |
@@ -358,7 +360,9 @@ The single FT17 failure remains recorded and is provisionally identified as a te
 
 Focused feature and isolated MySQL-specific tests cover the cash-register implementation, including simultaneous-operation behavior. The committed results document does not provide one consolidated register run count, so none is claimed here.
 
-Current #26 verification includes six guarded MySQL concurrency tests (220 assertions) covering over-receiving, receipt/edit serialization, receipt versus legacy Stock In, overlapping Variant sets, and equivalent-token replay; the ordinary regression run passed 370 tests / 3,702 assertions. The September 17–18 approach and its historical results above remain unchanged; these later checks document current receiving behavior, while follow-up, damage, and procurement reports remain incomplete.
+Current #26 verification includes six guarded MySQL concurrency tests (220 assertions) covering over-receiving, receipt/edit serialization, receipt versus legacy Stock In, overlapping Variant sets, and equivalent-token replay; the ordinary regression run passed 370 tests / 3,702 assertions. These are current engineering results. The September 17–18 approach and historical results above remain unchanged.
+
+**User-run current #27 engineering verification (after #27A–#27D):** the guarded MySQL identity suite passed **3 tests / 18 assertions**; the combined guarded #27D concurrency suite passed **6 tests / 299 assertions**; and the ordinary SQLite regression passed **399 tests / 3,975 assertions**. The concurrency cases covered readiness/schema, follow-up versus receipt, two follow-ups on one line, overlapping selections, follow-up versus PO edit, and equivalent-token replay. No deadlock, lock wait timeout, duplicate transfer, over-transfer/over-receipt, partial selected-set transfer, follow-up inventory mutation, or cleanup failure was observed. These are current engineering verification results, not historical teacher test results and not a replacement for FT15/FT17 records.
 
 ### 6.4 Current System Evaluation and Remaining Issues
 
@@ -371,7 +375,9 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 - Schema/models, low-stock recommendations, creation, list/filter, historical detail, and Admin-only pending-order editing are implemented. The edit workflow can update supplier and notes, change or remove existing lines, add currently eligible initialized Variants, retain historical lines whose catalog hierarchy is now inactive, and reject outdated drafts.
 - Admin and Staff can receive partial or full deliveries. The workflow tracks accepted and outstanding quantities, stores actual received cost as immutable evidence without changing expected PO cost, links receipts and lines to their PO records, and posts one inventory increase and RESTOCK movement per accepted line. Status progresses from pending to partially_received or completed, and linked receipt history is available; Staff can see and enter a new actual cost but cannot see expected or prior actual costs.
 - Equivalent submission-token replay returns the existing receipt without repeating inventory changes. Guarded MySQL tests verify serialization for concurrent receipts, edits, and legacy Stock In.
-- Follow-up orders, damaged-item handling, Pending Purchase Orders and Unfulfilled Items reports, and the damaged-items report are not implemented.
+- Admins can create a follow-up child PO from selected source lines. Each selected line transfers its full current outstanding quantity; source snapshots are preserved, child supplier is prefilled from source and may be changed, and expected planning cost may be changed. Immutable transfer evidence preserves source-to-child lineage and UUID replay returns the same child after source status/outstanding changes. Existing transfer evidence freezes source/child edits. Transfer creation is procurement-demand evidence only and creates no Restock, RestockItem, stock change, or StockMovement. Inactive historical catalog hierarchy and missing INITIAL_STOCK do not block follow-up creation; normal active-hierarchy receiving rules continue to apply to physical deliveries. Staff can view operational lineage and quantities while protected costs and actions remain redacted.
+- A source with positive outstanding demand remains `partially_received`; when outgoing transfer reduces outstanding to zero, it becomes `closed_with_remainder`. A child begins `pending`; `completed` remains for fully accepted demand without transfer.
+- Damaged-item handling, Pending Purchase Orders and Unfulfilled Items reports, and the damaged-items report are not implemented.
 
 **Other incomplete areas and limitations:** Sale Void, User Management, Audit Log writing/viewing, unified inventory movement history, several dedicated reports, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
@@ -391,9 +397,9 @@ If we started the project again, we would complete more of the requirements and 
 
 ### 7.2 Conclusion
 
-3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, and Purchase Order creation, browsing, detail viewing, pending-order editing, and PO-based partial/full receiving. Receiving preserves accepted quantities, outstanding demand, actual cost evidence, linked history, and corresponding inventory movements for Admin and Staff.
+3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, Purchase Order creation, browsing, detail viewing, pending-order editing, PO-based partial/full receiving, and Admin follow-up ordering for unfulfilled demand. Follow-up child POs preserve source lineage and transfer the full current remainder of each selected line without changing inventory; guarded MySQL concurrency verification covers key follow-up/receiving/edit/replay races. Receiving preserves accepted quantities, outstanding demand, actual cost evidence, linked history, and corresponding inventory movements for Admin and Staff.
 
-The project is still being developed. Follow-up ordering, damage handling, Pending Purchase Orders and Unfulfilled Items reports, the damaged-items report, other management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
+The project is still being developed. Damage handling, Pending Purchase Orders and Unfulfilled Items reports, the damaged-items report, other management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
 
 ## 8. Appendices / Links
 
