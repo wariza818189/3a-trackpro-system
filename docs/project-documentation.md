@@ -65,7 +65,7 @@ The current system includes the following implemented areas:
 The following work is incomplete or planned and must not be treated as available functionality:
 
 - damaged-item recording during receiving;
-- reports for pending Purchase Orders, unfulfilled Purchase Order lines, and damaged items;
+- damaged-item reporting;
 - dedicated product-sales, inventory, low-stock, and restocking report areas that go beyond the current operational screens;
 - Sale Void and its stock-restoration workflow;
 - User Management screens for creating, editing, disabling, viewing, and searching users;
@@ -121,7 +121,7 @@ The current operational process can be summarized as:
 
 Categories, Products, and Product Variants establish the catalog. Opening Inventory records the first quantity for each Variant. Later stock additions use Stock In, while authorized physical-count corrections create separate evidence. After a register is opened, a successful cash sale records the sale, stock deductions, and inventory movements. Users can review sales and receipts, while Admin users can review summaries, low-stock information, and Purchase Orders.
 
-Purchase Orders can now be received partially or in full. Accepted quantity updates inventory and creates linked receipt and movement evidence; outstanding quantity remains available for later deliveries. Admins can transfer selected lines' full current outstanding quantities into traceable child POs. A follow-up transfer records procurement demand without changing stock or creating a StockMovement. Damage recording and the remaining procurement reports are continuing development work; the Pending Purchase Orders Report is complete.
+Purchase Orders can now be received partially or in full. Accepted quantity updates inventory and creates linked receipt and movement evidence; outstanding quantity remains available for later deliveries. Admins can transfer selected lines' full current outstanding quantities into traceable child POs. A follow-up transfer records procurement demand without changing stock or creating a StockMovement. The #28 Pending Purchase Orders Report monitors open POs with demand; the #29 Unfulfilled Items Report presents the specific outstanding PO lines, quantities, and supplier/order provenance. Damage recording and the Damaged Items Report remain in development.
 
 ### 2.7 Main Data and CRUD Entities
 
@@ -222,9 +222,9 @@ Development of the system began during the **first week of September 2026**. The
 
 ### 4.3 Current Progress Summary
 
-The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full PO receiving, and Admin follow-up POs with source/child lineage, full-current-remainder transfers, and guarded MySQL concurrency verification.
+The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Procurement includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full PO receiving, Admin follow-up POs with source/child lineage and full-current-remainder transfers, and the Admin-only #28 PO monitoring and #29 PO-line backlog reports.
 
-The project remains in active development. PO-based receiving and #27 follow-up ordering are implemented and concurrency-verified. Damage handling, procurement reports, Sale Void, User Management, Audit Trail, other remaining reports, expanded formal testing, and final materials are not yet complete.
+The project remains in active development. PO-based receiving and #27 follow-up ordering are implemented and concurrency-verified. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports are complete. Damage handling, the Damaged Items Report, Sale Void, User Management, Audit Trail, other remaining reports, expanded formal testing, and final materials are not yet complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -246,7 +246,7 @@ The project remains in active development. PO-based receiving and #27 follow-up 
 
 | Problem or Issue | Decision or Solution | Current Status |
 | --- | --- | --- |
-| The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | Planning was updated; #27 follow-up ordering and #28 Pending Purchase Orders reporting are complete, while damage handling and the remaining procurement reports are incomplete. |
+| The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | Planning was updated; #27 follow-up ordering and #28–#29 procurement reports are complete, while damage handling and the Damaged Items Report remain incomplete. |
 | The edge and permission testing run no longer covered the expanded final scope. | Completed results were preserved, and the run was paused instead of executing an outdated case set against changing architecture. | Paused and awaiting a refreshed test baseline. |
 | Simultaneous requests could conflict or rely on older inventory/register data. | The system rechecks the latest stored data and uses database transaction protection before saving. The single-register rule also has database-level protection and isolated MySQL-specific tests. | Applied to register and inventory services; Purchase Order updates still need final simultaneous-update verification. |
 | Current catalog values can change after a sale. | Sale and Sale Item snapshots preserve the historical receipt values instead of substituting current catalog data. | Implemented for Sales History and receipt/reprint. |
@@ -379,7 +379,9 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 - A source with positive outstanding demand remains `partially_received`; when outgoing transfer reduces outstanding to zero, it becomes `closed_with_remainder`. A child begins `pending`; `completed` remains for fully accepted demand without transfer.
 - The Admin-only Pending Purchase Orders Report is implemented as a read-only monitoring view of current open procurement demand. It includes only `pending` or `partially_received` POs with at least one positive-outstanding line. Outstanding quantity is derived from ordered quantity less accepted receipt quantity and transferred quantity, floored at zero; completed, closed-with-remainder, and zero-outstanding POs are excluded. Follow-up child POs are evaluated independently. Supplier substring and open-status filters are available, and the report shows PO lineage and line-level ordered, accepted, transferred, and outstanding quantities. It does not replace operational PO browsing or expose costs or submission tokens.
 - **Current engineering verification for #28:** the focused Pending Purchase Orders Report suite passed 6 tests / 81 assertions, existing Reports tests passed 17 tests / 178 assertions, and the ordinary SQLite suite passed 405 tests / 4,056 assertions. Targeted Pint and `git diff --check` passed. MySQL and `npm run build` were not run for this read-only report. These are current implementation checks, not historical teacher/manual testing, and do not alter FT15/FT17 records.
-- Damaged-item handling, the Unfulfilled Items report, and the damaged-items report remain unimplemented.
+- The Admin-only Unfulfilled Items Report is implemented as a read-only, PO-line-centered backlog. Each row represents one `purchase_order_item` with positive current outstanding demand. Accepted quantity is the sum of linked RestockItem quantities, transferred quantity is outgoing transfer evidence, and outstanding is `MAX(ordered - accepted - transferred, 0.000)` using exact three-decimal BCMath arithmetic. Only `pending` and `partially_received` orders contribute; completed and closed-with-remainder orders do not. Transferred source demand is subtracted once, and child PO lines are evaluated independently. The report keeps line rows separate across POs and Variants and displays PO-line snapshot identity, unit, supplier/status/time, PO links and lineage, and ordered, accepted, transferred, and outstanding quantities. Filters cover supplier substring, snapshot item text, open status, and exact PO ID; results sort oldest PO time, PO ID, then line ID. Costs, submission tokens, and mutation controls are withheld.
+- **Current engineering verification for #29:** the focused Unfulfilled Items suite passed 7 tests / 123 assertions; the #28 regression passed 6 tests / 81 assertions; existing Reports authorization/summary tests passed 11 tests / 100 assertions; and the full ordinary SQLite suite passed 412 tests / 4,179 assertions. Targeted Pint and `git diff --check` passed. MySQL and `npm run build` were not run. The shared `PurchaseOrderLineEvidence` helper provides exact BCMath scale-3 arithmetic for both reports; #28 inclusion rules, filters, ordering, and UI did not change. These are current engineering checks, separate from historical teacher/manual testing and FT15/FT17 records.
+- Damage recording and the Damaged Items Report remain unimplemented.
 
 **Other incomplete areas and limitations:** Sale Void, User Management, Audit Log writing/viewing, unified inventory movement history, several dedicated reports, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
@@ -401,7 +403,7 @@ If we started the project again, we would complete more of the requirements and 
 
 3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, Purchase Order creation, browsing, detail viewing, pending-order editing, PO-based partial/full receiving, and Admin follow-up ordering for unfulfilled demand. Follow-up child POs preserve source lineage and transfer the full current remainder of each selected line without changing inventory; guarded MySQL concurrency verification covers key follow-up/receiving/edit/replay races. Receiving preserves accepted quantities, outstanding demand, actual cost evidence, linked history, and corresponding inventory movements for Admin and Staff.
 
-The project is still being developed. Damage handling, the Unfulfilled Items report, the damaged-items report, other management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
+The project is still being developed. Damage handling, the Damaged Items Report, other management workflows, and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
 
 ## 8. Appendices / Links
 

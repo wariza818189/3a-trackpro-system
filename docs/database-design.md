@@ -1,6 +1,6 @@
 # Stage 1 — Schema and model foundation
 
-Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, and #27A follow-up transfer schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders report uses existing PO and receiving/transfer evidence and adds no schema; damage evidence and reports #29–#30 remain planned, not implemented. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
+Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, and #27A follow-up transfer schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing PO and receiving/transfer evidence and add no schema. Damage receiving evidence and the Damaged Items report remain planned; no schema change was required for #28 or #29. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
 
 ## Scope and conventions
 
@@ -109,7 +109,7 @@ Foreign key columns are indexed by Laravel/MySQL as required, in addition to the
 
 ## Phase A additive schema and implementation status
 
-The register, Purchase Order, and transfer tables below are implemented for #24–#27. The #28 Pending Purchase Orders report reads the existing schema; damage evidence and procurement reports #29–#30 remain planned.
+The register, Purchase Order, and transfer tables below are implemented for #24–#27. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read the existing schema. Damage evidence and the Damaged Items report remain planned.
 
 ### cash_register_sessions
 
@@ -215,11 +215,17 @@ calculation.
 
 ## Phase A procurement reports
 
-The three planned reports are Admin-only and read-only:
-
-- Pending Purchase Orders reads PO headers/items and aggregated accepted/transfer evidence, filtering nonterminal POs with open outstanding quantities.
-- Unfulfilled Items reads PO items and the same authoritative outstanding formula, showing only positive outstanding quantities.
-- Damaged Items reads RestockDamageItems joined to Restock, PO, PO item, Variant reference, and receiving User, while presenting immutable snapshots as historical identity.
+All procurement reports are Admin-only and read-only. #28 Pending Purchase
+Orders is PO-centered: it reads PO headers/items and accepted/transfer evidence
+to find open orders with current demand. #29 Unfulfilled Items is line-centered:
+it returns one row per PO item with positive outstanding demand, using the same
+ordered-minus-accepted-minus-transferred formula defined above. A narrow shared
+`PurchaseOrderLineEvidence` application helper performs that exact three-place
+BCMath arithmetic for both reports; it adds no schema and does not change #28
+inclusion, filters, ordering, or presentation. #29 preserves each PO item's
+snapshot identity and provenance and does not aggregate by Variant. The future
+Damaged Items report will use damage receiving evidence while presenting
+immutable snapshots as historical identity.
 
 These reports add no reporting tables, cached totals, export schema, or write behavior.
 
