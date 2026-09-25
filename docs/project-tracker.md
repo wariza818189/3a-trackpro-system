@@ -89,7 +89,7 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 | REPORTS | Product Sales | Display sales grouped by product | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working product sales report | Summarize quantities sold and sales amounts by product or variant for the selected reporting period. Existing reporting does not yet provide the required Product/Variant-grouped quantity and sales-amount report. |
 | REPORTS | Inventory Report | Display current inventory status | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working inventory report | Dedicated Admin-only read-only report shows current stock, unit, Category, catalog statuses, and stock state in one row per ProductVariant. Includes active and archived catalog records without an initialization requirement or cross-Variant quantity totals. |
 | REPORTS | Low Stock Report | Display products at or below stock threshold | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | Completed | Working low-stock report | Dedicated Admin-only read-only report shows one row per active-hierarchy ProductVariant at or below its configured threshold, including current stock, threshold, and stock state. Zero-stock Variants are included; initialization and procurement coverage are not required. |
-| REPORTS | Restocking Report | Display historical stock-in records | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | In Progress | Working restocking report | Show stock-in history including product or variant, quantity, historical purchase cost, date, and responsible user. Operational Stock In history exists, but the dedicated report surface remains incomplete. |
+| REPORTS | Restocking Report | Display historical stock-in records | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | Completed | Working restocking report | Admin-only read-only report shows one row per accepted RestockItem from ordinary Stock In and accepted PO receiving. Source uses the nullable PO link; rows show historical item snapshots, accepted quantity/unit, actual unit cost and line total, receipt, PO/supplier context when applicable, actor, and receipt time. Damage-only receipts, opening inventory, and corrections are excluded. No filters, pagination, or schema change. Current engineering verification is recorded in project documentation. |
 | REPORTS | Pending Purchase Orders | Display pending/open purchase orders and their remaining outstanding demand. | TBD | — | — | Completed | Working pending-purchase-orders report | Maps to former #28 / expansion item #6. Admin-only, GET-only monitoring report includes pending or partially_received POs only when authoritative accepted and transfer evidence yields positive outstanding demand. |
 | REPORTS | Unfulfilled Items | Display purchase-order items with remaining unfulfilled quantities. | TBD | — | — | Completed | Working unfulfilled-items report | Maps to former #29 / expansion item #7. Admin-only, GET-only line report shows each positive-outstanding PO item independently with historical snapshot identity and accepted/transfer-aware quantities. |
 | REPORTS | Damaged Items Report | Display damaged-item history from PO receiving evidence. | TBD | — | — | Completed | Working damaged-items report | Maps to #31 / expansion item #9. Admin-only GET/read-only report presents one row per immutable RestockDamageItem, with PO, receipt, supplier, historical snapshots, quantity, note, actor, and time. Supplier substring, historical item text, and exact PO ID filters; newest receipt first. Implemented and current engineering-verified. |
@@ -114,8 +114,8 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 
 ## Status Summary
 
-- Completed: 49
-- In Progress: 9
+- Completed: 50
+- In Progress: 8
 - Not Started: 13
 - Total: 71
 

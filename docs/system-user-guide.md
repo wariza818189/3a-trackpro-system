@@ -449,6 +449,20 @@ Current reports are:
   This attention-focused report is narrower than Inventory Report: it includes
   only active-hierarchy Variants at or below threshold, while Inventory Report
   includes all catalog statuses and all stock states.
+- **Restocking Report** — Admin-only, read-only history with exactly one row
+  per accepted RestockItem. It includes ordinary Stock In and accepted PO
+  receiving, distinguished by the receipt's PO link; PO rows also show PO ID
+  and supplier, while manual Stock In has no fabricated PO/supplier context.
+  Rows use receiving-time Product, size, type/series, thickness, and unit
+  snapshots, plus accepted quantity/unit, actual unit cost, stored line total,
+  responsible user, `RST-` receipt identifier, and receipt time (shown as
+  `M j, Y g:i A` in the configured application timezone). The saved snapshots
+  keep item identity stable after catalog rename or archive; rows preserve
+  separate receipts and units without totals. Damage-only receipts are
+  excluded because they add no accepted stock; damage details remain in the
+  Damaged Items Report. Opening Inventory and Stock Corrections are not
+  Restocking Report history. Expected PO cost is not shown. The report has no
+  filters, pagination, or mutation controls.
 - **Pending Purchase Orders Report** — open orders that currently have
   outstanding demand.
 - **Unfulfilled Items Report** — individual PO lines that remain unfulfilled,
@@ -490,9 +504,9 @@ The Sales Summary contains:
 Only completed Sales contribute. Reports do not calculate profit, cost of goods
 sold, or inventory valuation.
 
-Dedicated Product Sales and Restocking reports are not currently implemented.
-Catalog and dashboard views may show current stock, and Stock In history is
-available operationally, but these do not replace those dedicated reports.
+The dedicated Product Sales Report is not currently implemented. Catalog and
+dashboard views may show current stock, and operational Stock In history is
+available separately from the Restocking Report.
 
 ## 15. Windows and Classroom Demo Data
 
@@ -604,7 +618,7 @@ The current interface does not provide:
 - Sale Void or `SALE_VOID` stock restoration.
 - A unified inventory Movement History or Recent Stock Activity dashboard.
 - A populated general AuditLog workflow or Audit Viewer/filter screen.
-- Dedicated Product Sales or Restocking reports.
+- Dedicated Product Sales Report.
 - Unit conversion.
 - Multiple store locations.
 - Cost-of-goods-sold, profit, or inventory-valuation reports.
@@ -634,7 +648,7 @@ Suggested evidence:
 9. PO receiving screen showing accepted quantity and damaged quantity/note.
 10. Follow-up PO screen and its source/child context.
 11. Reports index, Sales Summary, Inventory Report, Low Stock Report, Pending
-    Purchase Orders, Unfulfilled Items, and Damaged Items reports.
+    Purchase Orders, Unfulfilled Items, Restocking, and Damaged Items reports.
 12. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions
