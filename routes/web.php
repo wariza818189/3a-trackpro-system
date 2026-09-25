@@ -20,6 +20,7 @@ use App\Http\Controllers\PurchaseOrderReceivingController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RestockingReportController;
 use App\Http\Controllers\SalesHistoryController;
+use App\Http\Controllers\SaleVoidController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
 use App\Http\Controllers\UnfulfilledItemsReportController;
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::patch('/sales/{sale}/void', SaleVoidController::class)->whereNumber('sale')->name('sales.void');
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');

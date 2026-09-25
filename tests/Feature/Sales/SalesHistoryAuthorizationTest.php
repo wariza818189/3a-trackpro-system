@@ -55,7 +55,7 @@ class SalesHistoryAuthorizationTest extends PosTestCase
         }
     }
 
-    public function test_sales_routes_are_get_only_and_have_no_admin_gate_or_mutation_surface(): void
+    public function test_sales_read_routes_remain_shared_and_void_route_is_admin_only_patch(): void
     {
         foreach (['sales.index', 'sales.show'] as $name) {
             $route = Route::getRoutes()->getByName($name);
@@ -67,11 +67,18 @@ class SalesHistoryAuthorizationTest extends PosTestCase
             $this->assertNotContains('can:access-admin', $route->gatherMiddleware());
         }
 
-        foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.print', 'sales.reprint', 'sales.void'] as $name) {
+        $void = Route::getRoutes()->getByName('sales.void');
+        $this->assertNotNull($void);
+        $this->assertSame(['PATCH'], $void->methods());
+        $this->assertContains('auth', $void->gatherMiddleware());
+        $this->assertContains('active', $void->gatherMiddleware());
+        $this->assertContains('can:access-admin', $void->gatherMiddleware());
+
+        foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.print', 'sales.reprint'] as $name) {
             $this->assertNull(Route::getRoutes()->getByName($name));
         }
 
-        $this->assertSame(2, collect(Route::getRoutes())->filter(
+        $this->assertSame(3, collect(Route::getRoutes())->filter(
             fn ($route): bool => str_starts_with((string) $route->getName(), 'sales.'),
         )->count());
     }

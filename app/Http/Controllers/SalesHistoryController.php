@@ -70,8 +70,11 @@ class SalesHistoryController extends Controller
         abort_if($saleId === null, 404);
 
         $record = Sale::query()
-            ->select(['id', 'recorded_by', 'status', 'total_amount', 'cash_received', 'change_amount', 'created_at'])
-            ->with('recordedBy:id,name')
+            ->select([
+                'id', 'recorded_by', 'status', 'total_amount', 'cash_received', 'change_amount',
+                'void_reason', 'voided_by', 'voided_at', 'created_at',
+            ])
+            ->with(['recordedBy:id,name', 'voidedBy:id,name'])
             ->findOrFail($saleId);
 
         $items = $record->items()

@@ -42,7 +42,7 @@ class SalesHistoryTest extends PosTestCase
         $response->assertSeeInOrder([$newest->receiptNumber(), $middle->receiptNumber(), $oldest->receiptNumber()]);
         $response->assertSee('Sep 8, 2026 2:30 PM')
             ->assertSee('History Cashier')
-            ->assertSee('completed')
+            ->assertSee('Completed')
             ->assertSee('Distinct items')
             ->assertSee('2')
             ->assertSee('₱150.00')
@@ -228,7 +228,7 @@ class SalesHistoryTest extends PosTestCase
             $response = $this->actingAs($viewer)->get(route('sales.show', $sale->id))->assertOk();
             $response->assertSee($sale->receiptNumber())
                 ->assertSee('Receipt Cashier')
-                ->assertSee('completed')
+                ->assertSee('Completed')
                 ->assertSee('Historical Hammer QZX')
                 ->assertSee('18oz-QZX · Rip-QZX · 3mm-QZX')
                 ->assertSee('piece')

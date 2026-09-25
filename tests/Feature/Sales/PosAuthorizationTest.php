@@ -51,7 +51,7 @@ class PosAuthorizationTest extends PosTestCase
         }
     }
 
-    public function test_pos_routes_have_auth_and_active_without_admin_gate_and_no_future_routes(): void
+    public function test_pos_routes_have_auth_and_active_without_admin_gate_and_no_unapproved_sale_routes(): void
     {
         foreach (['pos.index', 'pos.checkout', 'pos.register.open', 'pos.register.close'] as $name) {
             $route = Route::getRoutes()->getByName($name);
@@ -66,7 +66,7 @@ class PosAuthorizationTest extends PosTestCase
         $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.checkout')->methods());
         $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.register.open')->methods());
         $this->assertSame(['POST'], Route::getRoutes()->getByName('pos.register.close')->methods());
-        foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt', 'sales.void'] as $name) {
+        foreach (['sales.edit', 'sales.update', 'sales.destroy', 'sales.receipt'] as $name) {
             $this->assertNull(Route::getRoutes()->getByName($name));
         }
     }

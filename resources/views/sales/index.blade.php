@@ -3,9 +3,9 @@
 @section('content')
 <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <div>
-        <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Completed transactions</p>
+        <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Sales transactions</p>
         <h1 class="mt-1 text-3xl font-bold">Sales History</h1>
-        <p class="mt-2 text-slate-600">Find immutable sale records and reprint their receipts.</p>
+        <p class="mt-2 text-slate-600">Find historical sale records and reprint their receipts.</p>
     </div>
 
     <form method="GET" action="{{ route('sales.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 xl:grid-cols-5">
@@ -62,7 +62,7 @@
                             <td class="px-3 py-3 font-semibold">{{ $sale->receiptNumber() }}</td>
                             <td class="px-3 py-3 text-sm">{{ $sale->created_at?->format('M j, Y g:i A') }}</td>
                             <td class="px-3 py-3 text-sm">{{ $sale->recordedBy->name }}</td>
-                            <td class="px-3 py-3 text-sm"><span @class(['rounded-full px-2 py-1 text-xs font-semibold capitalize', 'bg-emerald-100 text-emerald-800' => $sale->status === \App\Models\Sale::STATUS_COMPLETED, 'bg-red-100 text-red-800' => $sale->status !== \App\Models\Sale::STATUS_COMPLETED])>{{ $sale->status }}</span></td>
+                            <td class="px-3 py-3 text-sm"><span @class(['rounded-full px-2 py-1 text-xs font-semibold', 'bg-emerald-100 text-emerald-800' => $sale->status === \App\Models\Sale::STATUS_COMPLETED, 'bg-red-100 text-red-800' => $sale->status !== \App\Models\Sale::STATUS_COMPLETED])>{{ ucfirst($sale->status) }}</span></td>
                             <td class="px-3 py-3 text-right text-sm">{{ $sale->items_count }}</td>
                             <td class="px-3 py-3 text-right text-sm">₱{{ $sale->total_amount }}</td>
                             <td class="px-3 py-3 text-right text-sm">₱{{ $sale->cash_received }}</td>
