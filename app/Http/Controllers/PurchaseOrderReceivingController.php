@@ -50,7 +50,7 @@ class PurchaseOrderReceivingController extends Controller
                 $request->validated('submission_token'),
                 $request->validated('reference_text'),
                 $request->validated('notes'),
-                $request->acceptedItems(),
+                $request->receiptItems(),
             );
         } catch (ValidationException $exception) {
             $purchaseOrder->refresh();

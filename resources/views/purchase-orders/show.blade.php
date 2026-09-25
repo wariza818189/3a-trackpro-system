@@ -149,11 +149,29 @@
             <article class="mt-5 border-t border-slate-200 pt-4" data-po-receipt="{{ $receipt->id }}">
                 <h3 class="font-semibold">{{ $receipt->restockNumber() }}</h3>
                 <p class="mt-1 text-sm text-slate-600">{{ $receipt->created_at?->format('M j, Y g:i A') ?? '—' }} · {{ $receipt->recordedBy->name }}@if ($receipt->reference_text) · Reference: {{ $receipt->reference_text }}@endif</p>
-                <ul class="mt-3 space-y-1 text-sm">
-                    @foreach ($receipt->items as $receivedItem)
-                        <li>{{ $receivedItem->product_name_snapshot }} · {{ $receivedItem->quantity }} {{ $receivedItem->unit_snapshot }}@if ($admin) · Actual unit cost: ₱{{ $receivedItem->unit_cost }} · Line total: ₱{{ $receivedItem->line_total }}@endif</li>
-                    @endforeach
-                </ul>
+                @if ($receipt->items->isNotEmpty())
+                    <h4 class="mt-3 text-sm font-semibold">Accepted</h4>
+                    <ul class="mt-1 space-y-1 text-sm">
+                        @foreach ($receipt->items as $receivedItem)
+                            <li>{{ $receivedItem->product_name_snapshot }} · {{ $receivedItem->quantity }} {{ $receivedItem->unit_snapshot }}@if ($admin) · Actual unit cost: ₱{{ $receivedItem->unit_cost }} · Line total: ₱{{ $receivedItem->line_total }}@endif</li>
+                        @endforeach
+                    </ul>
+                @endif
+                @if ($receipt->damageItems->isNotEmpty())
+                    <h4 class="mt-3 text-sm font-semibold">Damaged (still outstanding)</h4>
+                    <ul class="mt-1 space-y-2 text-sm">
+                        @foreach ($receipt->damageItems as $damageItem)
+                            @php
+                                $damageIdentity = collect([$damageItem->size_snapshot, $damageItem->type_series_snapshot, $damageItem->thickness_snapshot])
+                                    ->filter(fn ($value) => $value !== '')->join(' · ') ?: 'Standard';
+                            @endphp
+                            <li data-po-damage-item="{{ $damageItem->id }}">
+                                <span class="font-medium">{{ $damageItem->product_name_snapshot }} · {{ $damageIdentity }} · {{ $damageItem->damaged_quantity }} {{ $damageItem->unit_snapshot }}</span>
+                                <span class="block text-slate-600">Note: {{ $damageItem->damage_note }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
                 @if ($admin)<p class="mt-2 text-sm font-semibold">Receipt total: ₱{{ $receipt->total_cost }}</p>@endif
             </article>
         @empty

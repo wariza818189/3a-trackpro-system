@@ -282,6 +282,7 @@ class PurchaseOrderController extends Controller
 
         $receiptColumns = ['id', 'purchase_order_id', 'recorded_by', 'reference_text', 'created_at'];
         $receiptItemColumns = ['id', 'restock_id', 'purchase_order_item_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'quantity'];
+        $damageColumns = ['id', 'restock_id', 'purchase_order_item_id', 'product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot', 'damaged_quantity', 'damage_note'];
         if ($admin) {
             $receiptColumns[] = 'total_cost';
             $receiptItemColumns[] = 'unit_cost';
@@ -289,7 +290,11 @@ class PurchaseOrderController extends Controller
         }
         $receipts = $purchaseOrder->restocks()
             ->select($receiptColumns)
-            ->with(['recordedBy:id,name', 'items' => fn ($query) => $query->select($receiptItemColumns)->orderBy('id')])
+            ->with([
+                'recordedBy:id,name',
+                'items' => fn ($query) => $query->select($receiptItemColumns)->orderBy('id'),
+                'damageItems' => fn ($query) => $query->select($damageColumns)->orderBy('id'),
+            ])
             ->orderBy('id')
             ->get();
 
