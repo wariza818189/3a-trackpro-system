@@ -1,10 +1,10 @@
 # Stage 1 — Schema and model foundation
 
-Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, and #27A follow-up transfer schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing PO and receiving/transfer evidence and add no schema. Damage receiving evidence and the Damaged Items report remain planned; no schema change was required for #28 or #29. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
+Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, #27A follow-up transfer schema, and #30 damage receiving evidence are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing PO and receiving/transfer evidence and add no schema; #31 Damaged Items Report remains planned and will read #30 evidence. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
 
 ## Scope and conventions
 
-The implemented schema has fourteen domain tables plus Laravel's migrations bookkeeping table, including the register, Purchase Order, and transfer tables. The remaining approved additive design includes damage evidence. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; other records have a nullable `timestamp('created_at')` populated by Eloquent and `UPDATED_AT = null`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
+The implemented schema has fifteen domain tables plus Laravel's migrations bookkeeping table, including the register, Purchase Order, transfer, and damage-evidence tables. The #31 Damaged Items Report is future read-only work and requires no additional evidence table. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; immutable evidence records have a nullable `timestamp('created_at')` and no `updated_at`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
 
 All tables use auto-increment unsigned BIGINT primary keys. All foreign keys are ordinary unsigned BIGINT keys with RESTRICT on delete and update. No cascading deletes or generated columns exist. Names/identity strings use the configured case-insensitive database collation; live uniqueness behavior was verified on MySQL.
 
@@ -109,7 +109,7 @@ Foreign key columns are indexed by Laravel/MySQL as required, in addition to the
 
 ## Phase A additive schema and implementation status
 
-The register, Purchase Order, and transfer tables below are implemented for #24–#27. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read the existing schema. Damage evidence and the Damaged Items report remain planned.
+The register, Purchase Order, transfer, and damage-evidence tables below are implemented for #24–#30. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing schema. The separate #31 Damaged Items Report remains planned and will consume #30 evidence.
 
 ### cash_register_sessions
 
@@ -146,11 +146,13 @@ The register, Purchase Order, and transfer tables below are implemented for #24�
 ### restock_damage_items
 
 - id; restock_id FK restocks; purchase_order_item_id FK purchase_order_items; product_variant_id FK product_variants.
-- The same immutable product-name, size, type/series, thickness, and unit snapshot columns as RestockItem.
-- damaged_quantity DECIMAL(14,3); damage_note TEXT; created_at.
+- product_name_snapshot VARCHAR(150); size_snapshot VARCHAR(80); type_series_snapshot VARCHAR(80); thickness_snapshot VARCHAR(40); unit_snapshot VARCHAR(30), matching the receiving PO-line snapshots.
+- damaged_quantity DECIMAL(14,3); required damage_note TEXT; nullable created_at only (no updated_at).
 - UNIQUE(restock_id, purchase_order_item_id); INDEX(purchase_order_item_id, created_at); INDEX(product_variant_id, created_at).
 - CHECK: damaged quantity is positive and the damage note is nonblank after trimming.
-- The parent Restock supplies the receiving actor and transaction context. Damage-only Restocks are valid with accepted `total_cost = 0.00`, no RestockItem, and no StockMovement.
+- All three foreign keys restrict delete and update. The pair uniqueness permits one damage row per Restock/PO-line pair; multiple damage rows for the same PO line may exist under different Restocks.
+- `RestockDamageItem` is immutable historical receiving evidence. It directly stores no actor, PO header, supplier, cost, stock-before/after, or movement ID. Restock supplies actor, receipt, and time context; PurchaseOrderItem supplies PO context. Historical snapshots, not current mutable catalog names, identify the damaged item.
+- Damage-only Restocks are valid with `total_cost = 0.00`, zero RestockItems, and zero StockMovements. Damage creates no movement type and has no stock or cost effect.
 
 ### purchase_order_item_transfers
 
@@ -164,16 +166,17 @@ The register, Purchase Order, and transfer tables below are implemented for #24�
 
 - A CashRegisterSession belongs to its opening User and optional closing User and has many legacy-nullable Sales. The browser never selects the authoritative session ID.
 - A PurchaseOrder belongs to its creator, has many items and Restocks, and may belong to a parent PurchaseOrder. Parent relationships form traceable follow-up chains and must remain acyclic. The #27 transactional service enforces valid source/child lineage.
-- A PurchaseOrderItem belongs to a Variant and may have accepted RestockItems, one outgoing transfer, and one incoming transfer. Transfer evidence connects one source item to one target follow-up item; damage details remain planned.
-- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems belong to the same PO and matching PO item/Variant through the #26 links. RestockDamageItems remain planned.
-- PO status is stored for efficient filtering and recalculated from accepted and transfer evidence in the same transaction. Damage evidence remains future work.
+- A PurchaseOrderItem belongs to a Variant and may have accepted RestockItems, damage evidence, one outgoing transfer, and one incoming transfer. Transfer evidence connects one source item to one target follow-up item.
+- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems and RestockDamageItems link to a PO item and matching Variant. RestockDamageItem's PO header context is reached through its PurchaseOrderItem.
+- PO status is stored for efficient filtering and updated from accepted and transfer evidence in the receiving/follow-up transaction. Damage evidence does not alter status by itself.
 
 For each PO item:
 
 - `accepted = SUM(PO-linked RestockItem.quantity)`
 - `transferred_out = SUM(outgoing purchase_order_item_transfers.quantity)`
 - `outstanding = MAX(ordered_quantity - accepted - transferred_out, 0.000)`
-- Future #30 damage evidence is tracked separately and does not increase sellable stock.
+- Damaged quantity is tracked separately: it does not count as accepted or transferred and is absent from the outstanding subtraction. No `accepted + damaged <= outstanding` or cumulative `SUM(damaged) <= ordered` constraint applies. Damage can exceed current outstanding; accepted quantity remains independently capped by current outstanding.
+- Only accepted quantity changes `ProductVariant.current_stock` and latest received cost or creates a RESTOCK StockMovement. Damage neither increases nor decreases stock, changes cost, creates a movement, nor reduces demand.
 
 `pending` is the initial state, including for a new follow-up child. `partially_received` means positive outstanding demand remains after receiving or transfer activity. `closed_with_remainder` means outstanding has reached zero with outgoing transfer evidence. `completed` remains for demand fully accepted without transfer. Terminal POs are frozen for receiving and editing.
 
@@ -195,10 +198,12 @@ PO line activity is history-sensitive Variant evidence. Once identity preservati
 - Active Admin and Staff may open. Staff may close only the session they opened; Admin may close any active session. No reconciliation, closing amount, cash-in/out, expense, shortage/overage, or shift fields are part of this design.
 - Opening cash is excluded from Sale totals, Dashboard sales totals, and Sales Summary calculations. Receipt/history need not display register-session details in this version.
 - Admin creates and edits pending POs and creates follow-up POs. Admin and Staff may receive against eligible open POs. Staff-facing PO/receiving queries redact expected and prior actual purchase costs while allowing entry of a new actual cost; Staff follow-up lineage views redact protected costs and actions.
-- Implemented #26 PO receiving reuses the transactional Restock/RestockItem/RESTOCK movement engine. `RestockItem.quantity` is accepted sellable quantity; only it increases `current_stock`, updates latest received cost, and creates one RESTOCK movement. Damage evidence is not implemented.
+- Implemented #26/#30 PO receiving extends the existing Restock flow with separate immutable `RestockDamageItem` evidence. A line can be accepted-only, damage-only, or accepted plus damaged; multi-line receipts can mix these shapes. Active Admin and Staff may receive. Damage requires a positive exact DECIMAL(14,3) quantity and a normalized nonblank note up to 1,000 characters; whole-mode Variants reject fractional quantities and overflow is rejected. Damage-only receipt has zero RestockItems, zero StockMovements, total cost 0.00, unchanged stock/cost/outstanding, and no PO status change. In a mixed receipt, only accepted quantity affects inventory, cost, RESTOCK movement, and PO status. Damage is not capped by ordered, outstanding, or cumulative damage; accepted quantity remains capped by current outstanding.
 - Actual receiving `unit_cost` is immutable RestockItem evidence distinct from expected PO cost. A cost difference never rewrites the PO item.
 - Implemented PO receiving locks Categories, Products, and ProductVariants in stable ascending-ID order, then the PurchaseOrder header, PurchaseOrderItems, and authoritative accepted evidence before writing receipt, item, movement, stock, and PO status. Limits use locking/current reads under MySQL REPEATABLE READ. Guarded #26D tests verified receive-versus-receive, receive-versus-edit, receive-versus-legacy-Stock-In, overlapping Variant sets, and equivalent-token replay.
-- #26 over-receiving is rejected against `ordered_quantity - accepted`. Durable submission tokens and atomic transactions prevent duplicate Restocks and partial effects. #27 transfers use their own idempotent UUID token and atomically preserve complete-current-remainder evidence without inventory effects.
+- Accepted over-receiving is rejected against `MAX(ordered - accepted - transferred_out, 0.000)`. Damage is absent from this calculation. The existing Restock submission UUID compares actor, PO, accepted line semantics, damaged line set, quantities, and normalized notes on replay; equivalent replay returns the original Restock, while changed damage semantics conflict. Atomic transactions prevent duplicate evidence and partial effects. #27 transfers use their own idempotent UUID token and transfer the full current outstanding quantity without inventory effects, regardless of damage evidence.
+- PO status remains accepted/transfer-derived: a damage-only receipt leaves an otherwise untouched PO pending; damage does not create a status, complete demand, or close a PO. Existing accepted and outgoing transfer evidence continues to determine status.
+- Guarded manual MySQL verification of #30D passed identity 3 tests / 18 assertions; readiness 1 / 7; Race 1 accepted-versus-damage 1 / 58; Race 2 equivalent damage-only replay 1 / 45; Race 3 damage-versus-follow-up 1 / 42; complete #30D 4 / 152. The replay test's same actor/User lock may serialize the calls before unique-token-index contention; it proves safe concurrent equivalent replay and does not prove unique-index collision recovery. Ordinary SQLite regression passed 439 tests / 4,509 assertions. These are current engineering results, separate from historical teacher/manual, FT15, and FT17 records. No deadlock, lock wait timeout, duplicate evidence, damage stock/cost/movement effect, demand reduction, transfer corruption, partial loser write, or cleanup failure was observed.
 - Follow-up creation locks in this order: actor/User → selected source ProductVariant rows ascending → source PO header → source PO items ascending → accepted RestockItem evidence → outgoing transfer evidence → child PO/items → transfer rows → source status write. Variant locks precede the source PO for FK/deadlock safety only; follow-up creation does not later acquire Category, Product, Variant, or INITIAL_STOCK locks after acquiring the source PO.
 - Guarded #27D MySQL concurrency verification covers follow-up versus receipt, two follow-ups, overlapping selections, follow-up versus PO edit, and equivalent-token replay.
 - Catalog lifecycle operations that require PO-history locks preserve the same global Category → Product → ProductVariant → PurchaseOrder → PurchaseOrderItem order, then recheck procurement evidence so identity or archive transitions cannot race a receipt or transfer.
@@ -224,7 +229,7 @@ ordered-minus-accepted-minus-transferred formula defined above. A narrow shared
 BCMath arithmetic for both reports; it adds no schema and does not change #28
 inclusion, filters, ordering, or presentation. #29 preserves each PO item's
 snapshot identity and provenance and does not aggregate by Variant. The future
-Damaged Items report will use damage receiving evidence while presenting
+Damaged Items report will use #30 damage receiving evidence while presenting
 immutable snapshots as historical identity.
 
 These reports add no reporting tables, cached totals, export schema, or write behavior.
@@ -237,17 +242,17 @@ These reports add no reporting tables, cached totals, export schema, or write be
 4. Add the nullable `purchase_orders.parent_purchase_order_id` self-FK/index.
 5. Add nullable `restocks.purchase_order_id` and `restock_items.purchase_order_item_id` with FKs/indexes; implemented for #26 without backfilling historical rows.
 6. Create `purchase_order_item_transfers` for #27 follow-up POs after source and target PO item relationships exist (implemented).
-7. Create `restock_damage_items` for planned #30 damage evidence.
+7. Create `restock_damage_items` for #30 damage evidence (implemented by `2026_09_25_000001_create_restock_damage_items_table.php`). The guarded dedicated database had an exact 18-entry migration ledger before this authorized migration and an exact 19-entry ledger after it; the schema postcheck passed. Migration SHA-256: `0ddb70ff589b39e2f7dd0adca003e56953e405d79404365a40b3b0146faec725`.
 
-MySQL requires compatible unsigned types and supporting indexes for every FK. ENUM changes are migration-sensitive; application and database status values must be deployed together. Cross-row totals, complete-remainder transfer, acyclic follow-up chains, and status/evidence agreement cannot be enforced by ordinary row-local CHECK constraints and therefore rely on transactional services and focused guarded MySQL concurrency verification. #27D completed that concurrency closeout.
+MySQL requires compatible unsigned types and supporting indexes for every FK. ENUM changes are migration-sensitive; application and database status values must be deployed together. Cross-row totals, complete-remainder transfer, acyclic follow-up chains, and status/evidence agreement cannot be enforced by ordinary row-local CHECK constraints and therefore rely on transactional services and focused guarded MySQL concurrency verification. #27D and #30D completed their respective concurrency closeouts.
 
 ## Models and history
 
-Category has products; Product belongs to category and has variants. Variants have sale items, restock items, and movements. Sales/restocks belong to their recording user and have items. Sales also belong to their voiding user. PurchaseOrderItems belong to their header and Variant, may have accepted RestockItems, and may be a source or target in immutable PurchaseOrderItemTransfer evidence. Movements belong to their Variant, actor, and optional source item. Audit logs belong to a user. User exposes inverse history relationships.
+Category has products; Product belongs to category and has variants. Variants have sale items, accepted restock items, damage evidence, and movements. Sales/restocks belong to their recording user and have items. Sales also belong to their voiding user. PurchaseOrderItems belong to their header and Variant, may have accepted RestockItems and RestockDamageItems, and may be a source or target in immutable PurchaseOrderItemTransfer evidence. Each RestockDamageItem belongs to one Restock, PO line, and Variant. Movements belong to their Variant, actor, and optional source item. Audit logs belong to a user. User exposes inverse history relationships.
 
 Monetary and quantity casts return fixed-scale decimal strings. JSON casts return arrays; voided_at is a datetime. User passwords use Laravel's hashed cast and are hidden in serialization along with remember tokens. The updated factory produces only synthetic username-based staff records, with admin/disabled states. DatabaseSeeder remains empty.
 
-Sales, sale items, restocks, restock items, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Services, authorization, and database privileges must enforce history preservation. No Sale edit/delete UI or workflow exists. A later explicitly approved full-void workflow may replace Sale's blanket model guard with a narrowly controlled transition; no such transition exists now.
+Sales, sale items, restocks, restock items, RestockDamageItems, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Services, authorization, and database privileges must enforce history preservation. No Sale edit/delete UI or workflow exists. A later explicitly approved full-void workflow may replace Sale's blanket model guard with a narrowly controlled transition; no such transition exists now.
 
 ## Implemented Stock In workflow controls
 

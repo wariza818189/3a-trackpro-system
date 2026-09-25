@@ -5,9 +5,10 @@
 This is the team-approved requirements baseline for Tracker #3, reconciling
 approved project design decisions with implemented and verified system behavior.
 It also records the approved Phase A requirements for teacher expansion #24–#31.
-The #26 receiving, #27 follow-up, #28 Pending Purchase Orders, and #29
-Unfulfilled Items requirements below reflect completed implementation; damage
-recording and reporting remain planned where noted.
+The #26 receiving, #27 follow-up, #28 Pending Purchase Orders, #29
+Unfulfilled Items, and #30 damaged receiving requirements below reflect
+completed implementation; the separate #31 Damaged Items Report remains
+planned.
 Validation basis: project/team baseline, reconciled against implemented and
 verified system behavior and the approved expansion planning record.
 
@@ -112,16 +113,16 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-OPEN-02 | Accept zero opening quantity. | Admin | Zero records initialization even though the balance remains zero. | Implemented; #14 |
 | FR-OPEN-03 | Record opening movement evidence. | Admin | A successful opening creates INITIAL_STOCK with trusted actor and quantities. | Implemented; #14 |
 | FR-STOCKIN-01 | Allow stock receiving by Admin and Staff. | Admin, Staff | Historical manual Restocks remain valid; Admin and Staff may receive accepted quantities against open PO lines in the active initialized hierarchy. | Implemented for legacy Stock In and PO-based receiving; #14/#26 |
-| FR-STOCKIN-02 | Update stock atomically during receiving. | Admin, Staff | Accepted PO lines, balances, actual costs, and movements commit together or none do; equivalent retries do not duplicate effects. | Implemented for accepted PO receiving; damage evidence remains planned; #14/#26/#30 |
+| FR-STOCKIN-02 | Update stock atomically during receiving. | Admin, Staff | Accepted PO lines, balances, actual costs, and movements commit together or none do; equivalent retries do not duplicate effects. Damage is separate immutable evidence and changes no stock or cost. | Implemented for accepted and damaged PO receiving; #14/#26/#30 |
 | FR-STOCKIN-03 | Preserve historical actual received cost. | Admin, Staff | Actual cost is immutable on each RestockItem; later receipts and actual cost do not rewrite expected PO cost. | Implemented for legacy and PO receiving; #14/#26 |
-| FR-STOCKIN-04 | Maintain the latest accepted received-cost reference. | Admin, Staff | Successful accepted receiving updates the Variant reference to actual received cost. | Implemented for accepted receiving; damage-only behavior remains planned; #14/#26/#30 |
-| FR-STOCKIN-05 | Record receiving movement evidence. | Admin, Staff | Each accepted RestockItem has one RESTOCK movement; no movement is created for a receipt line that does not accept stock. | Implemented for accepted PO lines; damaged receiving remains planned; #14/#26/#30 |
+| FR-STOCKIN-04 | Maintain the latest accepted received-cost reference. | Admin, Staff | Successful accepted receiving updates the Variant reference to actual received cost; damage-only receipt does not change cost. | Implemented for accepted and damage-only PO receiving; #14/#26/#30 |
+| FR-STOCKIN-05 | Record receiving movement evidence. | Admin, Staff | Each accepted RestockItem has one RESTOCK movement; damage-only lines create no StockMovement. | Implemented for accepted and damaged PO receiving; #14/#26/#30 |
 | FR-PO-01 | **Teacher-requested:** Create Purchase Orders. | Admin | Admin can create and edit a pending PO with required historical supplier text, Variant lines, quantities, and expected costs before activity; accepted receiving, damaged receiving, or outgoing transfer activity freezes protected fields. | Planned; #25 |
 | FR-PO-02 | **Teacher-requested:** Prioritize/recommend low-stock items for PO creation. | Admin | Active initialized low-stock Variants without open coverage appear first; already-covered low-stock Variants remain visible/searchable with their open quantity; no reorder quantity is invented. | Planned; #25 |
 | FR-RECV-01 | **Teacher-requested:** Receive inventory from a PO and support partial delivery. | Admin, Staff | A new receipt references a PO and may accept less than a line's open outstanding quantity while preserving remaining demand; Admin can view expected/prior actual costs and Staff can enter a new actual cost without viewing protected costs. | Implemented; #26A–#26C |
 | FR-RECV-02 | **Derived:** Increase sellable stock only for accepted quantity. | Admin, Staff | Accepted quantity alone updates current stock, latest received cost, and RESTOCK movement evidence. | Implemented atomically with linked receipt evidence; #26B |
-| FR-RECV-03 | **Derived:** Preserve auditable damaged receiving evidence without a stock increase. | Admin, Staff | Damage, including damage-only receiving, records quantity, required note, snapshots, actor/receipt/time evidence, creates no RESTOCK movement, and remains outstanding. | Planned; #30 |
-| FR-RECV-04 | **Derived:** Prevent over-receiving, duplicate receipt effects, and unsafe concurrent receipt effects. | Admin, Staff | Authoritative locked PO evidence limits accepted quantity to open outstanding demand and makes equivalent receipt retries exactly-once. | Implemented and guarded MySQL concurrency-verified for accepted PO receiving; damage workflows remain planned; #26D/#30 |
+| FR-RECV-03 | **Derived:** Preserve auditable damaged receiving evidence without a stock increase. | Admin, Staff | Damage, including damage-only receiving, records positive DECIMAL(14,3) quantity, required normalized note, and historical snapshots; actor/receipt/time context comes through Restock, PO context through PurchaseOrderItem. Damage creates no stock or cost change or StockMovement and remains outstanding. | Implemented; immutable `RestockDamageItem` under the existing Restock token; #30A–#30D |
+| FR-RECV-04 | **Derived:** Prevent over-receiving, duplicate receipt effects, and unsafe concurrent receipt effects. | Admin, Staff | Authoritative locked PO evidence caps accepted quantity at current outstanding; damage quantity is uncapped by outstanding and never reduces it. Equivalent receipt retries compare accepted and damage semantics without duplicate effects. | Implemented; accepted receiving and damage races guarded MySQL concurrency-verified; #26D/#30D |
 | FR-FOLLOWUP-01 | **Teacher-requested:** Continue remaining quantities through a follow-up Purchase Order. | Admin | Admin may select one or more open source PO lines and create a traceable child PO; each selected line transfers its full current outstanding quantity. Supplier is required and prefilled from source; source snapshots are preserved and expected planning cost may be changed. | Implemented; #27A–#27C |
 | FR-FOLLOWUP-02 | **Derived:** Prevent duplicated remainder transfer and double-counted demand. | Admin | Each selected line transfers its complete current remainder once; unselected lines remain open; transferred demand is open on only the target PO; transfer is immutable procurement evidence and creates no inventory or StockMovement effect. UUID replay returns the same child. | Implemented and guarded MySQL concurrency-verified; #27A–#27D |
 | FR-CORR-01 | Restrict stock correction to Admin. | Admin | Staff direct requests are forbidden. | Implemented; #14 |
@@ -168,7 +169,8 @@ outstanding quantity remains `partially_received`; a source whose outstanding
 quantity reaches zero through a transfer becomes `closed_with_remainder`.
 `completed` remains for fully accepted demand without transfer. Equivalent
 follow-up UUID replay remains valid after source status and outstanding quantity
-change. Damage evidence remains planned for #30.
+change. Damage evidence does not affect PO status; status remains determined by
+accepted and transferred evidence.
 
 Sales History grants both roles access to all Sales; FR-SALES-01 does not add a
 completed-only restriction to that existing history surface. Completed-only
@@ -226,8 +228,8 @@ guardrails, not proof that unrestricted direct SQL cannot alter records.
 | BR-15 | Opening cash is not Sales revenue and is excluded from Dashboard and Sales Summary totals. |
 | BR-16 | At most one cash-register session may be active globally. Opening cash may be zero; minimal closure performs no reconciliation. |
 | BR-17 | PO-based receiving requires a Purchase Order; legacy/manual Stock In remains valid with unlinked Restocks. |
-| BR-18 | Accepted quantity creates RESTOCK movement evidence and increases sellable stock; the planned damage workflow must not add damaged quantity to stock. |
-| BR-19 | Current outstanding equals MAX(ordered quantity minus accepted quantity minus outgoing transferred quantity, 0.000), using exact DECIMAL(14,3) quantities. |
+| BR-18 | Accepted quantity alone creates RESTOCK movement evidence, increases sellable stock, and updates latest accepted cost. Damaged quantity recorded during PO receiving creates no StockMovement and neither increases nor decreases sellable stock or cost. Damage-only receiving is supported. |
+| BR-19 | Current outstanding equals MAX(ordered quantity minus accepted quantity minus outgoing transferred quantity, 0.000), using exact DECIMAL(14,3) quantities. Damaged quantity is intentionally absent: it does not count as accepted/transferred, and there is no accepted-plus-damaged or cumulative-damage cap against demand. |
 | BR-20 | A selected source PO line transfers its complete current remainder at most once, and transferred demand may be open on only one PO at a time. |
 | BR-21 | Admin may edit expected cost while a PO is pending and has no accepted receiving, damaged receiving, or outgoing transfer activity. Actual RestockItem cost is separate immutable evidence and never rewrites expected cost; follow-up expected planning cost is separate and may be changed during child creation. |
 
@@ -245,6 +247,9 @@ boundaries; requirement acceptance concerns their resulting values and access.
 - PO-based partial/full receiving for Admin and Staff, with accepted/outstanding
   quantities, actual-cost evidence, linked receipt history, inventory movement
   posting, and idempotent replay.
+- Damage recording during PO receiving for Admin and Staff, including
+  damage-only and mixed receipts, immutable snapshot/note evidence, and
+  idempotent replay. Damage does not change stock/cost or reduce outstanding.
 - Admin follow-up POs for selected lines at full current outstanding quantity,
   with source/child lineage, immutable transfer evidence, idempotent replay, and
   no inventory effect.
@@ -252,9 +257,9 @@ boundaries; requirement acceptance concerns their resulting values and access.
 
 ### Planned current-project future work
 
-- #27 follow-up POs, the #28 Pending Purchase Orders report, and the #29
-  Unfulfilled Items report are implemented. Damage receiving evidence and the
-  Damaged Items report remain planned.
+- #31 Damaged Items Report remains planned; #27 follow-up POs, the #28 Pending
+  Purchase Orders report, the #29 Unfulfilled Items report, and #30 damaged
+  receiving are implemented.
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
 - User Management UI.
 - Final integration and remaining testing, documentation, and presentation work.
@@ -300,10 +305,10 @@ application checkpoint. Detailed procedures and test-case preparation remain #7.
 | Purchase Orders/low stock (FR-PO) | #25 | Planned PO header/item workflow and initialized low-stock recommendation | Not implemented; revised test catalog and execution pending |
 | PO receiving (FR-RECV; expanded FR-STOCKIN) | #26 | Transactional PO-linked receiving, partial/full quantities, linked evidence, and inventory posting | Implemented; 6 guarded MySQL concurrency tests / 220 assertions passed |
 | Follow-up POs (FR-FOLLOWUP) | #27A–#27D | Transactional full-current-remainder transfer evidence, child lineage, idempotent creation, and Admin workflow | Implemented; 6 guarded MySQL concurrency tests / 299 assertions passed |
-| Damage receiving (damage portion of FR-RECV) | #30 | Planned damaged-receiving evidence | Not implemented |
+| Damage receiving (FR-RECV-03) | #30 / expansion item #8 | Immutable `RestockDamageItem` evidence linked to Restock, PO line, and Variant; accepted/damage receipt semantics in the existing receiving flow | Implemented; manual guarded MySQL verification recorded below |
 | Pending Purchase Orders report (FR-PROC-REP-01) | #28 / expansion item #6 | Admin-only read-only report query/view over PO and receiving/transfer evidence | Implemented; current engineering verification recorded in project documentation |
 | Unfulfilled Items report (FR-PROC-REP-02) | #29 / expansion item #7 | Admin-only line-centered read-only report over PO and receiving/transfer evidence | Implemented; current engineering verification recorded in project documentation |
-| Damage receiving and Damaged Items report | #30–#31 / expansion items #8–#9 | Future receiving evidence and Admin-only read-only report | Not implemented; remains planned |
+| Damaged Items report (FR-PROC-REP-03) | #31 / expansion item #9 | Future Admin-only read-only report consuming #30 damage evidence | Not Started; not implemented |
 
 Refer to [PROJECT_STATUS.md](../PROJECT_STATUS.md) for completed checkpoints and
 recorded results, and [database-design.md](database-design.md) for workflow rules.
@@ -316,6 +321,19 @@ guarded MySQL identity tests / 18 assertions**, **6 guarded MySQL concurrency te
 assertions**. These current implementation checks are not historical teacher
 test results. The historical ordinary baseline remains recorded in the project
 documentation.
+
+**Current engineering verification for #30 (user-run):** guarded MySQL identity
+passed **3 tests / 18 assertions**; readiness passed **1 / 7**; the accepted
+receipt-versus-damage race passed **1 / 58**; equivalent damage-only replay
+passed **1 / 45**; damage-versus-follow-up passed **1 / 42**; the complete
+guarded #30D suite passed **4 / 152**; and ordinary SQLite regression passed
+**439 tests / 4,509 assertions**. The replay calls share an actor/User lock and
+may serialize before unique-token-index contention; this verifies safe
+equivalent replay and does not claim unique-index collision recovery. These are
+current engineering results, separate from FT15 and paused FT17 historical
+records. The #30 guarded migration precheck observed an exact 18-entry ledger;
+after the authorized damage migration, the exact 19-entry ledger and damage
+schema postcheck passed.
 Read-only Dashboard/Reports require no new concurrency gate. Tests prove software
 behavior, not original client interviews.
 
