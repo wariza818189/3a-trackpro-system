@@ -5,6 +5,7 @@ use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpeningInventoryController;
+use App\Http\Controllers\PendingPurchaseOrdersReportController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductVariantController;
@@ -44,6 +45,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+        Route::get('/reports/pending-purchase-orders', [PendingPurchaseOrdersReportController::class, 'index'])->name('reports.pending-purchase-orders');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
         Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
         Route::get('/purchase-orders/{purchaseOrder}/follow-up', [PurchaseOrderFollowUpController::class, 'create'])->whereNumber('purchaseOrder')->name('purchase-orders.follow-up.create');

@@ -8,6 +8,8 @@
         <p class="mt-2 text-slate-600">Completed Sales aggregated across an inclusive Manila calendar-date range.</p>
     </div>
 
+    <a href="{{ route('reports.pending-purchase-orders') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Pending Purchase Orders Report</a>
+
     <form method="GET" action="{{ route('reports.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-4">
         <label>
             <span class="text-sm font-medium">Date from</span>
