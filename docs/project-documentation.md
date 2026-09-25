@@ -53,6 +53,7 @@ The current system includes the following implemented areas:
 - one global cash-register session that can be opened and closed within the approved single-register scope;
 - Sales History and a printable receipt/reprint page based on historical sale data;
 - an Admin-only Sales Summary with date and cashier filters;
+- an Admin-only, read-only Inventory Report with one row per ProductVariant across active and archived catalog records, explicit Category/Product/Variant statuses, current stock, threshold, quantity mode, and derived stock state;
 - an Admin-only, read-only Low Stock Report with one row per active-hierarchy ProductVariant at or below its configured stock threshold;
 - responsive navigation and layouts for the main authenticated screens;
 - low-stock procurement recommendations that separate uncovered demand from items already covered by an open Purchase Order;
@@ -67,7 +68,7 @@ The current system includes the following implemented areas:
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- dedicated product-sales, inventory, and restocking report areas that go beyond the current operational screens;
+- dedicated Product Sales and Restocking report areas that go beyond the current operational screens;
 - Sale Void and its stock-restoration workflow;
 - User Management screens for creating, editing, disabling, viewing, and searching users;
 - audit logging across workflows and an audit-trail viewer/filter interface;
@@ -380,6 +381,8 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 
 **Current Low Stock Report state:** The Admin-only, read-only Reports page returns one row per active Variant under an active Product and Category when `current_stock <= low_stock_threshold`. Zero-stock Variants remain eligible, and inventory initialization is not required. The report shows each Variant's Category, Product, identity, unit, current stock, threshold, and stock state, with no Product-level or cross-unit quantity total and no procurement/open-PO coverage. It requires no schema or migration change. Current engineering verification passed the focused Low Stock Report suite (5 tests / 64 assertions), Reports authorization (5 / 23), generic Reports (6 / 77), Dashboard (7 / 43), Product Variant management (15 / 126), and the full ordinary SQLite suite (460 / 4,752). The report rendered 12 Variants with at most six SELECTs and no database writes. `npm run build`, targeted Pint, and `git diff --check` passed; MySQL was not run. These are current engineering checks, separate from historical teacher/manual results, FT15, and paused FT17 records.
 
+**Current Inventory Report state:** The Admin-only, read-only Reports page shows one row per ProductVariant across active and archived Categories, Products, and Variants, with each catalog status shown separately. It displays current stock, low-stock threshold, unit, quantity mode, and derived stock state: zero is Out of stock, positive stock at or below threshold is Low stock, and stock above threshold is In stock. Stock state is independent of catalog status. Initialization evidence is not required, and stock is not aggregated across Variants or units. The complete result set has no filters, pagination, summary metrics, or global quantity total; cost, selling price, procurement data, and stock/receipt history are not exposed. No schema or migration change was needed. Current engineering verification passed Inventory Report (5 tests / 69 assertions), Reports authorization (5 / 23), generic Reports (6 / 77), Low Stock Report (5 / 64), Product Variant management (15 / 126), and the full ordinary SQLite suite (465 / 4,821). The report rendered 12 Variants with at most six SELECTs and no database writes. `npm run build`, targeted Pint, and `git diff --check` passed; MySQL was not run. These are current engineering checks, separate from historical teacher/manual results, FT15, and paused FT17 records.
+
 **Implemented but needing additional testing:** The register feature has focused application and MySQL-specific evidence but no consolidated result summary. The expanded formal case catalog and consolidated execution record still need completion. Purchase Order edit-versus-edit behavior also needs its own simultaneous-update verification.
 
 **Current Purchase Order state:**
@@ -438,7 +441,7 @@ The system has not yet been publicly deployed.
 
 ### 8.4 Selected Screenshots
 
-Selected screenshots will be added before final submission. Recommended screens include the Dashboard, Product Variants, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, and Purchase Order list/detail.
+Selected screenshots will be added before final submission. Recommended screens include the Dashboard, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, and Purchase Order list/detail.
 
 ### 8.5 Requirements and Database Design
 
