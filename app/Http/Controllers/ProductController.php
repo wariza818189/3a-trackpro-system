@@ -49,6 +49,26 @@ class ProductController extends Controller
         return view('products.index', compact('products', 'categories', 'status', 'categoryId', 'search', 'admin'));
     }
 
+    public function show(Request $request, int $product): View
+    {
+        $admin = $request->user()->can('access-admin');
+        $product = Product::query()
+            ->when(! $admin, fn (Builder $query) => $query->inActiveHierarchy())
+            ->with([
+                'category',
+                'variants' => fn ($query) => $query
+                    ->when(! $admin, fn (Builder $query) => $query->active())
+                    ->orderBy('size')
+                    ->orderBy('type_series')
+                    ->orderBy('thickness')
+                    ->orderBy('unit')
+                    ->orderBy('id'),
+            ])
+            ->findOrFail($product);
+
+        return view('products.show', compact('product'));
+    }
+
     public function create(Category $category): View
     {
         abort_unless($category->status === Category::STATUS_ACTIVE, 409, 'Products can only be created in active categories.');

@@ -3,8 +3,8 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DamagedItemsReportController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\PendingPurchaseOrdersReportController;
 use App\Http\Controllers\PosController;
@@ -35,6 +35,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/sales/{sale}', [SalesHistoryController::class, 'show'])->whereNumber('sale')->name('sales.show');
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/products/{product}', [ProductController::class, 'show'])->whereNumber('product')->name('products.show');
     Route::get('/product-variants', [ProductVariantController::class, 'index'])->name('product-variants.index');
     Route::get('/stock-in', [StockInController::class, 'index'])->name('stock-in.index');
     Route::get('/stock-in/create', [StockInController::class, 'create'])->name('stock-in.create');
