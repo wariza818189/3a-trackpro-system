@@ -53,6 +53,12 @@
                         ['label' => 'Purchase Orders', 'route' => 'purchase-orders.index', 'active' => 'purchase-orders.*'],
                     ],
                 ],
+                ...($navigationAdmin ? [[
+                    'label' => 'Administration',
+                    'items' => [
+                        ['label' => 'User Management', 'route' => 'users.index', 'active' => 'users.*'],
+                    ],
+                ]] : []),
             ];
         @endphp
 

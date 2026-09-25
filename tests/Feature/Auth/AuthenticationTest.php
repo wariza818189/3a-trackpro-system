@@ -294,7 +294,6 @@ class AuthenticationTest extends AuthTestCase
             '/seed',
             '/reset-admin',
             '/debug-users',
-            '/users',
             '/trackpro/create-admin',
         ];
 

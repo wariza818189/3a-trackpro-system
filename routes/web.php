@@ -22,6 +22,7 @@ use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
 use App\Http\Controllers\UnfulfilledItemsReportController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -51,6 +52,15 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->whereNumber('purchaseOrder')->name('purchase-orders.show');
 
     Route::middleware('can:access-admin')->group(function (): void {
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserManagementController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->whereNumber('user')->name('users.edit');
+        Route::patch('/users/{user}', [UserManagementController::class, 'update'])->whereNumber('user')->name('users.update');
+        Route::patch('/users/{user}/role', [UserManagementController::class, 'changeRole'])->whereNumber('user')->name('users.role');
+        Route::patch('/users/{user}/archive', [UserManagementController::class, 'archive'])->whereNumber('user')->name('users.archive');
+        Route::patch('/users/{user}/reactivate', [UserManagementController::class, 'reactivate'])->whereNumber('user')->name('users.reactivate');
+        Route::patch('/users/{user}/password', [UserManagementController::class, 'password'])->whereNumber('user')->name('users.password');
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('/reports/product-sales', [ProductSalesReportController::class, 'index'])->name('reports.product-sales');
         Route::get('/reports/inventory', [InventoryReportController::class, 'index'])->name('reports.inventory');
