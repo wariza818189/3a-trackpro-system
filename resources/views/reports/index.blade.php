@@ -9,6 +9,7 @@
     </div>
 
     <a href="{{ route('reports.pending-purchase-orders') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Pending Purchase Orders Report</a>
+    <a href="{{ route('reports.inventory') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Inventory Report<span class="text-sm font-normal">Current inventory quantities, units, categories, and stock status.</span></a>
     <a href="{{ route('reports.low-stock') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Low Stock Report<span class="text-sm font-normal">Active Variants at or below their stock threshold.</span></a>
     <a href="{{ route('reports.unfulfilled-items') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Unfulfilled Items Report</a>
     <a href="{{ route('reports.damaged-items') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Damaged Items Report</a>

@@ -5,6 +5,7 @@ use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DamagedItemsReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryReportController;
 use App\Http\Controllers\LowStockReportController;
 use App\Http\Controllers\OpeningInventoryController;
 use App\Http\Controllers\PendingPurchaseOrdersReportController;
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+        Route::get('/reports/inventory', [InventoryReportController::class, 'index'])->name('reports.inventory');
         Route::get('/reports/low-stock', [LowStockReportController::class, 'index'])->name('reports.low-stock');
         Route::get('/reports/pending-purchase-orders', [PendingPurchaseOrdersReportController::class, 'index'])->name('reports.pending-purchase-orders');
         Route::get('/reports/unfulfilled-items', [UnfulfilledItemsReportController::class, 'index'])->name('reports.unfulfilled-items');
