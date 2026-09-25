@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\ImmutableRecord;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -46,6 +47,32 @@ class Sale extends Model
         }
 
         return 'TRX-'.str_pad((string) $this->getKey(), 6, '0', STR_PAD_LEFT);
+    }
+
+    public function transitionToVoided(User $actor, string $reason, DateTimeInterface $voidedAt): bool
+    {
+        if ($this->getKey() === null) {
+            return false;
+        }
+
+        $changed = self::query()
+            ->whereKey($this->getKey())
+            ->where('status', self::STATUS_COMPLETED)
+            ->whereNull('void_reason')
+            ->whereNull('voided_by')
+            ->whereNull('voided_at')
+            ->update([
+                'status' => self::STATUS_VOIDED,
+                'void_reason' => $reason,
+                'voided_by' => $actor->getKey(),
+                'voided_at' => $voidedAt,
+            ]);
+
+        if ($changed === 1) {
+            $this->refresh();
+        }
+
+        return $changed === 1;
     }
 
     public function recordedBy(): BelongsTo

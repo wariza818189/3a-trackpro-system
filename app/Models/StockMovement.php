@@ -18,6 +18,8 @@ class StockMovement extends Model
 
     public const TYPE_SALE = 'SALE';
 
+    public const TYPE_SALE_VOID = 'SALE_VOID';
+
     public const UPDATED_AT = null;
 
     protected $fillable = [
