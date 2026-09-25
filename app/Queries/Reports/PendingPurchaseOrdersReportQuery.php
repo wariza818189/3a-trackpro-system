@@ -8,6 +8,8 @@ use Illuminate\Support\Collection;
 
 class PendingPurchaseOrdersReportQuery
 {
+    public function __construct(private readonly PurchaseOrderLineEvidence $evidence) {}
+
     /** @return Collection<int, array{order: PurchaseOrder, lines: Collection}> */
     public function get(string $supplier = '', ?string $status = null): Collection
     {
@@ -34,16 +36,13 @@ class PendingPurchaseOrdersReportQuery
             ->get()
             ->map(function (PurchaseOrder $order): array {
                 $lines = $order->items->map(function (PurchaseOrderItem $item): array {
-                    $accepted = '0.000';
-                    foreach ($item->restockItems as $receipt) {
-                        $accepted = bcadd($accepted, (string) $receipt->quantity, 3);
-                    }
+                    $quantities = $this->evidence->calculate(
+                        (string) $item->ordered_quantity,
+                        $item->restockItems->pluck('quantity'),
+                        (string) ($item->outgoingTransfer?->quantity ?? '0.000'),
+                    );
 
-                    $transferred = bcadd('0.000', (string) ($item->outgoingTransfer?->quantity ?? '0.000'), 3);
-                    $remaining = bcsub(bcsub((string) $item->ordered_quantity, $accepted, 3), $transferred, 3);
-                    $outstanding = bccomp($remaining, '0.000', 3) > 0 ? $remaining : '0.000';
-
-                    return compact('item', 'accepted', 'transferred', 'outstanding');
+                    return ['item' => $item] + $quantities;
                 })->filter(fn (array $line): bool => bccomp($line['outstanding'], '0.000', 3) > 0)->values();
 
                 return ['order' => $order, 'lines' => $lines];

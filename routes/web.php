@@ -16,6 +16,7 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
+use App\Http\Controllers\UnfulfilledItemsReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::middleware('can:access-admin')->group(function (): void {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('/reports/pending-purchase-orders', [PendingPurchaseOrdersReportController::class, 'index'])->name('reports.pending-purchase-orders');
+        Route::get('/reports/unfulfilled-items', [UnfulfilledItemsReportController::class, 'index'])->name('reports.unfulfilled-items');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
         Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
         Route::get('/purchase-orders/{purchaseOrder}/follow-up', [PurchaseOrderFollowUpController::class, 'create'])->whereNumber('purchaseOrder')->name('purchase-orders.follow-up.create');
