@@ -1,10 +1,10 @@
 # Stage 1 — Schema and model foundation
 
-Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, #27A follow-up transfer schema, and #30 damage receiving evidence are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing PO and receiving/transfer evidence and add no schema; #31 Damaged Items Report remains planned and will read #30 evidence. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
+Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, #27A follow-up transfer schema, and #30 damage receiving evidence are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders, #29 Unfulfilled Items, and #31 Damaged Items reports read existing PO and receiving/transfer evidence and add no schema. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
 
 ## Scope and conventions
 
-The implemented schema has fifteen domain tables plus Laravel's migrations bookkeeping table, including the register, Purchase Order, transfer, and damage-evidence tables. The #31 Damaged Items Report is future read-only work and requires no additional evidence table. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; immutable evidence records have a nullable `timestamp('created_at')` and no `updated_at`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
+The implemented schema has fifteen domain tables plus Laravel's migrations bookkeeping table, including the register, Purchase Order, transfer, and damage-evidence tables. The #31 Damaged Items Report is implemented as read-only work over existing evidence; it required no additional table, column, index, or migration. MySQL is the target. PHP/Laravel application time remains Asia/Manila. Standard Laravel `timestamps()` are used for mutable records; immutable evidence records have a nullable `timestamp('created_at')` and no `updated_at`. No microsecond datetimes or custom session-timezone configuration were added. Standard timestamp behavior was verified on the target MySQL server.
 
 All tables use auto-increment unsigned BIGINT primary keys. All foreign keys are ordinary unsigned BIGINT keys with RESTRICT on delete and update. No cascading deletes or generated columns exist. Names/identity strings use the configured case-insensitive database collation; live uniqueness behavior was verified on MySQL.
 
@@ -109,7 +109,7 @@ Foreign key columns are indexed by Laravel/MySQL as required, in addition to the
 
 ## Phase A additive schema and implementation status
 
-The register, Purchase Order, transfer, and damage-evidence tables below are implemented for #24–#30. The #28 Pending Purchase Orders and #29 Unfulfilled Items reports read existing schema. The separate #31 Damaged Items Report remains planned and will consume #30 evidence.
+The register, Purchase Order, transfer, and damage-evidence tables below are implemented for #24–#30. The #28 Pending Purchase Orders, #29 Unfulfilled Items, and #31 Damaged Items reports read existing schema. #31 consumes #30 damage evidence without changing receiving semantics or requiring a schema, index, or migration change.
 
 ### cash_register_sessions
 
@@ -151,7 +151,7 @@ The register, Purchase Order, transfer, and damage-evidence tables below are imp
 - UNIQUE(restock_id, purchase_order_item_id); INDEX(purchase_order_item_id, created_at); INDEX(product_variant_id, created_at).
 - CHECK: damaged quantity is positive and the damage note is nonblank after trimming.
 - All three foreign keys restrict delete and update. The pair uniqueness permits one damage row per Restock/PO-line pair; multiple damage rows for the same PO line may exist under different Restocks.
-- `RestockDamageItem` is immutable historical receiving evidence. It directly stores no actor, PO header, supplier, cost, stock-before/after, or movement ID. Restock supplies actor, receipt, and time context; PurchaseOrderItem supplies PO context. Historical snapshots, not current mutable catalog names, identify the damaged item.
+- `RestockDamageItem` is immutable historical receiving evidence. It directly stores no actor, PO header, supplier, cost, stock-before/after, or movement ID. Restock supplies actor, receipt, timestamp, and linked PO context; supplier comes from that PurchaseOrder. The #31 report uses these links and the damage row's product, size, type/series, thickness, and unit snapshots; it does not use current catalog names for historical identity.
 - Damage-only Restocks are valid with `total_cost = 0.00`, zero RestockItems, and zero StockMovements. Damage creates no movement type and has no stock or cost effect.
 
 ### purchase_order_item_transfers
@@ -167,7 +167,7 @@ The register, Purchase Order, transfer, and damage-evidence tables below are imp
 - A CashRegisterSession belongs to its opening User and optional closing User and has many legacy-nullable Sales. The browser never selects the authoritative session ID.
 - A PurchaseOrder belongs to its creator, has many items and Restocks, and may belong to a parent PurchaseOrder. Parent relationships form traceable follow-up chains and must remain acyclic. The #27 transactional service enforces valid source/child lineage.
 - A PurchaseOrderItem belongs to a Variant and may have accepted RestockItems, damage evidence, one outgoing transfer, and one incoming transfer. Transfer evidence connects one source item to one target follow-up item.
-- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems and RestockDamageItems link to a PO item and matching Variant. RestockDamageItem's PO header context is reached through its PurchaseOrderItem.
+- Restock belongs to its recording User and optional PurchaseOrder. Accepted RestockItems and RestockDamageItems link to a PO item and matching Variant. The #31 report reaches recording User and PurchaseOrder context from Restock, while its item identity comes directly from RestockDamageItem snapshots.
 - PO status is stored for efficient filtering and updated from accepted and transfer evidence in the receiving/follow-up transaction. Damage evidence does not alter status by itself.
 
 For each PO item:
@@ -228,9 +228,21 @@ ordered-minus-accepted-minus-transferred formula defined above. A narrow shared
 `PurchaseOrderLineEvidence` application helper performs that exact three-place
 BCMath arithmetic for both reports; it adds no schema and does not change #28
 inclusion, filters, ordering, or presentation. #29 preserves each PO item's
-snapshot identity and provenance and does not aggregate by Variant. The future
-Damaged Items report will use #30 damage receiving evidence while presenting
-immutable snapshots as historical identity.
+snapshot identity and provenance and does not aggregate by Variant.
+
+The #31 Damaged Items Report starts from `RestockDamageItem` and returns exactly
+one row per damage evidence record. It keeps records separate across Variants,
+POs, and receipts. Historical item identity uses the damage row snapshots;
+receipt timestamp, receipt ID, actor, PO ID, and supplier are loaded from its
+Restock and linked PurchaseOrder. The report has supplier substring, historical
+item snapshot text, and exact PO ID filters, with invalid filters failing
+closed. It orders by Restock `created_at` descending, Restock ID descending,
+then damage row ID descending. It renders without pagination and shows no
+global quantity total across unlike units. No parent/child lineage, costs,
+tokens, movement data, or write behavior is part of the report. It required no
+schema, index, or migration change and does not affect stock or outstanding
+demand. This #31 report is a GET-only route in Reports; Staff remains forbidden
+from the Reports module.
 
 These reports add no reporting tables, cached totals, export schema, or write behavior.
 
