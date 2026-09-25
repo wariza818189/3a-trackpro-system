@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
@@ -52,6 +53,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->whereNumber('purchaseOrder')->name('purchase-orders.show');
 
     Route::middleware('can:access-admin')->group(function (): void {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');

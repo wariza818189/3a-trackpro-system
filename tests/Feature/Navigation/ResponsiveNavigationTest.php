@@ -7,7 +7,7 @@ use Tests\Feature\Auth\AuthTestCase;
 
 class ResponsiveNavigationTest extends AuthTestCase
 {
-    public function test_admin_navigation_uses_all_twelve_destinations_in_desktop_and_mobile_menus(): void
+    public function test_admin_navigation_uses_all_thirteen_destinations_in_desktop_and_mobile_menus(): void
     {
         $admin = User::factory()->admin()->create();
         $html = $this->actingAs($admin)->get(route('home'))->assertOk()->getContent();
@@ -24,6 +24,7 @@ class ResponsiveNavigationTest extends AuthTestCase
             'stock-corrections.index' => 'Stock Correction',
             'purchase-orders.index' => 'Purchase Orders',
             'users.index' => 'User Management',
+            'audit-logs.index' => 'Audit Logs',
         ];
 
         $this->assertNavigationDestinations($html, $expected);

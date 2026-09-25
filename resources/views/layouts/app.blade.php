@@ -57,6 +57,7 @@
                     'label' => 'Administration',
                     'items' => [
                         ['label' => 'User Management', 'route' => 'users.index', 'active' => 'users.*'],
+                        ['label' => 'Audit Logs', 'route' => 'audit-logs.index', 'active' => 'audit-logs.*'],
                     ],
                 ]] : []),
             ];
