@@ -29,6 +29,9 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 The dedicated Product Sales, Inventory, Low Stock, and Restocking Reports are
 also complete. Remaining work is final integration, testing, documentation, and
 presentation preparation; unified Movement History remains incomplete.
+User Management is implemented; its account workflows, role/access controls,
+and transactional account AuditLogs are documented below. Audit viewing/filtering,
+Sale Void, Recent Stock Activity, and final screenshots remain future work.
 
 ## Status Definitions
 
@@ -98,12 +101,12 @@ presentation preparation; unified Movement History remains incomplete.
 | REPORTS | Damaged Items Report | Display damaged-item history from PO receiving evidence. | TBD | — | — | Completed | Working damaged-items report | Maps to #31 / expansion item #9. Admin-only GET/read-only report presents one row per immutable RestockDamageItem, with PO, receipt, supplier, historical snapshots, quantity, note, actor, and time. Supplier substring, historical item text, and exact PO ID filters; newest receipt first. Implemented and current engineering-verified. |
 | USER | Login | Log in to the system | ROBERT JAMES WARIZA | 09/24/2026 | 09/25/2026 | Completed | Working secure login feature | Validate credentials, create an authenticated session, and allow access according to account status and role. Implemented and verified. |
 | USER | Logout | Log out of the system | ROBERT JAMES WARIZA | 09/24/2026 | 09/25/2026 | Completed | Working logout feature | End the authenticated session and prevent continued access to protected pages after logout. Implemented and verified. |
-| USER | New | Add a new user | Jonel Layupan | 09/25/2026 | 09/26/2026 | Not Started | Working user creation feature | Allow authorized account creation with required information, secure password storage, role, and status. No User Management creation module exists; CLI-only Admin bootstrap is separate. |
-| USER | Edit | Update an existing user | Jonel Layupan | 09/26/2026 | 09/27/2026 | Not Started | Working user update feature | Allow authorized changes to user information, role, or account status while preserving accountability. No User Management edit module exists. |
-| USER | Archive | Archive an existing user | ROBERT JAMES WARIZA | 09/26/2026 | 09/27/2026 | Not Started | Working user archive feature | Disable future access while preserving references to previous transactions and system activities. No supported User Management archive/disable workflow exists. |
-| USER | Search | View a specific user | Jonel Layupan | 09/25/2026 | 09/26/2026 | Not Started | Working user search and view feature | Search user accounts and display relevant account information, role, and status to authorized users. No User Management search/view module exists. |
-| USER | Role & Access | Manage user roles and access permissions | ROBERT JAMES WARIZA | 09/24/2026 | 09/27/2026 | In Progress | Working role-based access control | Server-side Admin/Staff enforcement exists. Admin account creation, editing, disabling, and password-reset workflows remain missing; the approved future User Management policy is recorded in the requirements and project documentation. |
-| AUDIT TRAIL | Record Activity | Record critical user and system activities | ROBERT JAMES WARIZA | 09/26/2026 | 10/11/2026 | In Progress | Working audit logging system | AuditLog schema/model foundation exists, but production writers are not implemented. Approved future events cover account lifecycle actions and, after Sale Void exists, SALE_VOIDED. Stock Correction remains evidenced by CORRECTION StockMovement and does not require duplicate AuditLog evidence. |
+| USER | New | Add a new user | Jonel Layupan | 09/25/2026 | 09/26/2026 | Completed | Working user creation feature | Admin-only creation supports Staff by default or an explicitly selected Admin. Every new account is active; name, normalized username, role, and confirmed password are validated. USER_CREATED is recorded transactionally with safe after-state only. |
+| USER | Edit | Update an existing user | Jonel Layupan | 09/26/2026 | 09/27/2026 | Completed | Working user update feature | Admin can edit name/username, change role, archive/reactivate status, and reset passwords through separate operations. Server-side self-protection and transactional safe account AuditLogs apply; no secrets are logged. |
+| USER | Archive | Archive an existing user | ROBERT JAMES WARIZA | 09/26/2026 | 09/27/2026 | Completed | Working user archive feature | Archive disables the account and preserves historical references; reactivation restores active status. No hard delete or DELETE route exists. Self-disable is rejected and at least one active Admin is preserved transactionally, verified under guarded MySQL concurrency. |
+| USER | Search | View a specific user | Jonel Layupan | 09/25/2026 | 09/26/2026 | Completed | Working user search and view feature | Admin User Management searches name and username with literal wildcard handling, displays active and disabled accounts, orders by name/username/ID, paginates 20 rows, and preserves the query across pages. |
+| USER | Role & Access | Manage user roles and access permissions | ROBERT JAMES WARIZA | 09/24/2026 | 09/27/2026 | Completed | Working role-based access control | Active Admin-only account management, Admin/Staff assignment, active/disabled status operations, self-demotion/self-disable protection, and the transactional last-active-Admin invariant are implemented. The invariant passed guarded MySQL concurrency verification. Audit viewer features remain separate. |
+| AUDIT TRAIL | Record Activity | Record critical user and system activities | ROBERT JAMES WARIZA | 09/26/2026 | 10/11/2026 | In Progress | Working audit logging system | Production account lifecycle AuditLogs are implemented transactionally and contain only privacy-scoped allowlisted state: USER_CREATED, USER_UPDATED, USER_ROLE_CHANGED, USER_DISABLED, USER_REACTIVATED, and USER_PASSWORD_RESET. SALE_VOIDED remains future until Sale Void is implemented. Stock Correction remains movement-only under FR-CORR-04; CORRECTION StockMovement is its evidence, with no duplicate AuditLog requirement. |
 | AUDIT TRAIL | View Logs | Display audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Not Started | Working audit trail viewer | Allow authorized users to review recorded system activities and their relevant details. No audit viewer UI exists. |
 | AUDIT TRAIL | Filter Logs | Search and filter audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Not Started | Working audit log filtering | Filter audit records using relevant criteria such as user, action, and date range. No audit viewer/filter UI exists. |
 | TESTING | Functional Testing | Test all completed modules and document errors or unexpected results | Rommel Jave Casipong | 10/12/2026 | 10/13/2026 | Completed | Functional test results | Report discovered bugs to the project lead and retest after fixes. Formal run `FT15-20260909-A`: 30/30 Passed, 0 Failed, 0 Blocked, 0 Remaining. |
@@ -117,10 +120,12 @@ presentation preparation; unified Movement History remains incomplete.
 
 ## Status Summary
 
-- Completed: 53
-- In Progress: 5
-- Not Started: 13
+- Completed: 58
+- In Progress: 4
+- Not Started: 9
 - Total: 71
+
+Arithmetic check: **58 + 4 + 9 = 71**.
 
 ## Excel Sync
 

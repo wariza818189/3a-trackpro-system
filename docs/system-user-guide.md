@@ -67,8 +67,6 @@ continue using protected pages; contact the project administrator if access is
 denied. TrackPro has no public registration, forgot-password, password-reset,
 or browser-based account setup page. Ask the project administrator if an
 assigned account cannot sign in.
-There is no User Management screen for creating, editing, searching, or
-disabling accounts.
 
 Useful application paths are:
 
@@ -85,6 +83,29 @@ Useful application paths are:
 | Opening Inventory | `/opening-inventory` | Admin |
 | Stock Correction | `/stock-corrections` | Admin |
 | Purchase Orders | `/purchase-orders` | Admin and Staff |
+| User Management | `/users` | Admin |
+
+## 4.1 Admin User Management
+
+User Management is available to Admins only. Open **User Management** from the
+Admin navigation to search and manage accounts. Staff cannot open this area.
+
+- Search by a person's name or username. Results include active and disabled
+  accounts and keep the search when moving between pages.
+- Select **Create user** to add a Staff or Admin account. Staff is selected by
+  default. Every new account starts active. Enter a name, username, role, and
+  password; passwords must be at least 12 characters and confirmed.
+- Edit a user's name and username on that user's edit page. Role changes,
+  archive/reactivation, and password resets are separate actions.
+- Change a user's role between Admin and Staff when appropriate.
+- Choose **Archive** to disable an account and prevent future access. Choose
+  **Reactivate** to restore a disabled account to active status. Archive does
+  not delete the account or its history; accounts cannot be deleted.
+- Reset a password by entering and confirming a new password. There is no old
+  password requirement or email reset link.
+- An Admin may edit their own name and username or reset their own password,
+  but cannot demote or disable their own account. The system also prevents a
+  change that would leave no active Admin; another active Admin must remain.
 
 ## 4. User Roles and Access
 
@@ -630,7 +651,6 @@ development command from Section 2 in a separate terminal.
 
 The current interface does not provide:
 
-- User Management screens.
 - Public registration or password recovery.
 - Supplier management.
 - Discounts or promotions.
@@ -670,7 +690,9 @@ Suggested evidence:
 11. Reports index, Sales Summary, Product Sales, Inventory Report, Low Stock
     Report, Pending Purchase Orders, Unfulfilled Items, Restocking, and Damaged
     Items reports.
-12. Responsive mobile navigation.
+12. Admin User Management list/search, create form, profile edit, role change,
+    archive/reactivate actions, and password reset form.
+13. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions
 that state what the screenshot proves. Crop or retake any image that exposes a

@@ -86,8 +86,9 @@ process.
   hard-deleted.
 - **Sale Void:** Sale Void remains intended future academic functionality and
   is not implemented.
-- **User Management:** User Management remains future implementation under the
-  approved policy in section 9.
+- **User Management:** Admin-only User Management is implemented under the
+  approved policy in section 9, with transactional account lifecycle AuditLogs.
+  Audit Log viewing/filtering remains future.
 
 | ID | Assumption / basis |
 | --- | --- |
@@ -297,50 +298,48 @@ boundaries; requirement acceptance concerns their resulting values and access.
 ### Planned current-project future work
 
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
-- User Management UI and account lifecycle workflows under the approved policy
-  below.
-- AuditLog writers and Admin-only audit viewing/filtering under the approved
-  policy below.
+- Admin-only Audit Log viewing/filtering; account lifecycle AuditLog writers
+  are implemented under the policy below.
 - Final integration and remaining testing, documentation, and presentation work.
 
-### Approved future User Management policy
+### Approved User Management policy and implementation state
 
 Only an active Admin may manage accounts. Supported roles remain exactly
 `admin` and `staff`, and supported account states remain exactly `active` and
 `disabled`. Account creation defaults to Staff and active; an Admin may choose
-either supported role at creation. Admins may edit name, username, role, and
-status, and may explicitly reset/update a password. “Archive” means disabling
-the account; users must not be hard-deleted, so historical references remain
-intact. An Admin may not disable or demote their own currently logged-in Admin
-account. At least one active Admin must always remain. Future account changes
-must enforce that invariant transactionally; guarded MySQL concurrency
-verification is required because concurrent Admin changes could otherwise
-violate it. CLI Admin bootstrap is deployment/setup behavior and does not
-require an AuditLog entry.
+either supported role at creation. Creation always makes an active account.
+Admins can edit name/username, change role, archive/disable, reactivate, and
+explicitly reset a password. “Archive” means disabling the account; users are
+not hard-deleted, so historical references remain intact. An Admin may not
+disable or demote their own account. At least one active Admin must always
+remain. These protections are enforced transactionally; guarded MySQL
+concurrency verification passed for the last-active-Admin invariant. CLI Admin
+bootstrap is deployment/setup behavior and does not require an AuditLog entry.
 
-### Approved future Audit Trail policy
+### Approved Audit Trail policy and implementation state
 
-Future application AuditLog events are `USER_CREATED`, `USER_UPDATED`,
-`USER_ROLE_CHANGED`, `USER_DISABLED`, `USER_REACTIVATED`, and
-`USER_PASSWORD_RESET`. After Sale Void is implemented, `SALE_VOIDED` is also an
-approved event. Stock Correction remains movement-only under FR-CORR-04:
+Account AuditLog events `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
+`USER_DISABLED`, `USER_REACTIVATED`, and `USER_PASSWORD_RESET` are implemented
+transactionally with safe allowlisted details. After Sale Void is implemented,
+`SALE_VOIDED` remains future. Stock Correction remains movement-only under FR-CORR-04:
 `CORRECTION` StockMovement is its required evidence, with no duplicate
-AuditLog requirement. No ordinary production AuditLog writers are currently
-implemented. Each future AuditLog record must be written in the same
-transaction as its protected application change.
+AuditLog requirement. Account AuditLogs reference the authenticated Admin and
+affected User and are written in the same transaction as the account change.
+No password, password hash, token, or full request body is logged. Login/logout
+AuditLog events are not implemented or required. The Admin-only Audit Log
+viewer and filters remain future.
 
-Account-change before/after details may contain only appropriate safe values,
-such as name, username, role, and status. Never log passwords, password hashes,
-remember/session/CSRF/checkout/submission tokens, or entire request bodies. A
-password-reset event may state that a reset occurred without recording old or
-new passwords or a hash. Login/logout AuditLog events are not required. The
-future Audit Log viewer is Admin-only and its initial filters are user, action,
-and date range. Audit records are retained; no pruning subsystem is required
-for this academic project.
+Account-change before/after details contain only safe allowlisted values such
+as name, username, role, and status. Passwords, password hashes,
+remember/session/CSRF/checkout/submission tokens, and entire request bodies are
+never logged. Password reset records only that a reset occurred. Login/logout
+AuditLog events are not implemented or required. The future Audit Log viewer is
+Admin-only with initial user, action, and date filters. Audit records are
+retained; no pruning subsystem is required for this academic project.
 
 Schema support for void status/fields/movement types is preparation only; no
-void transition or stock-restoration workflow is implemented. Existing roles
-and disabled-account enforcement do not constitute a User Management UI.
+void transition or stock-restoration workflow is implemented. Account
+management is implemented; its Audit Log viewer/filter UI is not.
 
 ### Currently outside the recorded teacher-requested expansion unless later requested
 

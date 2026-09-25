@@ -83,15 +83,15 @@ The current system includes the following implemented areas:
 - PO-based partial and full receiving for Admin and Staff, with accepted/outstanding quantities, actual receipt-cost evidence, linked receipt history, inventory and StockMovement posting, completed/partially_received status progression, Admin cost visibility, Staff cost redaction, and safe duplicate submission replay; and
 - Admin follow-up Purchase Order creation from selected source lines, transferring each selected line's full current outstanding quantity to one traceable child PO with idempotent replay and no inventory mutation; and
 - damaged-item recording during PO receiving for Admin and Staff, as immutable receipt evidence separate from accepted inventory; and
-- the Admin-only #31 Damaged Items Report, a GET-only read-only Reports page presenting immutable receiving evidence.
+- the Admin-only #31 Damaged Items Report, a GET-only read-only Reports page presenting immutable receiving evidence; and
+- Admin-only User Management for searching, creating, editing, changing roles, disabling/reactivating, and resetting account passwords. Accounts are never hard-deleted; account changes retain transactional AuditLog evidence and the last-active-Admin invariant.
 
 ### 2.2 In-Progress and Planned Scope
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
 - Sale Void and its stock-restoration workflow;
-- User Management screens for creating, editing, disabling, viewing, and searching users;
-- audit logging across workflows and an audit-trail viewer/filter interface;
+- the Audit Log viewer/filter interface and non-account workflow logging; account lifecycle AuditLogs are implemented;
 - a unified inventory movement history screen;
 - remaining edge-case, permission, integration, and final system testing; and
 - final screenshots, documentation review, and presentation preparation.
@@ -108,33 +108,35 @@ The following items are outside the approved project scope. Their absence is a s
 - extended cash reconciliation, shift, shortage/overage, and expense management; and
 - advanced procurement export and damaged-item media features.
 
-### 2.4 Approved Future User Management and Audit Trail Policy
+### 2.4 User Management and Audit Trail State
 
-These are approved future implementation policies, not currently available
-workflows. Only an active Admin may manage accounts. Roles remain `admin` and
-`staff`; states remain `active` and `disabled`. New accounts default to active
-Staff, with Admin allowed to choose either role. Admin may edit name, username,
-role, and status, and explicitly reset/update a password. Archive means
-disabled; hard deletion is prohibited so historical references remain intact.
-An Admin cannot disable or demote their own current Admin account, and at least
-one active Admin must remain. Future enforcement must be transactional and
-receive guarded MySQL concurrency verification. CLI Admin bootstrap is setup
-behavior and does not require an audit record.
+Only an active Admin may manage accounts. Roles are exactly `admin` and
+`staff`; account states are exactly `active` and `disabled`. The Admin User
+Management screen searches by name and username, displays active and disabled
+accounts, and supports creation, profile editing, role changes,
+archive/disable, reactivation, and password reset. Creation defaults to Staff,
+allows an explicit Admin choice, and always creates an active account. Archive
+disables access while preserving the account and historical references; no
+delete workflow exists. Password resets are Admin actions and do not use an
+email reset flow.
 
-Future AuditLog events are `USER_CREATED`, `USER_UPDATED`,
+An Admin can edit their own name/username and reset their own password, but
+cannot demote or disable their own account. At least one active Admin must
+remain. The invariant is enforced transactionally and passed guarded MySQL
+concurrency verification. CLI Admin bootstrap is setup behavior and does not
+require an audit entry.
+
+Production account AuditLog actions are `USER_CREATED`, `USER_UPDATED`,
 `USER_ROLE_CHANGED`, `USER_DISABLED`, `USER_REACTIVATED`, and
-`USER_PASSWORD_RESET`; `SALE_VOIDED` is approved only after Sale Void exists.
-Stock Correction remains evidenced by `CORRECTION` StockMovement under
-FR-CORR-04 and does not require duplicate AuditLog evidence. Audit writers must
-share a transaction with the protected change. Account-change details may
-include only safe before/after values such as name, username, role, and status.
-Passwords, hashes, remember/session/CSRF/checkout/submission tokens, and full
-request bodies must never be logged. A password reset entry may record only
-that the reset occurred. Login/logout events are not required. The future
-viewer is Admin-only, with initial filters for user, action, and date range;
-records are retained without a pruning subsystem. The schema/model foundation
-exists, but normal application AuditLog writers and the viewer are not
-implemented.
+`USER_PASSWORD_RESET`. Each is written in the same transaction as the account
+change, references the authenticated Admin and affected User, and contains only
+safe allowlisted values. Passwords, hashes, tokens, and full request bodies are
+never logged. Login/logout events are not implemented or required. `SALE_VOIDED`
+remains future until Sale Void exists. Stock Correction remains movement-only
+under FR-CORR-04: `CORRECTION` StockMovement is the required evidence, with no
+duplicate AuditLog requirement. Audit Log viewing and filtering are not
+implemented; the approved Admin-only viewer's initial filters are user, action,
+and date range. Records are retained without a pruning subsystem.
 
 ### 2.5 Main Screens
 
@@ -151,6 +153,7 @@ The current user-facing screens are:
 - Opening Inventory list and entry form;
 - Stock In history, new receipt, and receipt-detail screens;
 - Stock Corrections list and correction form;
+- Admin-only User Management list/search, create, edit, role, status, and password-reset screens;
 - Sales Summary Reports;
 - Purchase Orders list;
 - Purchase Order creation;
@@ -181,7 +184,7 @@ The separate Admin-only #31 Damaged Items Report presents this evidence as one r
 
 | Entity | Purpose | Current User-Facing Support |
 | --- | --- | --- |
-| Users | Authentication, role, status, and transaction responsibility | **Some operations available** — login/logout and role/status enforcement exist; no User Management screen exists. |
+| Users | Authentication, role, status, and transaction responsibility | **Admin User Management available** — search, create, profile edit, role/status operations, reactivation, and password reset; accounts cannot be deleted. |
 | Categories | Top level of the product catalog | **Create, view/search, edit, archive, and reactivate**. |
 | Products | Product identities within Categories | **Create, view/search, edit, archive, and reactivate**. |
 | Product Variants | Sellable or stockable units with prices and the primary stock record | **Create, view/search, edit, archive, and reactivate**; stock changes use separate inventory workflows. |
@@ -195,7 +198,7 @@ The separate Admin-only #31 Damaged Items Report presents this evidence as one r
 | Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, receive partial or full deliveries including damaged quantities, and create follow-up POs**; source-to-child lineage is visible. Operational damage history appears in PO details; the dedicated #31 report is linked from Reports and remains Admin-only. |
 | Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities, linked actual receipt costs, and transferred quantities are represented by history evidence. Saved historical details remain available when catalog records later become inactive. |
 | Purchase Order Item Transfers | Immutable source-to-child procurement-demand evidence | **Created automatically and view-only**; records the full quantity transferred, source/target item relationship, actor, and creation time. Transfers do not affect inventory. |
-| Audit Logs | Intended record of sensitive system activity | **Not yet implemented for normal workflows** — database/model preparation exists, but logging and a viewer are unavailable. |
+| Audit Logs | Sensitive account activity records | **Account lifecycle writers implemented transactionally**; the Audit Log viewer and filters remain unavailable. |
 
 ## 3. Technology & Architecture
 
@@ -279,7 +282,7 @@ Development of the system began during the **first week of September 2026**. The
 
 The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are complete, alongside the procurement reports #28, #29, and #31. Procurement also includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full and damaged PO receiving, and Admin follow-up POs with source/child lineage and full-current-remainder transfers.
 
-The project remains in active development. PO-based receiving, #27 follow-up ordering, and #30 damaged receiving are implemented and concurrency-verified. Sale Void, User Management, Audit Trail, unified Movement History, expanded formal testing, and final materials remain incomplete.
+The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, and User Management are implemented; the last-active-Admin invariant is concurrency-verified. Sale Void, Audit Log viewing/filtering, unified Movement History, expanded formal testing, and final materials remain incomplete.
 
 ## 5. Technical Decisions & Issues
 
@@ -462,7 +465,13 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 - The Admin-only Restocking Report is a GET-only, read-only Reports page with exactly one row per accepted RestockItem. It includes ordinary Stock In and accepted PO receiving, classifying source by whether `restocks.purchase_order_id` is null; PO rows show their linked PO ID and supplier. Each row uses the RestockItem receiving-time Product, size, type/series, thickness, and unit snapshots, accepted quantity, actual unit cost, and stored line total, with the `RST-` receipt number, Restock actor, and Restock creation time. Damage-only receipts are excluded because they have no accepted RestockItem; mixed receipts show only accepted quantity and cost here, while damage evidence remains in the Damaged Items Report. Opening inventory and corrections are not RestockItem history. It does not depend on StockMovement, aggregate across receipts or units, or provide filters or pagination. Expected PO cost, current catalog identity/cost, damage details, tokens, procurement demand, and mutation controls are not shown. No schema or migration change was needed.
 - **Current engineering verification for Restocking Report:** focused report passed 4 tests / 102 assertions; Reports authorization passed 5 / 23; generic Reports passed 6 / 77; manual Stock In passed 21 / 226; PO receiving passed 15 / 272; and Damaged Items Report passed 6 / 108. The full ordinary SQLite suite passed 469 tests / 4,922 assertions **before** the final test-only ordering assertion was strengthened; after that test-only adjustment, the focused Restocking Report suite and targeted Pint passed again. Production behavior was unchanged by the final test-only adjustment. Bounded-query/read-only verification rendered 16 accepted lines with at most five SELECTs and no write query during GET. `npm run build` and `git diff --check` passed; MySQL was not run. These current engineering results are separate from teacher/manual testing, FT15, and paused FT17 history.
 
-**Other incomplete areas and limitations:** Sale Void, User Management, Audit Log writing/viewing, unified inventory movement history, Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+**Current engineering verification for User Management (Phase A):** focused service passed **15 tests / 128 assertions**; auth/access regressions passed **25 / 141**; and the full ordinary SQLite suite passed **491 tests / 5,147 assertions** before the final test-only addition. After that addition, the focused service suite reran and passed **15 / 128**; the full suite was not rerun after it.
+
+**Current engineering verification for User Management (Phase B):** focused HTTP passed **17 / 192**; Phase A service regression **15 / 128**; auth/access/navigation **28 / 327**; and the full ordinary SQLite suite passed **508 / 5,343** before two final test-only checks. After those checks, focused HTTP reran and passed **17 / 192**; the full suite was not rerun after them. `npm run build`, targeted Pint, and `git diff --check` passed.
+
+**Current engineering verification for User Management (Phase C):** guarded MySQL concurrency passed **1 test / 37 assertions**, proving the last-active-Admin invariant and atomic AuditLog result under concurrent opposing archive requests. An initial sandbox attempt failed safely at the identity guard; the approved socket-access run passed. Service regression passed **15 / 128**, HTTP regression **17 / 192**, and full ordinary SQLite **509 / 5,353**. Targeted Pint and `git diff --check` passed. No schema or migration change was needed. The guarded MySQL run used fixture-scoped cleanup and no broad destructive SQL.
+
+**Other incomplete areas and limitations:** Sale Void and its `SALE_VOIDED` event, Audit Log viewing/filtering and non-account event writers, unified inventory movement history, Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Account lifecycle AuditLogs are implemented. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
 The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
 
