@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderItemTransfer;
 use App\Models\Restock;
+use App\Models\RestockDamageItem;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
@@ -368,6 +369,357 @@ final class ReceivePurchaseOrderTest extends RestockTestCase
         $this->assertSame(PurchaseOrder::STATUS_PENDING, $purchaseOrder->fresh()->status);
     }
 
+    public function test_damage_only_receipt_preserves_snapshot_stock_cost_outstanding_and_pending_status(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), [
+            'unit' => 'kg', 'quantity_mode' => 'fractional', 'current_stock' => '1.250', 'cost_price' => '30.00',
+        ]);
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '2.000', '25.00']]);
+        $line = $items[0];
+        $originalName = $line->product_name_snapshot;
+        $originalSize = $line->size_snapshot;
+        $variant->product->name = 'Changed catalog name';
+        $variant->product->save();
+        $variant->size = 'Changed catalog size';
+        $variant->save();
+        $beforeMovements = StockMovement::query()->count();
+
+        $receipt = $this->receive($actor, $order, [$this->damageLine($line, '3.125', "  Bent  on\n arrival  ")]);
+        $damage = $receipt->damageItems->sole();
+
+        $this->assertSame('0.00', $receipt->total_cost);
+        $this->assertCount(0, $receipt->items);
+        $this->assertSame('3.125', $damage->damaged_quantity);
+        $this->assertSame('Bent on arrival', $damage->damage_note);
+        $this->assertSame($line->id, $damage->purchase_order_item_id);
+        $this->assertSame($variant->id, $damage->product_variant_id);
+        $this->assertSame($originalName, $damage->product_name_snapshot);
+        $this->assertSame($originalSize, $damage->size_snapshot);
+        $this->assertSame($line->type_series_snapshot, $damage->type_series_snapshot);
+        $this->assertSame($line->thickness_snapshot, $damage->thickness_snapshot);
+        $this->assertSame($line->unit_snapshot, $damage->unit_snapshot);
+        $this->assertTrue($damage->restock->recordedBy->is($actor));
+        $this->assertNotNull($damage->created_at);
+        $this->assertSame(['1.250', '30.00'], [$variant->fresh()->current_stock, $variant->fresh()->cost_price]);
+        $this->assertSame($beforeMovements, StockMovement::query()->count());
+        $this->assertSame(0, RestockItem::query()->count());
+        $this->assertSame('0.000', $line->acceptedQuantity());
+        $this->assertSame('0.000', $line->transferredQuantity());
+        $this->assertSame('2.000', $line->outstandingQuantity());
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $order->fresh()->status);
+    }
+
+    public function test_mixed_receipt_posts_only_accepted_quantity_and_allows_damage_above_outstanding(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), [
+            'unit' => 'kg', 'quantity_mode' => 'fractional', 'current_stock' => '1.000', 'cost_price' => '30.00',
+        ]);
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '5.000', '25.00']]);
+        $line = array_merge($this->line($items[0], '2.000', '40.00'), [
+            'damaged_quantity' => '7.000', 'damage_note' => 'Cracked in transit',
+        ]);
+
+        $receipt = $this->receive($actor, $order, [$line]);
+
+        $this->assertSame('80.00', $receipt->total_cost);
+        $this->assertSame('2.000', $receipt->items->sole()->quantity);
+        $this->assertSame('7.000', $receipt->damageItems->sole()->damaged_quantity);
+        $this->assertSame(['3.000', '40.00'], [$variant->fresh()->current_stock, $variant->fresh()->cost_price]);
+        $this->assertSame(1, StockMovement::query()->where('movement_type', StockMovement::TYPE_RESTOCK)->count());
+        $this->assertSame('2.000', $items[0]->acceptedQuantity());
+        $this->assertSame('3.000', $items[0]->outstandingQuantity());
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $order->fresh()->status);
+
+        $this->assertValidation(fn () => $this->receive($actor, $order, [array_merge(
+            $this->line($items[0], '3.001', '40.00'),
+            ['damaged_quantity' => '1.000', 'damage_note' => 'Another defect'],
+        )]), 'items.0.accepted_quantity');
+        $this->assertSame(1, RestockDamageItem::query()->count());
+    }
+
+    public function test_mixed_receipt_supports_accepted_only_damage_only_and_both_on_separate_lines(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $variants = [];
+        for ($i = 0; $i < 3; $i++) {
+            $variants[] = $this->variant($product, ['size' => 'Line '.$i]);
+            $this->initialize($variants[$i], $actor);
+        }
+        [$order, $items] = $this->purchaseOrder($actor, [
+            [$variants[0], '2.000', '10.00'],
+            [$variants[1], '2.000', '10.00'],
+            [$variants[2], '2.000', '10.00'],
+        ]);
+
+        $receipt = $this->receive($actor, $order, [
+            $this->line($items[0], '1', '11'),
+            $this->damageLine($items[1], '1', 'Bent'),
+            array_merge($this->line($items[2], '1', '12'), ['damaged_quantity' => '2', 'damage_note' => 'Broken']),
+        ]);
+
+        $this->assertSame('23.00', $receipt->total_cost);
+        $this->assertCount(2, $receipt->items);
+        $this->assertCount(2, $receipt->damageItems);
+        $this->assertSame(['1.000', '0.000', '1.000'], array_map(fn (ProductVariant $variant): string => $variant->fresh()->current_stock, $variants));
+        $this->assertSame(['1.000', '2.000', '1.000'], array_map(fn (PurchaseOrderItem $item): string => $item->outstandingQuantity(), $items));
+    }
+
+    public function test_multiple_damage_receipts_have_no_cumulative_order_cap_and_keep_pending_status(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+
+        $first = $this->receive($actor, $order, [$this->damageLine($items[0], '2', 'First shipment')]);
+        $second = $this->receive($actor, $order, [$this->damageLine($items[0], '3', 'Replacement shipment')]);
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertSame(2, Restock::query()->count());
+        $this->assertSame(2, RestockDamageItem::query()->count());
+        $this->assertSame('1.000', $items[0]->outstandingQuantity());
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $order->fresh()->status);
+        $this->assertSame(0, RestockItem::query()->count());
+        $this->assertSame(0, StockMovement::query()->where('movement_type', StockMovement::TYPE_RESTOCK)->count());
+    }
+
+    public function test_damage_only_after_partial_acceptance_preserves_partially_received_status(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '3.000', '10.00']]);
+        $this->receive($actor, $order, [$this->line($items[0], '1', '12')]);
+
+        $receipt = $this->receive($actor, $order, [$this->damageLine($items[0], '4', 'Damaged replacement')]);
+
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $order->fresh()->status);
+        $this->assertSame('2.000', $items[0]->outstandingQuantity());
+        $this->assertSame('1.000', $variant->fresh()->current_stock);
+        $this->assertSame('12.00', $variant->fresh()->cost_price);
+        $this->assertCount(0, $receipt->items);
+        $this->assertCount(1, $receipt->damageItems);
+    }
+
+    public function test_damage_quantity_and_note_validation_rejects_invalid_shapes_without_writes(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '2.000', '10.00']]);
+        $base = $this->damageLine($items[0], '1', 'Damaged');
+
+        foreach (['0', '-1', '1.001', '1.1234', '100000000000.000', [], 1] as $quantity) {
+            $this->assertValidation(fn () => $this->receive($actor, $order, [array_replace($base, ['damaged_quantity' => $quantity])]), 'items.0.damaged_quantity');
+        }
+        foreach ([null, '', '   ', [], str_repeat('a', 1001)] as $note) {
+            $this->assertValidation(fn () => $this->receive($actor, $order, [array_replace($base, ['damage_note' => $note])]), 'items.0.damage_note');
+        }
+        $this->assertValidation(fn () => $this->receive($actor, $order, [[
+            'purchase_order_item_id' => $items[0]->id, 'damage_note' => 'Orphan note',
+        ]]), 'items.0.damaged_quantity');
+        $this->assertValidation(fn () => $this->receive($actor, $order, [[
+            'purchase_order_item_id' => $items[0]->id,
+        ]]), 'items.0');
+        $this->assertSame(0, Restock::query()->count());
+        $this->assertSame(0, RestockDamageItem::query()->count());
+        $this->assertSame('0.000', $variant->fresh()->current_stock);
+    }
+
+    public function test_fractional_damage_uses_exact_three_decimal_quantity(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), ['unit' => 'kg', 'quantity_mode' => 'fractional']);
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+
+        $receipt = $this->receive($actor, $order, [$this->damageLine($items[0], '0.125', 'Measured damage')]);
+
+        $this->assertSame('0.125', $receipt->damageItems->sole()->damaged_quantity);
+        $this->assertSame('1.000', $items[0]->outstandingQuantity());
+    }
+
+    public function test_damage_receiving_requires_active_initialized_open_lines_and_valid_actor(): void
+    {
+        $actor = User::factory()->admin()->create();
+        foreach (['category', 'product', 'variant', 'uninitialized', 'completed', 'closed_with_remainder'] as $case) {
+            $category = $this->category();
+            $product = $this->product($category);
+            $variant = $this->variant($product);
+            if ($case !== 'uninitialized') {
+                $this->initialize($variant, $actor);
+            }
+            [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+            if ($case === 'category') {
+                $category->status = Category::STATUS_ARCHIVED;
+                $category->save();
+            } elseif ($case === 'product') {
+                $product->status = Product::STATUS_ARCHIVED;
+                $product->save();
+            } elseif ($case === 'variant') {
+                $variant->status = ProductVariant::STATUS_ARCHIVED;
+                $variant->save();
+            } elseif ($case === 'completed' || $case === 'closed_with_remainder') {
+                $order->status = $case;
+                $order->save();
+            }
+
+            $key = in_array($case, ['completed', 'closed_with_remainder'], true) ? 'purchase_order' : 'items.0.purchase_order_item_id';
+            $this->assertValidation(fn () => $this->receive($actor, $order, [$this->damageLine($items[0], '1', 'Defect')]), $key);
+        }
+        $this->assertSame(0, Restock::query()->count());
+        $this->assertSame(0, RestockDamageItem::query()->count());
+
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+        $this->assertValidation(fn () => $this->receive(User::factory()->disabled()->create(), $order, [
+            $this->damageLine($items[0], '1', 'Defect'),
+        ]), 'actor');
+    }
+
+    public function test_damage_rejects_a_foreign_or_fully_satisfied_line_on_an_open_order(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $first = $this->variant($product, ['size' => 'First']);
+        $second = $this->variant($product, ['size' => 'Second']);
+        $this->initialize($first, $actor);
+        $this->initialize($second, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$first, '1.000', '10.00'], [$second, '1.000', '10.00']]);
+        [$foreignOrder, $foreignItems] = $this->purchaseOrder($actor, [[$first, '1.000', '10.00']]);
+
+        $this->assertValidation(fn () => $this->receive($actor, $order, [
+            $this->damageLine($foreignItems[0], '1', 'Foreign line'),
+        ]), 'items.0.purchase_order_item_id');
+        $this->receive($actor, $order, [$this->line($items[0], '1', '11')]);
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $order->fresh()->status);
+        $this->assertSame('0.000', $items[0]->outstandingQuantity());
+
+        $this->assertValidation(fn () => $this->receive($actor, $order, [
+            $this->damageLine($items[0], '1', 'Already satisfied'),
+        ]), 'items.0.damaged_quantity');
+        $this->assertSame(0, RestockDamageItem::query()->count());
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $foreignOrder->fresh()->status);
+    }
+
+    public function test_damage_only_replay_after_completion_and_semantic_conflicts(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $otherActor = User::factory()->admin()->create();
+        $product = $this->product($this->category());
+        $variant = $this->variant($product);
+        $otherVariant = $this->variant($product, ['size' => 'Other']);
+        $this->initialize($variant, $actor);
+        $this->initialize($otherVariant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00'], [$otherVariant, '1.000', '10.00']]);
+        [$otherOrder] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+        $token = Str::uuid()->toString();
+        $line = [$this->damageLine($items[0], '2', '  Bent  item  ')];
+        $first = $this->receive($actor, $order, $line, $token);
+        $this->receive($actor, $order, [
+            $this->line($items[0], '1', '11'), $this->line($items[1], '1', '12'),
+        ]);
+        $this->assertSame(PurchaseOrder::STATUS_COMPLETED, $order->fresh()->status);
+
+        $replay = $this->receive($actor, $order, [$this->damageLine($items[0], '2.000', 'Bent item')], strtoupper($token));
+        $this->assertSame($first->id, $replay->id);
+        $this->assertCount(0, $replay->items);
+        $this->assertCount(1, $replay->damageItems);
+
+        foreach ([
+            [$actor, $order, [$this->damageLine($items[0], '3', 'Bent item')]],
+            [$actor, $order, [$this->damageLine($items[0], '2', 'Different note')]],
+            [$actor, $order, [$this->line($items[0], '1', '11')]],
+            [$actor, $order, [$this->damageLine($items[1], '2', 'Bent item')]],
+            [$otherActor, $order, $line],
+            [$actor, $otherOrder, $line],
+        ] as [$requestActor, $requestOrder, $requestLines]) {
+            $this->assertValidation(fn () => $this->receive($requestActor, $requestOrder, $requestLines, $token), 'submission_token');
+        }
+        $this->assertSame(2, Restock::query()->count());
+        $this->assertSame(1, RestockDamageItem::query()->count());
+    }
+
+    public function test_mixed_replay_compares_accepted_and_damage_sets_after_stock_cost_and_status_change(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), ['cost_price' => '20.00']);
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '1.000', '10.00']]);
+        $token = Str::uuid()->toString();
+        $line = [array_merge($this->line($items[0], '1', '12'), ['damaged_quantity' => '4', 'damage_note' => 'Broken'])];
+
+        $first = $this->receive($actor, $order, $line, $token);
+        $replay = $this->receive($actor, $order, [array_merge($this->line($items[0], '1.000', '12.00'), [
+            'damaged_quantity' => '4.000', 'damage_note' => 'Broken',
+        ])], strtoupper($token));
+
+        $this->assertSame($first->id, $replay->id);
+        $this->assertSame(PurchaseOrder::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertSame(['1.000', '12.00'], [$variant->fresh()->current_stock, $variant->fresh()->cost_price]);
+        $this->assertSame(1, Restock::query()->count());
+        $this->assertSame(1, RestockItem::query()->count());
+        $this->assertSame(1, RestockDamageItem::query()->count());
+        $this->assertSame(1, StockMovement::query()->where('movement_type', StockMovement::TYPE_RESTOCK)->count());
+        $this->assertValidation(fn () => $this->receive($actor, $order, [$this->line($items[0], '1', '12')], $token), 'submission_token');
+        $this->assertValidation(fn () => $this->receive($actor, $order, [array_merge($this->line($items[0], '1', '13'), [
+            'damaged_quantity' => '4', 'damage_note' => 'Broken',
+        ])], $token), 'submission_token');
+    }
+
+    public function test_damage_does_not_reduce_follow_up_transfer_quantity(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()));
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '5.000', '10.00']]);
+        $this->receive($actor, $order, [$this->damageLine($items[0], '7', 'Damaged shipment')]);
+
+        $child = app(CreateFollowUpPurchaseOrder::class)->execute(
+            $actor, $order, Str::uuid()->toString(), 'Replacement supplier', null,
+            [['source_purchase_order_item_id' => $items[0]->id, 'expected_unit_cost' => '11.00']],
+        );
+
+        $this->assertSame('5.000', PurchaseOrderItemTransfer::query()->sole()->quantity);
+        $this->assertSame('0.000', $items[0]->outstandingQuantity());
+        $this->assertSame('5.000', $child->items()->sole()->outstandingQuantity());
+        $this->assertSame(1, RestockDamageItem::query()->count());
+        $this->assertValidation(fn () => $this->receive($actor, $order, [$this->damageLine($items[0], '1', 'Late defect')]), 'purchase_order');
+    }
+
+    public function test_failed_damage_insert_rolls_back_mixed_receipt_completely(): void
+    {
+        $actor = User::factory()->admin()->create();
+        $variant = $this->variant($this->product($this->category()), ['current_stock' => '2.000', 'cost_price' => '30.00']);
+        $this->initialize($variant, $actor);
+        [$order, $items] = $this->purchaseOrder($actor, [[$variant, '2.000', '25.00']]);
+        $beforeMovements = StockMovement::query()->count();
+        DB::unprepared("CREATE TRIGGER fail_po_damage BEFORE INSERT ON restock_damage_items BEGIN SELECT RAISE(ABORT, 'forced damage failure'); END");
+
+        try {
+            $this->receive($actor, $order, [array_merge($this->line($items[0], '1', '35'), [
+                'damaged_quantity' => '2', 'damage_note' => 'Broken',
+            ])]);
+            $this->fail('The damage insert should have failed.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('forced damage failure', $exception->getMessage());
+        }
+
+        $this->assertSame(0, Restock::query()->count());
+        $this->assertSame(0, RestockItem::query()->count());
+        $this->assertSame(0, RestockDamageItem::query()->count());
+        $this->assertSame($beforeMovements, StockMovement::query()->count());
+        $this->assertSame(['2.000', '30.00'], [$variant->fresh()->current_stock, $variant->fresh()->cost_price]);
+        $this->assertSame('2.000', $items[0]->outstandingQuantity());
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $order->fresh()->status);
+    }
+
     /** @param list<array{0: ProductVariant, 1: string, 2: string}> $definitions
      * @return array{PurchaseOrder, list<PurchaseOrderItem>}
      */
@@ -405,6 +757,16 @@ final class ReceivePurchaseOrderTest extends RestockTestCase
             'purchase_order_item_id' => $item->id,
             'accepted_quantity' => $quantity,
             'actual_unit_cost' => $cost,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function damageLine(PurchaseOrderItem $item, string $quantity, string $note): array
+    {
+        return [
+            'purchase_order_item_id' => $item->id,
+            'damaged_quantity' => $quantity,
+            'damage_note' => $note,
         ];
     }
 

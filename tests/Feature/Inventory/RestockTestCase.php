@@ -107,6 +107,21 @@ abstract class RestockTestCase extends TestCase
             $table->timestamp('created_at')->nullable();
             $table->unique(['restock_id', 'product_variant_id']);
         });
+        Schema::create('restock_damage_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('restock_id')->constrained('restocks')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('purchase_order_item_id')->constrained('purchase_order_items')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('product_name_snapshot', 150);
+            $table->string('size_snapshot', 80)->default('');
+            $table->string('type_series_snapshot', 80)->default('');
+            $table->string('thickness_snapshot', 40)->default('');
+            $table->string('unit_snapshot', 30);
+            $table->decimal('damaged_quantity', 14, 3);
+            $table->text('damage_note');
+            $table->timestamp('created_at')->nullable();
+            $table->unique(['restock_id', 'purchase_order_item_id']);
+        });
         Schema::create('cash_register_sessions', function (Blueprint $table): void {
             $table->id();
             $table->decimal('opening_cash', 16, 2);

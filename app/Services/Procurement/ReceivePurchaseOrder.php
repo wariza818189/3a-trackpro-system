@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderItemTransfer;
 use App\Models\Restock;
+use App\Models\RestockDamageItem;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
@@ -54,7 +55,10 @@ class ReceivePurchaseOrder
 
         $existing = Restock::query()
             ->where('submission_token', $operation['submission_token'])
-            ->with(['items' => fn ($query) => $query->orderBy('purchase_order_item_id')])
+            ->with([
+                'items' => fn ($query) => $query->orderBy('purchase_order_item_id'),
+                'damageItems' => fn ($query) => $query->orderBy('purchase_order_item_id'),
+            ])
             ->first();
         if ($existing !== null) {
             return $this->resolveReplay($existing, $operation);
@@ -79,6 +83,11 @@ class ReceivePurchaseOrder
                 ->lockForUpdate()
                 ->get();
             $winner->setRelation('items', $items);
+            $winner->setRelation('damageItems', RestockDamageItem::query()
+                ->where('restock_id', $winner->getKey())
+                ->orderBy('purchase_order_item_id')
+                ->lockForUpdate()
+                ->get());
 
             return $this->resolveReplay($winner, $operation);
         }
@@ -178,6 +187,12 @@ class ReceivePurchaseOrder
             $acceptedByItem[$itemId] = bcadd($acceptedByItem[$itemId] ?? '0.000', (string) $evidence->quantity, 3);
         }
 
+        RestockDamageItem::query()
+            ->whereIn('purchase_order_item_id', $purchaseOrderItems->keys())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['id']);
+
         $outgoingEvidence = PurchaseOrderItemTransfer::query()
             ->whereIn('source_purchase_order_item_id', $purchaseOrderItems->keys())
             ->orderBy('id')
@@ -199,6 +214,11 @@ class ReceivePurchaseOrder
                 ->orderBy('purchase_order_item_id')
                 ->lockForUpdate()
                 ->get());
+            $tokenRestock->setRelation('damageItems', RestockDamageItem::query()
+                ->where('restock_id', $tokenRestock->getKey())
+                ->orderBy('purchase_order_item_id')
+                ->lockForUpdate()
+                ->get());
 
             return $this->resolveReplay($tokenRestock, $operation);
         }
@@ -213,10 +233,24 @@ class ReceivePurchaseOrder
                 $transferredByItem[$purchaseOrderItemId] ?? '0.000',
                 3,
             );
-            if (bccomp($itemData['quantity'], $outstanding, 3) === 1) {
+            if ($itemData['quantity'] === null && bccomp($outstanding, '0.000', 3) !== 1) {
+                throw ValidationException::withMessages([
+                    "items.{$itemData['index']}.damaged_quantity" => 'The Purchase Order item has no current outstanding demand.',
+                ]);
+            }
+            if ($itemData['quantity'] !== null && bccomp($itemData['quantity'], $outstanding, 3) === 1) {
                 throw ValidationException::withMessages([
                     "items.{$itemData['index']}.accepted_quantity" => 'The accepted quantity exceeds the current outstanding quantity.',
                 ]);
+            }
+            $variant = $variants->get($plan['item_variants'][$purchaseOrderItemId]);
+            if ($itemData['damaged_quantity'] !== null) {
+                if (! in_array($variant->quantity_mode, ProductVariant::QUANTITY_MODES, true)
+                    || ($variant->quantity_mode === 'whole' && ! str_ends_with($itemData['damaged_quantity'], '.000'))) {
+                    throw ValidationException::withMessages([
+                        "items.{$itemData['index']}.damaged_quantity" => 'The damaged quantity must match the variant quantity mode.',
+                    ]);
+                }
             }
         }
 
@@ -239,6 +273,9 @@ class ReceivePurchaseOrder
 
         $postingItems = [];
         foreach ($operation['items'] as $purchaseOrderItemId => $itemData) {
+            if ($itemData['quantity'] === null) {
+                continue;
+            }
             $variantId = $plan['item_variants'][$purchaseOrderItemId];
             $postingItems[$variantId] = $itemData + ['purchase_order_item_id' => $purchaseOrderItemId];
             $acceptedByItem[$purchaseOrderItemId] = bcadd(
@@ -248,13 +285,38 @@ class ReceivePurchaseOrder
             );
         }
         ksort($postingItems, SORT_NUMERIC);
+        $postingVariants = $variants->filter(fn (ProductVariant $variant): bool => isset($postingItems[(int) $variant->getKey()]));
         $restock->setRelation('items', $this->inventory->post(
             $restock,
             $operation['actor_id'],
-            $variants,
+            $postingVariants,
             $products,
             $postingItems,
         ));
+
+        $damageItems = collect();
+        foreach ($operation['items'] as $purchaseOrderItemId => $itemData) {
+            if ($itemData['damaged_quantity'] === null) {
+                continue;
+            }
+            $purchaseOrderItem = $purchaseOrderItems->get($purchaseOrderItemId);
+            $damage = new RestockDamageItem;
+            $damage->restock_id = $restock->getKey();
+            $damage->purchase_order_item_id = $purchaseOrderItemId;
+            $damage->product_variant_id = $purchaseOrderItem->product_variant_id;
+            foreach (['product_name_snapshot', 'size_snapshot', 'type_series_snapshot', 'thickness_snapshot', 'unit_snapshot'] as $field) {
+                $damage->$field = $purchaseOrderItem->$field;
+            }
+            $damage->damaged_quantity = $itemData['damaged_quantity'];
+            $damage->damage_note = $itemData['damage_note'];
+            $damage->save();
+            $damageItems->push($damage);
+        }
+        $restock->setRelation('damageItems', $damageItems);
+
+        if ($postingItems === []) {
+            return $restock;
+        }
 
         $hasOutstanding = false;
         foreach ($purchaseOrderItems as $purchaseOrderItem) {
@@ -364,7 +426,7 @@ class ReceivePurchaseOrder
         $token = strtolower($token);
 
         if (count($submittedItems) < 1 || count($submittedItems) > 100) {
-            throw ValidationException::withMessages(['items' => 'Receiving requires between 1 and 100 accepted items.']);
+            throw ValidationException::withMessages(['items' => 'Receiving requires between 1 and 100 items.']);
         }
 
         $items = [];
@@ -375,8 +437,21 @@ class ReceivePurchaseOrder
             }
             $keys = array_keys($submitted);
             sort($keys);
-            if ($keys !== ['accepted_quantity', 'actual_unit_cost', 'purchase_order_item_id']) {
+            if (! array_key_exists('purchase_order_item_id', $submitted)
+                || array_diff($keys, ['accepted_quantity', 'actual_unit_cost', 'damaged_quantity', 'damage_note', 'purchase_order_item_id']) !== []) {
                 throw ValidationException::withMessages(["items.{$index}" => 'The received item contains unexpected fields.']);
+            }
+
+            $hasAccepted = array_key_exists('accepted_quantity', $submitted) || array_key_exists('actual_unit_cost', $submitted);
+            $hasDamage = array_key_exists('damaged_quantity', $submitted) || array_key_exists('damage_note', $submitted);
+            if (! $hasAccepted && ! $hasDamage) {
+                throw ValidationException::withMessages(["items.{$index}" => 'A received item needs accepted or damaged quantity.']);
+            }
+            if ($hasAccepted && (! array_key_exists('accepted_quantity', $submitted) || ! array_key_exists('actual_unit_cost', $submitted))) {
+                throw ValidationException::withMessages(["items.{$index}.actual_unit_cost" => 'Accepted quantity and actual unit cost are required together.']);
+            }
+            if ($hasDamage && ! array_key_exists('damaged_quantity', $submitted)) {
+                throw ValidationException::withMessages(["items.{$index}.damaged_quantity" => 'Damaged quantity is required with a damage note.']);
             }
 
             $itemId = filter_var($submitted['purchase_order_item_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -389,15 +464,23 @@ class ReceivePurchaseOrder
                 ]);
             }
 
-            $quantity = $this->canonicalQuantity($submitted['accepted_quantity'], $index);
-            $unitCost = $this->canonicalCost($submitted['actual_unit_cost'], $index);
-            $lineTotal = bcadd(bcmul($quantity, $unitCost, 5), '0.005', 2);
-            if (bccomp($lineTotal, self::MAX_MONEY, 2) === 1) {
-                throw ValidationException::withMessages(["items.{$index}.actual_unit_cost" => 'The item total is too large.']);
+            $quantity = $hasAccepted ? $this->canonicalQuantity($submitted['accepted_quantity'], $index, 'accepted_quantity') : null;
+            $unitCost = $hasAccepted ? $this->canonicalCost($submitted['actual_unit_cost'], $index) : null;
+            $lineTotal = $hasAccepted ? bcadd(bcmul($quantity, $unitCost, 5), '0.005', 2) : null;
+            if ($hasAccepted) {
+                if (bccomp($lineTotal, self::MAX_MONEY, 2) === 1) {
+                    throw ValidationException::withMessages(["items.{$index}.actual_unit_cost" => 'The item total is too large.']);
+                }
+                $total = bcadd($total, $lineTotal, 2);
+                if (bccomp($total, self::MAX_MONEY, 2) === 1) {
+                    throw ValidationException::withMessages(['items' => 'The receiving total is too large.']);
+                }
             }
-            $total = bcadd($total, $lineTotal, 2);
-            if (bccomp($total, self::MAX_MONEY, 2) === 1) {
-                throw ValidationException::withMessages(['items' => 'The receiving total is too large.']);
+
+            $damagedQuantity = $hasDamage ? $this->canonicalQuantity($submitted['damaged_quantity'], $index, 'damaged_quantity') : null;
+            $damageNote = $hasDamage ? $this->normalizeHeaderText($submitted['damage_note'] ?? null, "items.{$index}.damage_note") : null;
+            if ($hasDamage && $damageNote === null) {
+                throw ValidationException::withMessages(["items.{$index}.damage_note" => 'A damage note is required.']);
             }
 
             $items[(int) $itemId] = [
@@ -405,6 +488,8 @@ class ReceivePurchaseOrder
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
                 'line_total' => $lineTotal,
+                'damaged_quantity' => $damagedQuantity,
+                'damage_note' => $damageNote,
             ];
         }
         ksort($items, SORT_NUMERIC);
@@ -420,17 +505,17 @@ class ReceivePurchaseOrder
         ];
     }
 
-    private function canonicalQuantity(mixed $value, int $index): string
+    private function canonicalQuantity(mixed $value, int $index, string $field): string
     {
         if (! is_string($value) || preg_match(self::QUANTITY_PATTERN, trim($value)) !== 1) {
-            throw ValidationException::withMessages(["items.{$index}.accepted_quantity" => 'Enter a positive ordinary decimal with up to three decimal places.']);
+            throw ValidationException::withMessages(["items.{$index}.{$field}" => 'Enter a positive ordinary decimal with up to three decimal places.']);
         }
         $canonical = $this->canonicalUnsigned(trim($value), 3);
         if (strlen(strtok($canonical, '.')) > 11 || bccomp($canonical, self::MAX_QUANTITY, 3) === 1) {
-            throw ValidationException::withMessages(["items.{$index}.accepted_quantity" => 'The accepted quantity is too large.']);
+            throw ValidationException::withMessages(["items.{$index}.{$field}" => 'The quantity is too large.']);
         }
         if (bccomp($canonical, '0.000', 3) !== 1) {
-            throw ValidationException::withMessages(["items.{$index}.accepted_quantity" => 'The accepted quantity must be greater than zero.']);
+            throw ValidationException::withMessages(["items.{$index}.{$field}" => 'The quantity must be greater than zero.']);
         }
 
         return $canonical;
@@ -491,19 +576,35 @@ class ReceivePurchaseOrder
                 'unit_cost' => (string) $item->unit_cost,
                 'line_total' => (string) $item->line_total,
             ])->all();
-        $requestedItems = collect($operation['items'])->map(fn (array $item, int $itemId): array => [
-            'purchase_order_item_id' => $itemId,
-            'quantity' => $item['quantity'],
-            'unit_cost' => $item['unit_cost'],
-            'line_total' => $item['line_total'],
-        ])->values()->all();
+        $requestedItems = collect($operation['items'])->filter(fn (array $item): bool => $item['quantity'] !== null)
+            ->map(fn (array $item, int $itemId): array => [
+                'purchase_order_item_id' => $itemId,
+                'quantity' => $item['quantity'],
+                'unit_cost' => $item['unit_cost'],
+                'line_total' => $item['line_total'],
+            ])->values()->all();
+        $persistedDamage = $restock->damageItems
+            ->sortBy('purchase_order_item_id')
+            ->values()
+            ->map(fn (RestockDamageItem $item): array => [
+                'purchase_order_item_id' => (int) $item->purchase_order_item_id,
+                'damaged_quantity' => (string) $item->damaged_quantity,
+                'damage_note' => $item->damage_note,
+            ])->all();
+        $requestedDamage = collect($operation['items'])->filter(fn (array $item): bool => $item['damaged_quantity'] !== null)
+            ->map(fn (array $item, int $itemId): array => [
+                'purchase_order_item_id' => $itemId,
+                'damaged_quantity' => $item['damaged_quantity'],
+                'damage_note' => $item['damage_note'],
+            ])->values()->all();
 
         if ((int) $restock->recorded_by !== $operation['actor_id']
             || (int) $restock->purchase_order_id !== $operation['purchase_order_id']
             || $restock->reference_text !== $operation['reference_text']
             || $restock->notes !== $operation['notes']
             || (string) $restock->total_cost !== $operation['total_cost']
-            || $persistedItems !== $requestedItems) {
+            || $persistedItems !== $requestedItems
+            || $persistedDamage !== $requestedDamage) {
             throw ValidationException::withMessages([
                 'submission_token' => 'This receiving submission token cannot be reused.',
             ]);
