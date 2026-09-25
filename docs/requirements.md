@@ -5,8 +5,9 @@
 This is the team-approved requirements baseline for Tracker #3, reconciling
 approved project design decisions with implemented and verified system behavior.
 It also records the approved Phase A requirements for teacher expansion #24–#30.
-The #26 receiving and #27 follow-up requirements below reflect completed
-implementation; #28–#30 work remains planned where noted.
+The #26 receiving, #27 follow-up, and #28 Pending Purchase Orders report
+requirements below reflect completed implementation; #29–#30 work remains
+planned where noted.
 Validation basis: project/team baseline, reconciled against implemented and
 verified system behavior and the approved expansion planning record.
 
@@ -158,7 +159,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-REP-04 | Include zero-sale dates in Daily Sales. | Admin | Every selected Manila date has a count and total, including zero. | Implemented; #16 |
 | FR-REP-05 | Keep quantities separated by historical unit. | Admin | unit_snapshot groups remain separate and quantities display three decimals after current catalog changes. | Implemented; #16 |
 | FR-REP-06 | Exclude cost/profit and sensitive internal data from Reports. | Admin | No purchase cost, profit, checkout token, or authentication fields appear. | Implemented; #16 |
-| FR-PROC-REP-01 | **Teacher-requested:** Report Pending Purchase Orders. | Admin | A read-only report shows POs that are pending or not completely fulfilled using authoritative receiving/transfer evidence. | Planned; #28 |
+| FR-PROC-REP-01 | **Teacher-requested:** Report Pending Purchase Orders. | Admin | A read-only report shows only `pending` or `partially_received` POs with at least one positive-outstanding line, using ordered quantity minus accepted receiving and outgoing transfer evidence, floored at zero. Child POs are evaluated independently. | Implemented; Admin-only GET report with supplier substring and open-status filters, lineage, and line-level quantities; #28 / expansion item #6 |
 | FR-PROC-REP-02 | **Teacher-requested:** Report Unfulfilled Items. | Admin | A read-only report shows each PO line's ordered, accepted, transferred, and open outstanding quantities. | Planned; #29 |
 | FR-PROC-REP-03 | **Teacher-requested:** Report Damaged Items. | Admin | A read-only report derives damaged-item rows from receiving evidence with PO, receipt, Variant snapshot, quantity, note, actor, and time. | Planned; #30 |
 
@@ -251,9 +252,9 @@ boundaries; requirement acceptance concerns their resulting values and access.
 
 ### Planned current-project future work
 
-- #27 follow-up POs are implemented. Remaining teacher expansion #28–#30 work
-  is planned: damaged receiving evidence and three Admin-only procurement
-  reports.
+- #27 follow-up POs and the #28 Pending Purchase Orders report are implemented.
+  Remaining teacher expansion #29–#30 work is planned: damaged receiving
+  evidence, the Unfulfilled Items report, and the Damaged Items report.
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
 - User Management UI.
 - Final integration and remaining testing, documentation, and presentation work.
@@ -300,7 +301,8 @@ application checkpoint. Detailed procedures and test-case preparation remain #7.
 | PO receiving (FR-RECV; expanded FR-STOCKIN) | #26 | Transactional PO-linked receiving, partial/full quantities, linked evidence, and inventory posting | Implemented; 6 guarded MySQL concurrency tests / 220 assertions passed |
 | Follow-up POs (FR-FOLLOWUP) | #27A–#27D | Transactional full-current-remainder transfer evidence, child lineage, idempotent creation, and Admin workflow | Implemented; 6 guarded MySQL concurrency tests / 299 assertions passed |
 | Damage receiving (damage portion of FR-RECV) | #30 | Planned damaged-receiving evidence | Not implemented |
-| Procurement reports (FR-PROC-REP) | #28–#30 | Planned Admin-only read-only report queries/views | Not implemented; revised test catalog and execution pending |
+| Pending Purchase Orders report (FR-PROC-REP-01) | #28 / expansion item #6 | Admin-only read-only report query/view over PO and receiving/transfer evidence | Implemented; current engineering verification recorded in project documentation |
+| Remaining procurement reports (FR-PROC-REP-02/03) | #29–#30 | Planned Admin-only read-only report queries/views | Not implemented; revised test catalog and execution pending |
 
 Refer to [PROJECT_STATUS.md](../PROJECT_STATUS.md) for completed checkpoints and
 recorded results, and [database-design.md](database-design.md) for workflow rules.

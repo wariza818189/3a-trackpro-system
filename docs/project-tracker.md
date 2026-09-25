@@ -24,7 +24,7 @@ list/detail browsing, and pending/no-activity editing are implemented. #26
 PO-based partial/full receiving is complete, including Admin/Staff access,
 accepted/outstanding tracking, actual-cost evidence, inventory and movement
 posting, idempotent replay, and guarded MySQL concurrency verification.
-Follow-up POs are complete. Damage handling and procurement reporting remain outstanding.
+Follow-up POs and the Pending Purchase Orders Report are complete. Damage handling and the remaining procurement reports are outstanding.
 
 ## Status Definitions
 
@@ -89,7 +89,7 @@ Follow-up POs are complete. Damage handling and procurement reporting remain out
 | REPORTS | Inventory Report | Display current inventory status | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working inventory report | Show current stock quantities, units, categories, and stock status using current inventory data. Operational inventory data exists, but the dedicated report surface remains incomplete. |
 | REPORTS | Low Stock Report | Display products at or below stock threshold | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | In Progress | Working low-stock report | Report active products or variants requiring attention based on their configured low-stock threshold. Operational low-stock data exists, but the dedicated report surface remains incomplete. |
 | REPORTS | Restocking Report | Display historical stock-in records | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | In Progress | Working restocking report | Show stock-in history including product or variant, quantity, historical purchase cost, date, and responsible user. Operational Stock In history exists, but the dedicated report surface remains incomplete. |
-| REPORTS | Pending Purchase Orders | Display pending/open purchase orders and their remaining outstanding demand. | TBD | — | — | Not Started | Working pending-purchase-orders report | Maps to former #28; depends on authoritative receiving/transfer evidence. |
+| REPORTS | Pending Purchase Orders | Display pending/open purchase orders and their remaining outstanding demand. | TBD | — | — | Completed | Working pending-purchase-orders report | Maps to former #28 / expansion item #6. Admin-only, GET-only monitoring report includes pending or partially_received POs only when authoritative accepted and transfer evidence yields positive outstanding demand. |
 | REPORTS | Unfulfilled Items | Display purchase-order items with remaining unfulfilled quantities. | TBD | — | — | Not Started | Working unfulfilled-items report | Maps to former #29. |
 | REPORTS | Damaged Items Report | Display damaged-item history from PO receiving evidence. | TBD | — | — | Not Started | Working damaged-items report | Depends on the damaged-receiving source of truth. Together with Damaged Item Recording, this replaces former combined tracker #30. |
 | USER | Login | Log in to the system | ROBERT JAMES WARIZA | 09/24/2026 | 09/25/2026 | Completed | Working secure login feature | Validate credentials, create an authenticated session, and allow access according to account status and role. Implemented and verified. |
@@ -113,9 +113,9 @@ Follow-up POs are complete. Damage handling and procurement reporting remain out
 
 ## Status Summary
 
-- Completed: 39
+- Completed: 40
 - In Progress: 15
-- Not Started: 17
+- Not Started: 16
 - Total: 71
 
 ## Excel Sync

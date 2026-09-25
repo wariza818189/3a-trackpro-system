@@ -1,6 +1,6 @@
 # Stage 1 — Schema and model foundation
 
-Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, and #27A follow-up transfer schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. Damage evidence and procurement reports for #28–#30 remain planned, not implemented. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
+Status: the current repository schema is implemented and live-verified on MySQL 8.0.46. The #24 register, #25 Purchase Order foundation, #26 PO receiving schema, and #27A follow-up transfer schema are implemented. The #26 PO/Restock links are nullable and preserve legacy rows. The #28 Pending Purchase Orders report uses existing PO and receiving/transfer evidence and adds no schema; damage evidence and reports #29–#30 remain planned, not implemented. No seeder or client catalog import was run. This document supersedes the earlier Stage 1A proposal where they differ.
 
 ## Scope and conventions
 
@@ -109,7 +109,7 @@ Foreign key columns are indexed by Laravel/MySQL as required, in addition to the
 
 ## Phase A additive schema and implementation status
 
-The register, Purchase Order, and transfer tables below are implemented for #24–#27. Damage evidence and procurement-report work remain planned for #28–#30.
+The register, Purchase Order, and transfer tables below are implemented for #24–#27. The #28 Pending Purchase Orders report reads the existing schema; damage evidence and procurement reports #29–#30 remain planned.
 
 ### cash_register_sessions
 
