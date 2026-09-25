@@ -424,6 +424,20 @@ Current reports are:
 
 - **Sales Summary** — completed sales within a selected date range, optionally
   filtered by cashier.
+- **Product Sales Report** — Admin-only, read-only grouped quantity and sales
+  amount for completed Sales in a selected Manila calendar period. The default
+  period is today and the previous six Manila dates (seven dates total). Use
+  **Date from** and **Date to** for another inclusive range of up to 366 days.
+  Invalid, partial, reversed, or overlong date ranges fail closed and show that
+  the report was not run. This report has no cashier or other filters, ranking,
+  pagination, global quantity total, or mutation controls.
+  Each row represents a historical Product/Variant identity group. Product
+  name, size, type/series, thickness, and unit come from the sale-time snapshots;
+  separate Variant IDs, historical Product names, and unlike units remain
+  separate. Renaming or archiving catalog records does not rewrite report
+  history. Quantity is the exact grouped stored quantity shown to three decimal
+  places alongside its historical unit. Sales amount is the sum of stored line
+  totals. The report does not show purchase/current cost, profit, or margin.
 - **Inventory Report** — the complete current inventory listing, with one row
   per ProductVariant. It includes active and archived Categories, Products, and
   Variants, and shows each catalog status separately. Rows show Category and
@@ -504,9 +518,16 @@ The Sales Summary contains:
 Only completed Sales contribute. Reports do not calculate profit, cost of goods
 sold, or inventory valuation.
 
-The dedicated Product Sales Report is not currently implemented. Catalog and
-dashboard views may show current stock, and operational Stock In history is
-available separately from the Restocking Report.
+Product Sales is separate from Sales Summary: it groups completed SaleItems by
+historical Product/Variant identity and reports each group's quantity and stored
+line-total sales amount. It uses the same seven-day default, inclusive Manila
+date inputs, and 366-day limit. Database filtering uses the selected dates from
+the start of `date_from` up to (but not including) the following day after
+`date_to`. Invalid dates prevent the report data query from running. The
+Product Sales UI shows no global quantity total across units, summary card,
+cashier or other filters, ranking, pagination, cost/profit/margin, or mutation
+controls. Voided-status Sales are excluded; this report does not implement Sale
+Void or stock restoration.
 
 ## 15. Windows and Classroom Demo Data
 
@@ -618,7 +639,6 @@ The current interface does not provide:
 - Sale Void or `SALE_VOID` stock restoration.
 - A unified inventory Movement History or Recent Stock Activity dashboard.
 - A populated general AuditLog workflow or Audit Viewer/filter screen.
-- Dedicated Product Sales Report.
 - Unit conversion.
 - Multiple store locations.
 - Cost-of-goods-sold, profit, or inventory-valuation reports.
@@ -647,8 +667,9 @@ Suggested evidence:
 8. Purchase Orders list, create/edit screen, and order detail.
 9. PO receiving screen showing accepted quantity and damaged quantity/note.
 10. Follow-up PO screen and its source/child context.
-11. Reports index, Sales Summary, Inventory Report, Low Stock Report, Pending
-    Purchase Orders, Unfulfilled Items, Restocking, and Damaged Items reports.
+11. Reports index, Sales Summary, Product Sales, Inventory Report, Low Stock
+    Report, Pending Purchase Orders, Unfulfilled Items, Restocking, and Damaged
+    Items reports.
 12. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions

@@ -26,6 +26,9 @@ accepted/outstanding tracking, actual-cost evidence, inventory and movement
 posting, idempotent replay, and guarded MySQL concurrency verification.
 Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 #30 damaged receiving, and the separate #31 Damaged Items Report are complete.
+The dedicated Product Sales, Inventory, Low Stock, and Restocking Reports are
+also complete. Remaining work is final integration, testing, documentation, and
+presentation preparation; unified Movement History remains incomplete.
 
 ## Status Definitions
 
@@ -86,7 +89,7 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 | PROCUREMENT | Follow-up PO for Unfulfilled Quantities | Create a follow-up purchase order for selected remaining outstanding quantities while preserving traceability to the source PO. | TBD | — | — | Completed | Working follow-up purchase-order workflow | Maps to former #27 / expansion item #5. Admin transfers each selected source line's full current outstanding quantity to a traceable child PO; immutable transfer evidence, idempotent replay, lineage, edit freeze, and no-inventory-mutation behavior are implemented and guarded MySQL concurrency-verified. |
 | PROCUREMENT | Damaged Item Recording | Record damaged quantities during PO receiving without adding damaged quantity to sellable stock. | TBD | — | — | Completed | Working damaged-receiving evidence workflow | Maps to #30 / expansion item #8. Admin and Staff record immutable damage evidence during PO receiving. Damage does not change stock, cost, accepted/transferred quantities, outstanding demand, or StockMovements. Verified with guarded MySQL concurrency tests. |
 | REPORTS | Sales Report | Display sales within a selected date range | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working sales report | Show valid sales and totals for a selected period while handling voided transactions correctly. Completed-only report filtering is implemented and verified. |
-| REPORTS | Product Sales | Display sales grouped by product | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | In Progress | Working product sales report | Summarize quantities sold and sales amounts by product or variant for the selected reporting period. Existing reporting does not yet provide the required Product/Variant-grouped quantity and sales-amount report. |
+| REPORTS | Product Sales | Display sales grouped by product | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working product sales report | Dedicated Admin-only, read-only Product Sales Report summarizes quantity sold and stored line-total sales amount by historical Product/Variant identity for a selected Manila date period. Completed Sales only; snapshot identity and units remain separate. No cashier filter, ranking, pagination, global quantity total, or cost/profit reporting. Route: `reports.product-sales`. Implemented in `a7a8983`; current engineering verification is recorded in project documentation. |
 | REPORTS | Inventory Report | Display current inventory status | Rommel Jave Casipong | 10/10/2026 | 10/14/2026 | Completed | Working inventory report | Dedicated Admin-only read-only report shows current stock, unit, Category, catalog statuses, and stock state in one row per ProductVariant. Includes active and archived catalog records without an initialization requirement or cross-Variant quantity totals. |
 | REPORTS | Low Stock Report | Display products at or below stock threshold | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | Completed | Working low-stock report | Dedicated Admin-only read-only report shows one row per active-hierarchy ProductVariant at or below its configured threshold, including current stock, threshold, and stock state. Zero-stock Variants are included; initialization and procurement coverage are not required. |
 | REPORTS | Restocking Report | Display historical stock-in records | Rommel Jave Casipong | 10/11/2026 | 10/14/2026 | Completed | Working restocking report | Admin-only read-only report shows one row per accepted RestockItem from ordinary Stock In and accepted PO receiving. Source uses the nullable PO link; rows show historical item snapshots, accepted quantity/unit, actual unit cost and line total, receipt, PO/supplier context when applicable, actor, and receipt time. Damage-only receipts, opening inventory, and corrections are excluded. No filters, pagination, or schema change. Current engineering verification is recorded in project documentation. |
@@ -114,8 +117,8 @@ Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 
 ## Status Summary
 
-- Completed: 50
-- In Progress: 8
+- Completed: 51
+- In Progress: 7
 - Not Started: 13
 - Total: 71
 
