@@ -156,8 +156,20 @@ delete workflow.
 Open **Catalog → Products**.
 
 - Search by Product name or filter by Category.
-- The Products screen is a searchable list; there is no separate Product detail
-  page.
+- Admins can also filter by Product status; the list is paginated. Select a
+  Product name to open its read-only detail page.
+- The detail page shows the Product name, Category, and active or archived
+  status. Each permitted Variant has its own row showing size, type/series,
+  thickness, unit, quantity mode, selling price, current stock, low-stock
+  threshold, stock state, and active or archived status.
+- Stock state is **Out of stock** at zero, **Low stock** above zero through the
+  threshold, and **In stock** above the threshold. Whole and fractional stock
+  quantities use the Variant's configured display format. Stock is shown per
+  Variant; there is no Product-level stock sum or sum across different units.
+- Admins can inspect active and archived Products and Variants. Staff can open
+  only Products in an active Product and Category hierarchy and see only active
+  Variants. Direct access to a hidden Product is denied by the server with 404.
+  The detail page shows no cost to either role.
 - Admins can create a Product from an active Category.
 - Use **Edit** to change its name or Category where permitted.
 - Use **Add variant** to create a sellable Variant.
@@ -557,7 +569,6 @@ development command from Section 2 in a separate terminal.
 The current interface does not provide:
 
 - User Management screens.
-- A dedicated Product detail page.
 - Public registration or password recovery.
 - Supplier management.
 - Discounts or promotions.
@@ -586,7 +597,8 @@ Suggested evidence:
 
 1. Login page without entered credentials.
 2. Admin Dashboard and Staff Dashboard showing role-specific content.
-3. Categories, Products, and Variants lists, including whole/fractional stock.
+3. Categories, Products, and Variants lists, plus Product detail with per-Variant
+   whole/fractional stock and status.
 4. Admin Opening Inventory and Stock Correction screens.
 5. Stock In form and receipt detail.
 6. POS with a closed register, the open-register state, and a reviewed cart.

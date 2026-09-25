@@ -45,7 +45,7 @@ The current system includes the following implemented areas:
 
 - username-and-password login, logout, active-account checks, and server-side Admin/Staff authorization;
 - a shared Dashboard with operational summaries, recent completed sales, and low-stock information, plus an Admin-only seven-day sales trend;
-- category, product, and product-variant management with archive and reactivation controls;
+- category, product, and product-variant management with archive and reactivation controls; searchable Products link to a dedicated read-only detail page with role-permitted Variants and per-Variant stock and status, without a Product-level stock total;
 - Admin-only Opening Inventory, recorded as an explicit initial stock transaction;
 - Stock In for Admin and Staff, including multi-item receipts and historical received costs;
 - Admin-only Stock Correction with a required reason and an inventory movement record;
@@ -374,6 +374,8 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 ### 6.4 Current System Evaluation and Remaining Issues
 
 **Implemented core with existing test evidence:** Authentication and authorization, catalog management, Opening Inventory, Stock In, Stock Correction, cash POS, register open/close behavior, Sales History, receipt/reprint, Dashboard, Sales Summary, and responsive navigation have implementation and test evidence. Saved transaction details, system-calculated values, and inventory movement recording are built into these workflows.
+
+**Current Product Search state:** The existing searchable Product listing opens a dedicated read-only Product detail page. Admin can inspect active and archived Products and Variants; Staff is limited to an active Product and Category hierarchy and active Variants, with hidden Product URLs returning 404. The page shows Product identity/status and each permitted Variant's selling price, stock, threshold, and derived stock state separately, without cost or a Product-level stock sum. No schema change or new mutation route was needed. Current engineering verification passed Product detail (9 tests / 61 assertions), Catalog authorization (4 / 43), Catalog route security (5 / 135), Product management (7 / 41), Product Variant management (15 / 126), and the full ordinary SQLite suite (455 / 4,688). Rendering 12 Variants used no more than six SELECTs and no database writes. The frontend build, targeted Pint, and `git diff --check` passed. MySQL was not run for this detail-page implementation. These are current engineering checks, separate from historical teacher/manual testing, FT15, and paused FT17 records.
 
 **Implemented but needing additional testing:** The register feature has focused application and MySQL-specific evidence but no consolidated result summary. The expanded formal case catalog and consolidated execution record still need completion. Purchase Order edit-versus-edit behavior also needs its own simultaneous-update verification.
 
