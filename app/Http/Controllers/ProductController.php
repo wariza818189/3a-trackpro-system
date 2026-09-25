@@ -172,6 +172,7 @@ class ProductController extends Controller
             $query->where('current_stock', '<>', 0)
                 ->orWhereHas('saleItems')
                 ->orWhereHas('restockItems')
+                ->orWhereHas('restockDamageItems')
                 ->orWhereHas('stockMovements');
         })->exists();
     }

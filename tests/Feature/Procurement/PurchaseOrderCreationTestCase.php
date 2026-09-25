@@ -10,6 +10,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -104,9 +105,11 @@ abstract class PurchaseOrderCreationTestCase extends TestCase
         });
         Schema::create('restocks', function (Blueprint $table): void {
             $table->id();
+            $table->uuid('submission_token')->nullable()->unique();
             $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->restrictOnDelete()->restrictOnUpdate();
             $table->foreignId('recorded_by')->nullable()->constrained('users')->restrictOnDelete()->restrictOnUpdate();
             $table->text('reference_text')->nullable();
+            $table->text('notes')->nullable();
             $table->decimal('total_cost', 16, 2)->nullable();
             $table->timestamp('created_at')->nullable();
         });
@@ -122,6 +125,30 @@ abstract class PurchaseOrderCreationTestCase extends TestCase
             $table->decimal('quantity', 14, 3);
             $table->decimal('unit_cost', 12, 2)->nullable();
             $table->decimal('line_total', 16, 2)->nullable();
+        });
+
+        // SQLite cannot ALTER TABLE ADD CONSTRAINT, so mirror the new
+        // production migration's checks inline for behavior tests.
+        DB::statement(<<<'SQL'
+            CREATE TABLE restock_damage_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                restock_id INTEGER NOT NULL REFERENCES restocks(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+                purchase_order_item_id INTEGER NOT NULL REFERENCES purchase_order_items(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+                product_variant_id INTEGER NOT NULL REFERENCES product_variants(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+                product_name_snapshot VARCHAR(150) NOT NULL,
+                size_snapshot VARCHAR(80) NOT NULL DEFAULT '',
+                type_series_snapshot VARCHAR(80) NOT NULL DEFAULT '',
+                thickness_snapshot VARCHAR(40) NOT NULL DEFAULT '',
+                unit_snapshot VARCHAR(30) NOT NULL,
+                damaged_quantity NUMERIC NOT NULL CHECK (damaged_quantity > 0),
+                damage_note TEXT NOT NULL CHECK (LENGTH(TRIM(damage_note)) > 0),
+                created_at DATETIME NULL
+            )
+            SQL);
+        Schema::table('restock_damage_items', function (Blueprint $table): void {
+            $table->unique(['restock_id', 'purchase_order_item_id']);
+            $table->index(['purchase_order_item_id', 'created_at']);
+            $table->index(['product_variant_id', 'created_at']);
         });
 
         $this->admin = User::factory()->admin()->create();

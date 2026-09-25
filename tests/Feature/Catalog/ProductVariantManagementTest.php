@@ -132,7 +132,7 @@ class ProductVariantManagementTest extends CatalogTestCase
     {
         $admin = User::factory()->admin()->create();
 
-        foreach (['sale_items', 'restock_items', 'stock_movements', 'stock'] as $marker) {
+        foreach (['sale_items', 'restock_items', 'restock_damage_items', 'stock_movements', 'stock'] as $marker) {
             $product = $this->product($this->category(['name' => 'Category '.$marker]), ['name' => 'Product '.$marker]);
             $variant = $this->variant($product, ['size' => $marker]);
             if ($marker === 'stock') {

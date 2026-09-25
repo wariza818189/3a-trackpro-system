@@ -121,6 +121,7 @@ class ProductVariantController extends Controller
 
         $hasRestock = $productVariant->restockItems()->exists();
         $identityLocked = $hasRestock
+            || $productVariant->restockDamageItems()->exists()
             || $productVariant->purchaseOrderItems()->exists()
             || $productVariant->saleItems()->exists()
             || $productVariant->stockMovements()->exists()
@@ -247,6 +248,7 @@ class ProductVariantController extends Controller
     private function hasActivity(ProductVariant $variant, bool $hasRestock): bool
     {
         return $hasRestock || $variant->purchaseOrderItems()->exists()
+            || $variant->restockDamageItems()->exists()
             || $variant->saleItems()->exists() || $variant->stockMovements()->exists();
     }
 

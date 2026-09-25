@@ -95,6 +95,11 @@ class ProductVariant extends Model
         return $this->hasMany(RestockItem::class, 'product_variant_id');
     }
 
+    public function restockDamageItems(): HasMany
+    {
+        return $this->hasMany(RestockDamageItem::class, 'product_variant_id');
+    }
+
     public function purchaseOrderItems(): HasMany
     {
         return $this->hasMany(PurchaseOrderItem::class, 'product_variant_id');

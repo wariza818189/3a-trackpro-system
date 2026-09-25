@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderItemTransfer;
+use App\Models\RestockDamageItem;
 use App\Models\RestockItem;
 use App\Models\StockMovement;
 use App\Models\User;
@@ -153,6 +154,17 @@ class UpdatePurchaseOrder
         if ($acceptedReceiving !== null) {
             throw ValidationException::withMessages([
                 'purchase_order' => 'A Purchase Order with accepted receiving cannot be edited.',
+            ]);
+        }
+
+        $damagedReceiving = RestockDamageItem::query()
+            ->whereIn('purchase_order_item_id', $lockedItems->pluck('id'))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first(['id']);
+        if ($damagedReceiving !== null) {
+            throw ValidationException::withMessages([
+                'purchase_order' => 'A Purchase Order with damaged receiving cannot be edited.',
             ]);
         }
 

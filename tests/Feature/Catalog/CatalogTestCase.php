@@ -82,6 +82,10 @@ abstract class CatalogTestCase extends TestCase
             $table->foreignId('purchase_order_item_id')->nullable();
             $table->decimal('quantity', 14, 3)->default(0);
         });
+        Schema::create('restock_damage_items', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete();
+        });
         Schema::create('purchase_orders', function (Blueprint $table): void {
             $table->id();
             $table->string('status')->default('pending');

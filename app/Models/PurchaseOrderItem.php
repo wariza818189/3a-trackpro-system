@@ -44,6 +44,11 @@ class PurchaseOrderItem extends Model
         return $this->hasMany(RestockItem::class, 'purchase_order_item_id');
     }
 
+    public function damageItems(): HasMany
+    {
+        return $this->hasMany(RestockDamageItem::class, 'purchase_order_item_id');
+    }
+
     public function outgoingTransfer(): HasOne
     {
         return $this->hasOne(PurchaseOrderItemTransfer::class, 'source_purchase_order_item_id');
