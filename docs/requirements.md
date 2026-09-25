@@ -2,8 +2,9 @@
 
 ## 1. Document status
 
-This is the team-approved requirements baseline for Tracker #3, reconciling
-approved project design decisions with implemented and verified system behavior.
+This is the team-approved requirements baseline for the academic performance-task
+version of Tracker #3, reconciling approved project design decisions with
+implemented and verified system behavior.
 It also records the approved Phase A requirements for teacher expansion #24–#31.
 The #26 receiving, #27 follow-up, #28 Pending Purchase Orders, #29
 Unfulfilled Items, #30 damaged receiving, and #31 Damaged Items Report
@@ -11,9 +12,11 @@ requirements below reflect completed implementation.
 Validation basis: project/team baseline, reconciled against implemented and
 verified system behavior and the approved expansion planning record.
 
-No original client interview transcript or formal client sign-off is available
-in the repository. Client-specific statements are therefore not attributed or
-fabricated. Any undocumented present-store workflow is an assumption, not fact.
+For the academic performance-task version of 3A TrackPro, business-process
+requirements use a documented assumed hardware-store operating scenario rather
+than newly collected client-interview evidence. No original client interview
+transcript or formal client sign-off is available in the repository. The
+scenario below is a team/project assumption, not newly verified client evidence.
 The problem statement, assumptions, adopted requirements, implemented baseline,
 planned work, and exclusions are distinguished below.
 
@@ -29,7 +32,7 @@ that review/status checkpoint is separate.
 | Item | Project context |
 | --- | --- |
 | System name | 3A TrackPro |
-| Target organization | 3A Hardware Store |
+| Represented store scenario | 3A Hardware Store (assumed academic scenario) |
 | System type | Hardware Store Sales and Inventory Management System |
 | Business/deployment scope | Single-location hardware-store project scope |
 | Primary application roles | Admin and Staff |
@@ -50,6 +53,41 @@ previous tool, lost records, theft, quantified discrepancies, lost revenue,
 customer complaints, or transaction delays are asserted.
 
 ## 4. Assumptions
+
+### Assumed Hardware Store Operating Scenario
+
+This is the team's assumed scenario for defining and demonstrating an academic
+system workflow. It is not a report of a newly interviewed or verified store
+process.
+
+- **Roles:** Admin/Owner and Staff/Cashier describe scenario responsibilities;
+  the application continues to support exactly the `admin` and `staff` roles.
+- **Sales:** The POS is cash-based. The register must be opened with starting
+  cash before checkout. Admin and Staff may use permitted POS functions. A
+  completed sale produces a receipt, decreases stock for the exact
+  ProductVariant sold, and preserves its historical transaction records.
+- **Inventory:** Stock belongs to each ProductVariant; unlike units remain
+  separate. Opening Inventory establishes beginning sellable stock. Ordinary
+  Stock In records accepted incoming quantity. Admin-only Stock Correction
+  adjusts quantity with immutable `CORRECTION` StockMovement evidence. Each
+  Variant may have its own low-stock threshold.
+- **Procurement:** Admin prepares Purchase Orders, using low-stock Variants as
+  planning guidance. Low-stock items already covered by open Purchase Orders
+  remain visible as covered. Deliveries may be partially accepted; remaining
+  unfulfilled demand may move to a follow-up Purchase Order. Accepted receiving
+  increases stock.
+- **Damaged receiving:** Damaged delivered quantity is recorded separately. It
+  does not increase or decrease sellable stock, satisfy outstanding demand, or
+  reduce replacement demand; damage history is retained.
+- **Reporting:** The Reports module is Admin-only. Implemented reports provide
+  sales, procurement, damage, low-stock, inventory, restocking, and Product
+  Sales information.
+- **Historical records:** Operational history is preserved rather than
+  hard-deleted.
+- **Sale Void:** Sale Void remains intended future academic functionality and
+  is not implemented.
+- **User Management:** User Management remains future implementation under the
+  approved policy in section 9.
 
 | ID | Assumption / basis |
 | --- | --- |
@@ -259,8 +297,46 @@ boundaries; requirement acceptance concerns their resulting values and access.
 ### Planned current-project future work
 
 - SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
-- User Management UI.
+- User Management UI and account lifecycle workflows under the approved policy
+  below.
+- AuditLog writers and Admin-only audit viewing/filtering under the approved
+  policy below.
 - Final integration and remaining testing, documentation, and presentation work.
+
+### Approved future User Management policy
+
+Only an active Admin may manage accounts. Supported roles remain exactly
+`admin` and `staff`, and supported account states remain exactly `active` and
+`disabled`. Account creation defaults to Staff and active; an Admin may choose
+either supported role at creation. Admins may edit name, username, role, and
+status, and may explicitly reset/update a password. “Archive” means disabling
+the account; users must not be hard-deleted, so historical references remain
+intact. An Admin may not disable or demote their own currently logged-in Admin
+account. At least one active Admin must always remain. Future account changes
+must enforce that invariant transactionally; guarded MySQL concurrency
+verification is required because concurrent Admin changes could otherwise
+violate it. CLI Admin bootstrap is deployment/setup behavior and does not
+require an AuditLog entry.
+
+### Approved future Audit Trail policy
+
+Future application AuditLog events are `USER_CREATED`, `USER_UPDATED`,
+`USER_ROLE_CHANGED`, `USER_DISABLED`, `USER_REACTIVATED`, and
+`USER_PASSWORD_RESET`. After Sale Void is implemented, `SALE_VOIDED` is also an
+approved event. Stock Correction remains movement-only under FR-CORR-04:
+`CORRECTION` StockMovement is its required evidence, with no duplicate
+AuditLog requirement. No ordinary production AuditLog writers are currently
+implemented. Each future AuditLog record must be written in the same
+transaction as its protected application change.
+
+Account-change before/after details may contain only appropriate safe values,
+such as name, username, role, and status. Never log passwords, password hashes,
+remember/session/CSRF/checkout/submission tokens, or entire request bodies. A
+password-reset event may state that a reset occurred without recording old or
+new passwords or a hash. Login/logout AuditLog events are not required. The
+future Audit Log viewer is Admin-only and its initial filters are user, action,
+and date range. Audit records are retained; no pruning subsystem is required
+for this academic project.
 
 Schema support for void status/fields/movement types is preparation only; no
 void transition or stock-restoration workflow is implemented. Existing roles

@@ -6,6 +6,10 @@
 
 **3A TrackPro: Hardware Store Sales and Inventory Management System**
 
+This academic performance-task system represents a hardware store. Its
+business workflow uses the team's **Assumed Hardware Store Operating
+Scenario**, not newly verified client interviews, quotations, or sign-off.
+
 ### 1.2 Team
 
 3A TrackPro is developed by **The Visionaries**.
@@ -26,16 +30,32 @@ A hardware store needs consistent records for products, product variations, stoc
 
 ### 1.4 Target Users
 
-The system has two verified user roles:
+The system supports two application roles:
 
 - **Admin** — manages the catalog and controlled inventory activities, views management reports, and performs administrative procurement work.
 - **Staff** — performs permitted day-to-day operations such as Point of Sale and Stock In and can view the transaction history allowed to both roles.
 
-These are system-access roles rather than confirmed employee job titles.
+These are system-access roles. Admin/Owner and Staff/Cashier are assumed
+scenario responsibilities, not confirmed employee job titles.
 
 ### 1.5 Purpose
 
-The purpose of 3A TrackPro is to organize a hardware store's sales and inventory processes in a centralized, authorized, and traceable system. It is intended to improve record consistency, protect inventory integrity, preserve useful transaction history, and provide information that can support routine operational decisions. These statements describe the project's intended contribution; no measured business impact or formal client validation is claimed.
+The purpose of 3A TrackPro is to demonstrate a centralized, authorized, and
+traceable hardware-store sales and inventory workflow. It is intended to
+support record consistency, inventory integrity, historical records, and
+routine operational decisions. These are academic project aims; no measured
+business impact or formal client validation is claimed.
+
+### 1.6 Assumed Hardware Store Operating Scenario
+
+The team's assumed academic scenario is documented in the [requirements
+baseline](requirements.md#assumed-hardware-store-operating-scenario). It covers
+Admin/Owner and Staff/Cashier responsibilities; cash POS with an opened
+register; variant-level stock and immutable movement evidence; procurement,
+partial accepted deliveries, and separately recorded damage; Admin-only
+reporting; and preservation of operational history. Sale Void is intended
+future functionality and is not implemented. This scenario is not newly
+verified client evidence.
 
 ## 2. System Scope
 
@@ -88,7 +108,35 @@ The following items are outside the approved project scope. Their absence is a s
 - extended cash reconciliation, shift, shortage/overage, and expense management; and
 - advanced procurement export and damaged-item media features.
 
-### 2.4 Main Screens
+### 2.4 Approved Future User Management and Audit Trail Policy
+
+These are approved future implementation policies, not currently available
+workflows. Only an active Admin may manage accounts. Roles remain `admin` and
+`staff`; states remain `active` and `disabled`. New accounts default to active
+Staff, with Admin allowed to choose either role. Admin may edit name, username,
+role, and status, and explicitly reset/update a password. Archive means
+disabled; hard deletion is prohibited so historical references remain intact.
+An Admin cannot disable or demote their own current Admin account, and at least
+one active Admin must remain. Future enforcement must be transactional and
+receive guarded MySQL concurrency verification. CLI Admin bootstrap is setup
+behavior and does not require an audit record.
+
+Future AuditLog events are `USER_CREATED`, `USER_UPDATED`,
+`USER_ROLE_CHANGED`, `USER_DISABLED`, `USER_REACTIVATED`, and
+`USER_PASSWORD_RESET`; `SALE_VOIDED` is approved only after Sale Void exists.
+Stock Correction remains evidenced by `CORRECTION` StockMovement under
+FR-CORR-04 and does not require duplicate AuditLog evidence. Audit writers must
+share a transaction with the protected change. Account-change details may
+include only safe before/after values such as name, username, role, and status.
+Passwords, hashes, remember/session/CSRF/checkout/submission tokens, and full
+request bodies must never be logged. A password reset entry may record only
+that the reset occurred. Login/logout events are not required. The future
+viewer is Admin-only, with initial filters for user, action, and date range;
+records are retained without a pruning subsystem. The schema/model foundation
+exists, but normal application AuditLog writers and the viewer are not
+implemented.
+
+### 2.5 Main Screens
 
 The current user-facing screens are:
 
