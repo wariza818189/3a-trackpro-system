@@ -141,8 +141,9 @@ password-reset events do not display before/after password values. Descriptions
 are shown as text. The page does not create, edit, delete, clear, prune, or
 acknowledge Audit Logs, and viewing a record does not create another event.
 Current account activity includes user creation, profile updates, role changes,
-disabling, reactivation, and password resets. Sale Void activity is not yet
-recorded because Sale Void is unavailable.
+disabling, reactivation, and password resets. A successful Admin Sale Void is
+also recorded as `SALE_VOIDED`; its audit description reports the status change
+without copying the private void reason.
 
 ## 4. User Roles and Access
 
@@ -153,6 +154,7 @@ recorded because Sale Void is unavailable.
 | Reports | Yes | No |
 | POS and checkout | Yes | Yes |
 | Sales History and receipts | Yes | Yes |
+| Void a completed Sale | Yes | No |
 | Browse Categories, Products, and Variants | Yes | Yes |
 | Create, edit, archive, and reactivate catalog records | Yes | No |
 | View catalog cost price | Yes | No |
@@ -432,10 +434,28 @@ user to review the cart. A successful checkout creates one completed Sale, one
 Sale Item per distinct Variant, and one linked `SALE` stock movement per item.
 
 TrackPro currently supports cash sales only. It does not support discounts,
-credit or utang, returns, refunds, or Sale Void. Sale Void is unavailable and
-must not be used as a way to correct a completed sale.
+credit or utang, returns, refunds, or a cash-out workflow.
 
-## 12. Viewing Receipts and Sales History
+## 12. Voiding a Completed Sale — Admin Only
+
+Use Sale Void only when the entire completed transaction must be reversed.
+Staff can continue to view Sales History and receipts, but cannot void a Sale.
+
+1. Open **Sales → Sales History** and open the completed Sale or its receipt.
+2. Confirm that the transaction is the one that must be voided. The completed
+   Sale page shows the **Void Sale** form to Admins only.
+3. Enter a required reason of up to 1,000 characters. The reason is normalized
+   before it is saved.
+4. Select **Void Sale** and confirm the resulting voided status and receipt.
+
+Voiding applies to the full Sale and restores the exact quantities sold. The
+original Sale remains in Sales History, and its items, totals, payment, and
+change remain visible. The voided receipt shows the Voided status, reason,
+responsible Admin, and time. A Sale that is already voided cannot be voided
+again. Partial voids, reopening/unvoiding a Sale, refunds, and cash-out are not
+available.
+
+## 13. Viewing Receipts and Sales History
 
 After checkout, select **View receipt**, or open **Sales → Sales History**.
 
@@ -456,7 +476,7 @@ Purchase costs and internal checkout tokens are never shown on the receipt.
 Receipts use the historical values captured at checkout. Later catalog renames
 or price changes do not rewrite old receipts.
 
-## 13. Using the Dashboard
+## 14. Using the Dashboard
 
 Open **Main → Dashboard**. Admin and Staff see:
 
@@ -475,7 +495,7 @@ The Dashboard is informational; viewing it does not alter inventory or sales.
 It does not currently provide a Recent Stock Activity panel or a unified
 inventory Movement History.
 
-## 14. Using Reports — Admin Only
+## 15. Using Reports — Admin Only
 
 Open **Main → Reports**. This module is Admin-only; Staff cannot access it.
 Current reports are:
@@ -587,7 +607,7 @@ cashier or other filters, ranking, pagination, cost/profit/margin, or mutation
 controls. Voided-status Sales are excluded; this report does not implement Sale
 Void or stock restoration.
 
-## 15. Windows and Classroom Demo Data
+## 16. Windows and Classroom Demo Data
 
 The repository application seeder does not provide the classroom's current
 demo users, catalog, stock, or transaction history. A Windows classroom setup
@@ -601,7 +621,7 @@ Application setup instructions are separate from optional/private demo-data
 preparation. For an already configured local installation, use Section 2 and
 do not overwrite configuration or reset its database merely to start it.
 
-## 16. Suggested Teacher-Demo Flow
+## 17. Suggested Teacher-Demo Flow
 
 Before presenting, use only approved project/demo records and quantities. A
 short rehearsal can follow this order:
@@ -628,7 +648,7 @@ Do not rehearse against a preserved test database. Do not delete or rewrite
 legitimate history after a rehearsal; successful Stock In and Sale records are
 valid append-only project/demo history.
 
-## 17. Messages and Common Problems
+## 18. Messages and Common Problems
 
 ### A form reports validation errors
 
@@ -670,7 +690,7 @@ submit again only after the updated information is acceptable.
 Confirm frontend assets were built with `npm run build`, or run the Vite
 development command from Section 2 in a separate terminal.
 
-## 18. Data-Safety Reminders
+## 19. Data-Safety Reminders
 
 - Use the normal application workflows for every stock change.
 - Never edit `current_stock` directly.
@@ -684,7 +704,7 @@ development command from Section 2 in a separate terminal.
 - Use an Admin account only for Admin tasks; authorization is enforced by the
   server.
 
-## 19. Current System Boundaries
+## 20. Current System Boundaries
 
 The current interface does not provide:
 
@@ -693,8 +713,7 @@ The current interface does not provide:
 - Discounts or promotions.
 - Credit or utang sales.
 - Returns or refunds.
-- Sale Void or `SALE_VOID` stock restoration; its future `SALE_VOIDED` event is
-  not currently recorded.
+- Voiding a Sale does not issue a refund or cash-out.
 - A unified inventory Movement History or Recent Stock Activity dashboard.
 - Unit conversion.
 - Multiple store locations.
@@ -705,7 +724,7 @@ There is no general UI for editing or deleting immutable sales, stock receipts,
 or damage evidence. Screenshots have not been captured as part of this guide
 update. Do not present the unavailable features above as implemented.
 
-## 20. Future Screenshot Checklist
+## 21. Future Screenshot Checklist
 
 Screenshots remain pending and were not captured for this guide update. Capture
 them only after checking that no credential, token, cost, or private client
@@ -721,17 +740,19 @@ Suggested evidence:
 5. Stock In form and receipt detail.
 6. POS with a closed register, the open-register state, and a reviewed cart.
 7. Completed sale receipt and Sales History.
-8. Purchase Orders list, create/edit screen, and order detail.
-9. PO receiving screen showing accepted quantity and damaged quantity/note.
-10. Follow-up PO screen and its source/child context.
-11. Reports index, Sales Summary, Product Sales, Inventory Report, Low Stock
+8. Voided Sale receipt/history showing void status, reason, actor, and time;
+   optionally capture the Admin Void Sale action before submission.
+9. Purchase Orders list, create/edit screen, and order detail.
+10. PO receiving screen showing accepted quantity and damaged quantity/note.
+11. Follow-up PO screen and its source/child context.
+12. Reports index, Sales Summary, Product Sales, Inventory Report, Low Stock
     Report, Pending Purchase Orders, Unfulfilled Items, Restocking, and Damaged
     Items reports.
-12. Admin User Management list/search, create form, profile edit, role change,
+13. Admin User Management list/search, create form, profile edit, role change,
     archive/reactivate actions, and password reset form.
-13. Admin Audit Logs page showing the filters and representative account
+14. Admin Audit Logs page showing the filters and representative account
     lifecycle events.
-14. Responsive mobile navigation.
+15. Responsive mobile navigation.
 
 Use consistent browser dimensions, readable demo records, and short captions
 that state what the screenshot proves. Crop or retake any image that exposes a

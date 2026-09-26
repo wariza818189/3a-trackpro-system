@@ -84,12 +84,14 @@ process.
   Sales information.
 - **Historical records:** Operational history is preserved rather than
   hard-deleted.
-- **Sale Void:** Sale Void remains intended future academic functionality and
-  is not implemented.
+- **Sale Void:** an active Admin may void a completed Sale in full with a
+  required reason; the original transaction is preserved and sold stock is
+  restored with movement and audit evidence. Partial void, unvoid, refunds, and
+  cash-out are outside the implemented scope.
 - **User Management:** Admin-only User Management is implemented under the
   approved policy in section 9, with transactional account lifecycle AuditLogs.
   The Admin-only Audit Log viewer and approved actor/action/date filters are
-  implemented; future non-account event writers remain separate.
+  implemented; the Sale Void event writer is also implemented.
 
 | ID | Assumption / basis |
 | --- | --- |
@@ -183,6 +185,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-SALES-03 | Display immutable historical receipt evidence. | Admin, Staff | Later catalog changes do not alter stored receipt identity, units, quantities, or prices. | Implemented; #13 |
 | FR-SALES-04 | Support browser receipt reprinting. | Admin, Staff | The same receipt can be printed again without a new Sale or stock change. | Implemented; #13 |
 | FR-SALES-05 | Keep purchase costs and checkout tokens private. | Admin, Staff | Neither appears in Sales History or receipt responses. | Implemented; #13 |
+| FR-SALE-VOID-01 | Allow an active Admin to void a completed Sale in full with a required normalized reason. | Admin | Staff retain history/receipt access but cannot void; preserve original Sale/payment/item evidence; restore exact sold stock once; write one SALE_VOID movement per SaleItem and one privacy-safe SALE_VOIDED AuditLog; reject repeat voids. No partial void, unvoid, refund, or cash-out workflow. | Implemented; Phase A/B/C closeout |
 | FR-NAV-01 | Provide desktop sidebar navigation. | Admin, Staff | At lg and above, destinations are reachable beside unobstructed content. | Implemented; UI mini-checkpoint |
 | FR-NAV-02 | Provide mobile navigation below lg. | Admin, Staff | Below 64rem / 1024px, a top bar and off-canvas drawer replace the sidebar. | Implemented; UI mini-checkpoint |
 | FR-NAV-03 | Match navigation visibility to role permissions. | Admin, Staff | Destinations reflect authorized Sales, Procurement, Inventory, and Reports workflows; restricted destinations are absent for Staff. | Implemented baseline counts; expansion revision planned; UI mini-checkpoint/#16/#24–#30 |
@@ -283,6 +286,9 @@ boundaries; requirement acceptance concerns their resulting values and access.
 - Authentication/roles, Categories, Products, and Variants.
 - Opening Inventory, Stock In, and Stock Correction.
 - Cash POS, receipts/reprinting, and Sales History.
+- Admin-only full Sale Void for completed Sales, with preserved transaction
+  history, exact stock restoration, `SALE_VOID` movements, and `SALE_VOIDED`
+  AuditLogs; no partial void, unvoid, refund, or cash-out workflow.
 - PO-based partial/full receiving for Admin and Staff, with accepted/outstanding
   quantities, actual-cost evidence, linked receipt history, inventory movement
   posting, and idempotent replay.
@@ -298,9 +304,6 @@ boundaries; requirement acceptance concerns their resulting values and access.
 
 ### Planned current-project future work
 
-- SALE_VOID / Admin full-sale void, requiring separate implementation and approval.
-- Future non-account AuditLog event writers; account lifecycle writers and the
-  Admin-only Audit Log viewer/filtering are implemented under the policy below.
 - Final integration and remaining testing, documentation, and presentation work.
 
 ### Approved User Management policy and implementation state
@@ -320,9 +323,9 @@ bootstrap is deployment/setup behavior and does not require an AuditLog entry.
 ### Approved Audit Trail policy and implementation state
 
 Account AuditLog events `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`,
-`USER_DISABLED`, `USER_REACTIVATED`, and `USER_PASSWORD_RESET` are implemented
-transactionally with safe allowlisted details. After Sale Void is implemented,
-`SALE_VOIDED` remains future. Stock Correction remains movement-only under FR-CORR-04:
+`USER_DISABLED`, `USER_REACTIVATED`, and `USER_PASSWORD_RESET`, plus `SALE_VOIDED`
+after successful Sale Void, are implemented transactionally with safe,
+allowlisted details. Stock Correction remains movement-only under FR-CORR-04:
 `CORRECTION` StockMovement is its required evidence, with no duplicate
 AuditLog requirement. Account AuditLogs reference the authenticated Admin and
 affected User and are written in the same transaction as the account change.
@@ -340,9 +343,10 @@ AuditLog events are not implemented or required. The Admin-only viewer filters
 by acting user, stored action, and optional date bounds. Audit records are
 retained; no pruning subsystem is required for this academic project.
 
-Schema support for void status/fields/movement types is preparation only; no
-void transition or stock-restoration workflow is implemented. Account
-management and its Admin-only Audit Log viewer/filter UI are implemented.
+Sale Void uses the existing Sale void fields and `SALE_VOID` StockMovement type;
+no schema or migration change was required for its transactional transition,
+stock restoration, or AuditLog evidence. Account management and its Admin-only
+Audit Log viewer/filter UI are implemented.
 
 ### Currently outside the recorded teacher-requested expansion unless later requested
 

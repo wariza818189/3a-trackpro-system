@@ -264,7 +264,7 @@ Category has products; Product belongs to category and has variants. Variants ha
 
 Monetary and quantity casts return fixed-scale decimal strings. JSON casts return arrays; voided_at is a datetime. User passwords use Laravel's hashed cast and are hidden in serialization along with remember tokens. The updated factory produces only synthetic username-based staff records, with admin/disabled states. DatabaseSeeder remains empty.
 
-Sales, sale items, restocks, restock items, RestockDamageItems, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Services, authorization, and database privileges must enforce history preservation. No Sale edit/delete UI or workflow exists. A later explicitly approved full-void workflow may replace Sale's blanket model guard with a narrowly controlled transition; no such transition exists now.
+Sales, sale items, restocks, restock items, RestockDamageItems, stock movements, and audit logs reject Eloquent instance updates/deletes through the ImmutableRecord model concern. This is a guardrail, not database-level immutability: query-builder bulk writes, quiet operations, and direct SQL can bypass model events. Services, authorization, and database privileges must enforce history preservation. No Sale edit/delete UI or workflow exists. `SaleVoidService` is the narrowly controlled full-sale transition: it is Admin-only, transactionally restores stock and appends movement/audit evidence while preserving historical sale/payment/items. It required no schema or migration change.
 
 ## Implemented Stock In workflow controls
 
@@ -284,14 +284,14 @@ Sales, sale items, restocks, restock items, RestockDamageItems, stock movements,
 - The operation updates only `ProductVariant.current_stock` and appends one source-less immutable `CORRECTION` movement in the same transaction. It does not update cost or write a duplicate AuditLog row.
 - Correction history is read-only and uses current catalog identity because StockMovement has no identity snapshot columns.
 
-## Required later workflow controls
+## Implemented and remaining workflow controls
 
-- Transactions and deterministic Category → Product → Product Variant locks are implemented for checkout and correction; void locking remains deferred.
+- Transactions and deterministic Category → Product → Product Variant locks are implemented for checkout and correction. Sale Void revalidates the active Admin, then locks the Sale, SaleItems, and ProductVariants in ascending ID order before restoring stock and writing evidence.
 - Server-authoritative pricing and cash-only sales are implemented; there are no discounts, tax breakdown, credit, partial payment, partial refund, or profit accounting.
 - Unique checkout-token retries return existing Sales only for the same persisted actor and canonically equivalent tender, Variant set, consolidated quantities, and stored historical prices. Restock submission-token behavior is also implemented. No request_hash is stored.
 - Whole/fractional validation, at most three decimal places, supported units, and immutable unit/mode after activity.
 - Variant/source-item consistency, exact movement-to-item quantity agreement, and header totals equal to summed immutable lines.
-- Admin-only full void with sale lock and atomic stock restoration; reject second void; check void time chronology.
+- Sale Void restores exact sold quantities with decimal-safe arithmetic, creates one `SALE_VOID` movement per SaleItem, transitions a completed Sale once, and writes one `SALE_VOIDED` AuditLog with status-only payload and fixed safe description. Repeat voids are rejected. The original Sale, SaleItems, payment, totals, and register-session reference remain historical. No partial void, unvoid, refund, or cash-out workflow exists.
 - Archive products/variants and disable users with history; preserve the last active Admin.
 - Restock latest-cost updates are implemented without FIFO, weighted average, COGS, or profit calculations.
 - Audit sensitive actions, reconcile ledger balances, and prevent direct stock editing.
@@ -348,7 +348,7 @@ The checkout service validates every original cart component as an ordinary unsi
 
 Each line uses positive half-up rounding of `quantity × unit_price`, and the Sale total is the exact sum of rounded lines. Zero-rounded lines, line/header overflow, underpayment, and insufficient stock are controlled validation failures. The unique Sale insert is the checkout-token race arbiter and occurs before locked stock sufficiency checks; transaction rollback removes the temporary Sale on failure. A committed equivalent replay is validated from immutable SaleItem and linked `SALE` movement history without consulting current catalog price, name, status, or stock.
 
-Successful checkout creates one completed Sale, one SaleItem and one negative `SALE` movement per distinct Variant, and updates only authoritative `current_stock`. Sale, SaleItem, and StockMovement records are currently immutable, and ordinary checkout produces no AuditLog row. Returns, discounts, credit, and `SALE_VOID` remain unimplemented.
+Successful checkout creates one completed Sale, one SaleItem and one negative `SALE` movement per distinct Variant, and updates only authoritative `current_stock`. Sale, SaleItem, and StockMovement records are currently immutable, and ordinary checkout produces no AuditLog row. Returns, discounts, and credit remain outside the workflow; a full Sale Void is implemented separately.
 
 The Phase A target adds the server-authoritative active register precondition
 and nullable Sale relationship documented above. Those controls are not part of
@@ -358,4 +358,4 @@ the currently implemented Tracker #12 behavior.
 
 Receipt & Sales History requires no schema change. Active Admin and Staff may browse all Sales and view the same read-only `sales.show` page as the receipt and browser-reprint surface. Receipt numbers remain derived from the immutable Sale ID through `receiptNumber()` and are not stored separately.
 
-The index reads only Sale payment headers, cashier names, and aggregate item counts. Receipt lines use the immutable SaleItem product-name, Variant-identity, unit, quantity, selling-price, and line-total snapshots; current Product and ProductVariant values are not historical display sources. Checkout tokens, purchase costs, StockMovement internals, and authentication data are not selected or displayed. Viewing, reloading, or printing creates no AuditLog or other database write. Browser printing uses `window.print()` without PDF generation, and no `SALE_VOID` transition or stock-restoration workflow is implemented.
+The index reads Sale payment headers, cashier names, aggregate item counts, and status. Active Admins may void a completed Sale from its details; Staff retain read access but cannot void. Receipt lines use immutable SaleItem product-name, Variant-identity, unit, quantity, selling-price, and line-total snapshots; current catalog values are not historical display sources. A voided receipt shows status, reason, Admin actor, and Manila time while retaining original items and payment values. Checkout tokens, purchase costs, StockMovement internals, and authentication data are not displayed. Viewing, reloading, or printing does not write an AuditLog; the successful void itself writes one status-only `SALE_VOIDED` record. Browser printing uses `window.print()` without PDF generation. Sale Void requires no schema change.

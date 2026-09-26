@@ -53,8 +53,8 @@ baseline](requirements.md#assumed-hardware-store-operating-scenario). It covers
 Admin/Owner and Staff/Cashier responsibilities; cash POS with an opened
 register; variant-level stock and immutable movement evidence; procurement,
 partial accepted deliveries, and separately recorded damage; Admin-only
-reporting; and preservation of operational history. Sale Void is intended
-future functionality and is not implemented. This scenario is not newly
+reporting; and preservation of operational history. Sale Void is implemented
+as an Admin-only full-sale workflow. This scenario is not newly
 verified client evidence.
 
 ## 2. System Scope
@@ -72,6 +72,8 @@ The current system includes the following implemented areas:
 - a cash-only Point of Sale with server-calculated prices, totals, payment sufficiency, change, and stock deductions;
 - one global cash-register session that can be opened and closed within the approved single-register scope;
 - Sales History and a printable receipt/reprint page based on historical sale data;
+- Admin-only full voiding of completed Sales with exact stock restoration,
+  immutable movement evidence, and a privacy-scoped AuditLog event;
 - an Admin-only Sales Summary with date and cashier filters;
 - an Admin-only, read-only Product Sales Report that groups completed-sale quantity and stored line-total amount by historical Product/Variant identity for a selected Manila period;
 - an Admin-only, read-only Inventory Report with one row per ProductVariant across active and archived catalog records, explicit Category/Product/Variant statuses, current stock, threshold, quantity mode, and derived stock state;
@@ -85,15 +87,13 @@ The current system includes the following implemented areas:
 - damaged-item recording during PO receiving for Admin and Staff, as immutable receipt evidence separate from accepted inventory; and
 - the Admin-only #31 Damaged Items Report, a GET-only read-only Reports page presenting immutable receiving evidence; and
 - Admin-only User Management for searching, creating, editing, changing roles, disabling/reactivating, and resetting account passwords. Accounts are never hard-deleted; account changes retain transactional AuditLog evidence and the last-active-Admin invariant; and
-- an Admin-only, read-only Audit Log viewer with actor, action, and optional Manila date filters over the six current User Management event types.
+- an Admin-only, read-only Audit Log viewer with actor, action, and optional Manila date filters over the User Management and Sale Void event types.
 
 ### 2.2 In-Progress and Planned Scope
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- Sale Void and its stock-restoration workflow;
-- future non-account workflow logging; account lifecycle AuditLogs and the Admin-only viewer/filter interface are implemented;
-- a unified inventory movement history screen;
+- unified inventory Movement History and Dashboard Recent Stock Activity;
 - remaining edge-case, permission, integration, and final system testing; and
 - final screenshots, documentation review, and presentation preparation.
 
@@ -133,7 +133,8 @@ Production account AuditLog actions are `USER_CREATED`, `USER_UPDATED`,
 change, references the authenticated Admin and affected User, and contains only
 safe allowlisted values. Passwords, hashes, tokens, and full request bodies are
 never logged. Login/logout events are not implemented or required. `SALE_VOIDED`
-remains future until Sale Void exists. Stock Correction remains movement-only
+is written transactionally after a successful void, with status-only before/after
+data and a fixed safe description. Stock Correction remains movement-only
 under FR-CORR-04: `CORRECTION` StockMovement is the required evidence, with no
 duplicate AuditLog requirement. Audit Log viewing and filtering are provided
 by the Admin-only, read-only Audit Log page at `/audit-logs`. The route uses
@@ -154,9 +155,9 @@ Change summaries render before/after values only for the explicit `name`,
 values, passwords, password hashes, remember/session/CSRF/checkout/submission
 tokens, arbitrary tokens, and raw request bodies are not displayed. Password
 reset events show no before/after secret values. Descriptions are escaped
-text, not raw HTML. The currently implemented event writers remain the six
-account actions listed above; `SALE_VOIDED` is still future until Sale Void is
-implemented, and login/logout events are not implemented or required.
+text, not raw HTML. The current event writers include the six account actions
+listed above and `SALE_VOIDED` after a successful Sale Void. Login/logout
+events are not implemented or required.
 
 The Actor filter uses `audit_logs.user_id` and selects the acting user; choices
 come from users represented in audit history and can include disabled
@@ -230,16 +231,16 @@ The separate Admin-only #31 Damaged Items Report presents this evidence as one r
 | Products | Product identities within Categories | **Create, view/search, edit, archive, and reactivate**. |
 | Product Variants | Sellable or stockable units with prices and the primary stock record | **Create, view/search, edit, archive, and reactivate**; stock changes use separate inventory workflows. |
 | Cash Register Sessions | Opening and closing cash context for sales | **Some operations available** — open and close controls exist; there is no separate session-history screen. |
-| Sales | Cash checkout and saved sale/payment details | **Create and view** — history and receipt/reprint are available; editing, deletion, and Sale Void are not. |
+| Sales | Cash checkout and saved sale/payment details | **Create, view, and controlled void** — active Admins may void a completed Sale in full with a required reason; original history and payment evidence remain. No edit, deletion, partial void, unvoid, refund, or cash-out workflow exists. |
 | Sale Items | Saved product, Variant, quantity, and price details for each sale | **Created automatically and view-only**. |
 | Restocks | Stock In receipt headers | **Create, list, and view** for legacy manual Stock In and PO-based receiving; PO receipts link to their Purchase Order. Historical receipts cannot be edited or deleted. |
 | Restock Items | Accepted quantities and historical unit costs | **Created automatically and view-only**; accepted PO receipt lines link to their Purchase Order Items. Damage-only receipt lines have no RestockItem. |
 | Restock Damage Items | Immutable evidence of damaged goods recorded during PO receiving | **Created automatically and view-only**; stores the PO-line and Variant links, historical product/size/type/thickness/unit snapshots, damaged quantity, note, and creation time. Restock supplies actor, receipt, and PO context. No edit, delete, or reversal workflow exists. |
-| Stock Movements | Evidence of initial stock, restocking, corrections, and sales deductions | **Created automatically with related transactions**; no unified movement-history screen exists. |
+| Stock Movements | Evidence of initial stock, restocking, corrections, sales deductions, and Sale Void restorations | **Created automatically with related transactions**; no unified movement-history screen exists. |
 | Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, receive partial or full deliveries including damaged quantities, and create follow-up POs**; source-to-child lineage is visible. Operational damage history appears in PO details; the dedicated #31 report is linked from Reports and remains Admin-only. |
 | Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities, linked actual receipt costs, and transferred quantities are represented by history evidence. Saved historical details remain available when catalog records later become inactive. |
 | Purchase Order Item Transfers | Immutable source-to-child procurement-demand evidence | **Created automatically and view-only**; records the full quantity transferred, source/target item relationship, actor, and creation time. Transfers do not affect inventory. |
-| Audit Logs | Sensitive account activity records | **Admin-only read-only viewer and actor/action/date filters available**; six account lifecycle writers are implemented transactionally. Future event writers remain separate. |
+| Audit Logs | Sensitive account and Sale Void activity records | **Admin-only read-only viewer and actor/action/date filters available**; six account lifecycle event types and `SALE_VOIDED` are written transactionally. |
 
 ## 3. Technology & Architecture
 
@@ -323,7 +324,7 @@ Development of the system began during the **first week of September 2026**. The
 
 The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are complete, alongside the procurement reports #28, #29, and #31. Procurement also includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full and damaged PO receiving, and Admin follow-up POs with source/child lineage and full-current-remainder transfers.
 
-The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, and the Admin-only Audit Log viewer/filtering are implemented; the last-active-Admin invariant is concurrency-verified. Sale Void, unified Movement History, expanded formal testing, and final materials remain incomplete.
+The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, the Admin-only Audit Log viewer/filtering, and Sale Void are implemented; the last-active-Admin invariant and Sale Void races are guarded-MySQL concurrency-verified. Unified Movement History, expanded formal testing, and final materials remain incomplete.
 
 ## 5. Technical Decisions & Issues
 
@@ -475,7 +476,7 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 
 **Current Inventory Report state:** The Admin-only, read-only Reports page shows one row per ProductVariant across active and archived Categories, Products, and Variants, with each catalog status shown separately. It displays current stock, low-stock threshold, unit, quantity mode, and derived stock state: zero is Out of stock, positive stock at or below threshold is Low stock, and stock above threshold is In stock. Stock state is independent of catalog status. Initialization evidence is not required, and stock is not aggregated across Variants or units. The complete result set has no filters, pagination, summary metrics, or global quantity total; cost, selling price, procurement data, and stock/receipt history are not exposed. No schema or migration change was needed. Current engineering verification passed Inventory Report (5 tests / 69 assertions), Reports authorization (5 / 23), generic Reports (6 / 77), Low Stock Report (5 / 64), Product Variant management (15 / 126), and the full ordinary SQLite suite (465 / 4,821). The report rendered 12 Variants with at most six SELECTs and no database writes. `npm run build`, targeted Pint, and `git diff --check` passed; MySQL was not run. These are current engineering checks, separate from historical teacher/manual results, FT15, and paused FT17 records.
 
-**Current Product Sales Report state:** The Admin-only, GET/HEAD, read-only report presents exactly one row per historical Product/Variant identity group. Its identity uses the sale-time Product name, size, type/series, thickness, and unit snapshots together with the durable Variant ID; separate Variant IDs, changed historical Product-name snapshots, and unlike units remain separate. Catalog rename or archive does not replace saved sale identity. Only SaleItems belonging to Sales with status `completed` qualify; voided-status Sales are excluded, and Sale Void/stock restoration remain unimplemented. Each row's quantity is summed exactly at scale 3 with BCMath and displayed with its historical unit. Its sales amount is the scale-2 BCMath sum of stored `SaleItem.line_total` values, not a recalculation from prices. The report has no cashier or other filters, ranking, pagination, global quantity total, summary card, cost/profit/margin reporting, or mutation controls. For an empty valid period it shows a controlled no-product-sales state; invalid dates show a separate report-not-run state and do not execute the report data query.
+**Current Product Sales Report state:** The Admin-only, GET/HEAD, read-only report presents exactly one row per historical Product/Variant identity group. Its identity uses the sale-time Product name, size, type/series, thickness, and unit snapshots together with the durable Variant ID; separate Variant IDs, changed historical Product-name snapshots, and unlike units remain separate. Catalog rename or archive does not replace saved sale identity. Only SaleItems belonging to Sales with status `completed` qualify; voided-status Sales are excluded. Sale Void restores stock through its separate movement and does not change historical SaleItems. Each row's quantity is summed exactly at scale 3 with BCMath and displayed with its historical unit. Its sales amount is the scale-2 BCMath sum of stored `SaleItem.line_total` values, not a recalculation from prices. The report has no cashier or other filters, ranking, pagination, global quantity total, summary card, cost/profit/margin reporting, or mutation controls. For an empty valid period it shows a controlled no-product-sales state; invalid dates show a separate report-not-run state and do not execute the report data query.
 
 Product Sales shares Sales Summary's `date_from`/`date_to` contract: today plus the previous six Asia/Manila calendar dates by default, inclusive UI dates, half-open database bounds from the start of `date_from` to the start of the day after `date_to`, and a 366-calendar-day maximum. Malformed, partial, reversed, and overlong ranges fail closed. Sales Summary remains a separate report for completed-sale totals, daily totals/counts, and quantities separated by historical unit; its optional cashier filter remains specific to Sales Summary. The ReportsController change extracted and shared its existing date parsing/validation behavior; it did not redesign Sales Summary or change its date semantics.
 
@@ -514,7 +515,15 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 
 **Current engineering verification for the Audit Log viewer and filters:** the focused Audit Log suite passed **12 tests / 188 assertions**; User Management service passed **15 / 128**; User Management HTTP passed **17 / 192**; and auth/navigation passed **28 / 334**. The full ordinary SQLite suite passed **521 tests / 5,548 assertions**. Read-only proof passed: plain GET, filtered GET, and HEAD issued no write SQL and did not change User or AuditLog row counts. Bounded-query verification kept a full 20-row page at no more than 12 SELECTs and at most two SELECTs above the one-row case, with no affected-User N+1. A production UserManagementService-created AuditLog rendered successfully. `npm run build`, targeted Pint, and `git diff --check` passed. No migration/schema change was made; MySQL was not executed. These are current engineering results, separate from historical teacher/manual testing and FT15/FT17 records.
 
-**Other incomplete areas and limitations:** Sale Void and its future `SALE_VOIDED` event, non-account AuditLog event writers, unified inventory movement history, Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Account lifecycle AuditLogs and the Admin-only viewer/filter interface are implemented. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+**Current Sale Void behavior:** `SaleVoidService` performs a full completed-Sale void in one transaction after revalidating an active Admin and locking the Sale, its items, and Variants in deterministic ID order. It restores exact sold quantities with decimal-safe arithmetic, records one `SALE_VOID` movement per SaleItem, transitions the Sale once, and writes one `SALE_VOIDED` AuditLog with status-only before/after data and a fixed safe description. Repeat attempts are rejected before a second restoration or evidence write. The original Sale, SaleItems/snapshots, totals, payment, change, register-session reference, and creation time remain. There is no partial void, unvoid, refund, or cash-out workflow; completed Sales from older or closed register sessions remain eligible. Sales Summary, Product Sales, and completed-sales Dashboard metrics, trend, and recent Sales exclude voided Sales; Sales History and the printable original receipt remain available with void status, reason, Admin actor, and Manila time.
+
+**Record Activity event scope:** transactional AuditLogs cover `USER_CREATED`, `USER_UPDATED`, `USER_ROLE_CHANGED`, `USER_DISABLED`, `USER_REACTIVATED`, `USER_PASSWORD_RESET`, and `SALE_VOIDED`. Stock Correction remains represented by its `CORRECTION` StockMovement only, with no duplicate AuditLog. Login/logout AuditLogs are not required. The Admin-only viewer/filter is implemented.
+
+**Current engineering verification for Sale Void:** Phase A service passed **12 tests / 108 assertions**; relevant regressions passed **76 / 948**; full ordinary SQLite passed **533 / 5,656**; Pint and `git diff --check` passed. MySQL was not run in Phase A. Phase B Sale Void HTTP/UI passed **9 / 164**, service regression **12 / 108**, history/report/dashboard/auth/audit/register regressions **72 / 802**, POS route authorization **5 / 64**, and full ordinary SQLite **542 / 5,823**; `npm run build`, Pint, and `git diff --check` passed. MySQL was not run in Phase B. Phase C service passed **12 / 108**, HTTP **9 / 164**, `PosCheckoutTest` **21 / 362**, and full ordinary SQLite **542 / 5,823**. Guarded MySQL passed **2 tests / 93 assertions**; Pint and `git diff --check` passed. No deadlocks or uncontrolled SQL errors occurred, and no production code or schema/migration changed.
+
+Phase C verified two guarded MySQL 8 / InnoDB / REPEATABLE READ races using deterministic fork/socket barriers, with no timing sleeps, destructive reset, or broad cleanup. For two concurrent void attempts on one Sale, exactly one succeeded and one received the controlled already-voided rejection; stock was restored once with one `SALE_VOID` per SaleItem and one `SALE_VOIDED` AuditLog. For checkout racing void on the same ProductVariant, both transactions committed, final stock matched exact serial arithmetic, and the single `SALE` and `SALE_VOID` movements formed a valid serial order with no lost update; one `SALE_VOIDED` was recorded and the register session was unaffected. Fixture cleanup was scoped. The first sandbox attempt failed safely at the identity guard; the approved Unix-socket execution passed.
+
+**Other incomplete areas and limitations:** unified inventory Movement History, Dashboard Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Stock movement data now includes `INITIAL_STOCK`, `RESTOCK`, `SALE`, `CORRECTION`, and `SALE_VOID`, but no unified history viewer exists. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
 The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
 
