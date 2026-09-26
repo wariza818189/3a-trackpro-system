@@ -286,6 +286,9 @@ boundaries; requirement acceptance concerns their resulting values and access.
 - Authentication/roles, Categories, Products, and Variants.
 - Opening Inventory, Stock In, and Stock Correction.
 - Cash POS, receipts/reprinting, and Sales History.
+- Read-only Movement History for active Admin and Staff, plus latest-five
+  Recent Stock Activity on the shared Dashboard. Both views use the existing
+  five StockMovement types and present recorded movement evidence.
 - Admin-only full Sale Void for completed Sales, with preserved transaction
   history, exact stock restoration, `SALE_VOID` movements, and `SALE_VOIDED`
   AuditLogs; no partial void, unvoid, refund, or cash-out workflow.
@@ -381,6 +384,7 @@ application checkpoint. Detailed procedures and test-case preparation remain #7.
 | Receipts/history (FR-SALES) | #13 | SalesHistoryController and immutable receipt presentation | History/receipt suites, filters and Print Preview smoke |
 | Navigation (FR-NAV) | Separate UI mini-checkpoint; #16 menu additions | Shared Blade navigation and drawer behavior | Navigation suite, keyboard/breakpoint/mobile/print evidence |
 | Dashboard/Reports (FR-DASH, FR-REP) | #16 | DashboardController, ReportsController and Blade views | Dashboard/Reports suites, desktop/mobile, filter and receipt-link smoke |
+| Movement views (current tracker: Movement History and Recent Stock Activity) | Current inventory/Dashboard implementation | Shared StockMovement query and presentation layer; read-only 20-row history and latest-five Dashboard section for Admin/Staff | Current engineering verification recorded in project documentation; no schema change or MySQL run required |
 | Register sessions (FR-REG; expanded FR-POS) | #24 | Planned CashRegisterSession and RecordSale extension | Not implemented; revised test catalog and execution pending |
 | Purchase Orders/low stock (FR-PO) | #25 | Planned PO header/item workflow and initialized low-stock recommendation | Not implemented; revised test catalog and execution pending |
 | PO receiving (FR-RECV; expanded FR-STOCKIN) | #26 | Transactional PO-linked receiving, partial/full quantities, linked evidence, and inventory posting | Implemented; 6 guarded MySQL concurrency tests / 220 assertions passed |
@@ -448,7 +452,7 @@ facts. No assumption here establishes a measured improvement or client approval.
 | --- | --- |
 | Baseline type | Team-approved / project-derived |
 | Tracker | #3 Client Problem & Requirements |
-| Repository implementation reference | Latest application checkpoint: 31b5b95f8d4de3136c15924bc541b52a6d2fa846 — Add dashboard and sales reports |
+| Repository implementation reference | Latest application checkpoint: 9c1306027190f49a2fdd941b6f7f55ae6900eee4 — Add stock movement history and activity |
 | Documentation preparation date | 2026-09-08 |
 | Phase A expansion amendment date | 2026-09-17 |
 | Phase A expansion status | Requirements/schema design approved on 2026-09-17; implementation was not yet complete at that amendment date |

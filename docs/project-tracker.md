@@ -27,13 +27,13 @@ posting, idempotent replay, and guarded MySQL concurrency verification.
 Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
 #30 damaged receiving, and the separate #31 Damaged Items Report are complete.
 The dedicated Product Sales, Inventory, Low Stock, and Restocking Reports are
-also complete. Remaining work is final integration, testing, documentation, and
-presentation preparation; unified Movement History remains incomplete.
+also complete. Movement History and Dashboard Recent Stock Activity are now
+implemented. Remaining work is final integration, testing, documentation, and
+presentation preparation.
 User Management is implemented; its account workflows, role/access controls,
 transactional account AuditLogs, and Admin-only Audit Log viewer/filtering are
 documented below. Sale Void and its `SALE_VOIDED` event are implemented and
-guarded-MySQL concurrency verified. Recent Stock Activity and final screenshots
-remain future work.
+guarded-MySQL concurrency verified. Final screenshots remain pending.
 
 ## Status Definitions
 
@@ -60,7 +60,7 @@ remain future work.
 | DASHBOARD | Summary | Display sales and inventory summary | Jayson Amores | 10/09/2026 | 10/11/2026 | Completed | Working dashboard summary | Show key sales, transaction, product, and inventory information using current system data. Implemented and verified. |
 | DASHBOARD | Low Stock | Display products reaching low-stock level | Jayson Amores | 10/10/2026 | 10/12/2026 | Completed | Working low-stock alert section | Show active products or variants whose stock is at or below the configured low-stock threshold. Implemented and verified. |
 | DASHBOARD | Recent Sales | Display recent sales transactions | Jayson Amores | 10/11/2026 | 10/13/2026 | Completed | Working recent sales section | Show latest completed sales with transaction number, date/time, cashier, and total amount. Implemented and verified. |
-| DASHBOARD | Recent Stock Activity | Display recent inventory movements | Jayson Amores | 10/12/2026 | 10/14/2026 | Not Started | Working recent stock activity section | Show recent stock-in, sales stock-out, corrections, and authorized stock restorations. The required SALE_VOID restoration data now exists, but the current Dashboard has no recent StockMovement activity section. |
+| DASHBOARD | Recent Stock Activity | Display recent inventory movements | Jayson Amores | 10/12/2026 | 10/14/2026 | Completed | Working recent stock activity section | Dashboard shows the latest five StockMovements to active Admin and Staff, using the shared movement labels, references, quantity semantics, and actor/product context from Movement History. Links to the full read-only history. |
 | PRODUCT | New | Add a new product | Jayson Amores | 09/24/2026 | 09/27/2026 | Completed | Working product creation feature | Save category, product name, unit, cost price, selling price, low-stock threshold, and status. Implemented through normalized Product and ProductVariant workflows. |
 | PRODUCT | Edit | Update an existing product | Jayson Amores | 09/27/2026 | 09/29/2026 | Completed | Working product update feature | Allow permitted product changes without modifying historical sales or stock records. Implemented through normalized Product and ProductVariant workflows. |
 | PRODUCT | Archive | Archive an existing product | ROBERT JAMES WARIZA | 09/28/2026 | 09/29/2026 | Completed | Working product archive feature | Archived products remain in historical records but cannot be used for new sales. Implemented and verified. |
@@ -87,7 +87,7 @@ remain future work.
 | INVENTORY | Stock-In | Add or restock product quantities | ROBERT JAMES WARIZA | 10/06/2026 | 10/09/2026 | Completed | Working stock-in feature | Record restocked quantities and historical purchase cost, increase inventory, and create stock movement records. Implemented and verified for the legacy Stock In workflow. |
 | INVENTORY | Stock Correction | Correct an incorrect stock quantity | ROBERT JAMES WARIZA | 10/09/2026 | 10/11/2026 | Completed | Working controlled stock correction feature | Implemented. The immutable CORRECTION StockMovement records before/change/after quantities, actor, timestamp, and required reason; this movement is the correction evidence, with cost unchanged and no duplicate AuditLog. |
 | INVENTORY | Low Stock | View products reaching low-stock level | Rommel Jave Casipong | 09/30/2026 | 10/01/2026 | Completed | Working low-stock inventory list | List products or variants whose current stock is at or below their configured threshold. Implemented and verified. |
-| INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | In Progress | Working stock movement history | Display stock changes from sales, stock-in, corrections, and sale void restorations with date, quantity, reference, and user. Production movement data covers INITIAL_STOCK, RESTOCK, SALE, CORRECTION, and SALE_VOID; the unified history viewer remains unimplemented. |
+| INVENTORY | Movement History | View stock movement history | Rommel Jave Casipong | 10/09/2026 | 10/11/2026 | Completed | Working stock movement history | Read-only Admin/Staff page shows one row per INITIAL_STOCK, RESTOCK, SALE, CORRECTION, or SALE_VOID movement with Manila date/time, current product/variant context, signed stored quantity, before/after, reference, reason when present, and actor. Newest first; 20 rows per page; no filters. |
 | PROCUREMENT | Purchase Order | Create and manage purchase orders with supplier snapshot, ordered quantities, expected unit costs, and pending status. | TBD | — | — | Completed | Working purchase-order creation and management | Implemented: Admin creates and edits pending POs with supplier/item snapshots, quantities, and expected costs; Admin and Staff browse and receive orders; partial/full receiving, follow-up POs, and reports #28–#31 are implemented. |
 | PROCUREMENT | Low-Stock Prioritization | Prioritize initialized active low/out-of-stock variants for purchase-order planning and distinguish uncovered from already covered demand. | TBD | — | — | Completed | Working prioritized PO-planning list | Implemented in PO creation: uncovered low-stock Variants appear first; covered low-stock Variants remain visible/searchable with open coverage; current stock is shown and Admin chooses order quantities without an invented reorder quantity. |
 | PROCUREMENT | PO-Based Receiving & Partial Delivery | Receive delivered quantities against purchase-order lines and support partial delivery while preserving accepted quantities and actual receiving cost. | TBD | — | — | Completed | Working PO receiving workflow | Maps to former #26. Partial/full PO-linked receiving is available to Admin and Staff, tracks accepted and outstanding quantities, records immutable actual receipt costs while preserving expected PO costs, and posts inventory with one RESTOCK movement per accepted line. Linked receipt history and idempotent replay are implemented; guarded MySQL concurrency verification passed (6 tests / 220 assertions). Legacy manual Stock In remains supported. |
@@ -122,12 +122,12 @@ remain future work.
 
 ## Status Summary
 
-- Completed: 62
-- In Progress: 3
-- Not Started: 6
+- Completed: 64
+- In Progress: 2
+- Not Started: 5
 - Total: 71
 
-Arithmetic check: **62 + 3 + 6 = 71**.
+Arithmetic check: **64 + 2 + 5 = 71**.
 
 ## Excel Sync
 

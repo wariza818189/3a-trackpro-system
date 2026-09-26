@@ -64,7 +64,8 @@ verified client evidence.
 The current system includes the following implemented areas:
 
 - username-and-password login, logout, active-account checks, and server-side Admin/Staff authorization;
-- a shared Dashboard with operational summaries, recent completed sales, and low-stock information, plus an Admin-only seven-day sales trend;
+- a shared Dashboard with operational summaries, recent completed sales, up to five recent stock movements, and low-stock information, plus an Admin-only seven-day sales trend;
+- a read-only Movement History for active Admin and Staff, with one row per StockMovement across all five production movement types, newest-first ordering, 20-row pagination, and shared labels, references, actors, and exact signed quantities;
 - category, product, and product-variant management with archive and reactivation controls; searchable Products link to a dedicated read-only detail page with role-permitted Variants and per-Variant stock and status, without a Product-level stock total;
 - Admin-only Opening Inventory, recorded as an explicit initial stock transaction;
 - Stock In for Admin and Staff, including multi-item receipts and historical received costs;
@@ -93,7 +94,6 @@ The current system includes the following implemented areas:
 
 The following work is incomplete or planned and must not be treated as available functionality:
 
-- unified inventory Movement History and Dashboard Recent Stock Activity;
 - remaining edge-case, permission, integration, and final system testing; and
 - final screenshots, documentation review, and presentation preparation.
 
@@ -236,7 +236,7 @@ The separate Admin-only #31 Damaged Items Report presents this evidence as one r
 | Restocks | Stock In receipt headers | **Create, list, and view** for legacy manual Stock In and PO-based receiving; PO receipts link to their Purchase Order. Historical receipts cannot be edited or deleted. |
 | Restock Items | Accepted quantities and historical unit costs | **Created automatically and view-only**; accepted PO receipt lines link to their Purchase Order Items. Damage-only receipt lines have no RestockItem. |
 | Restock Damage Items | Immutable evidence of damaged goods recorded during PO receiving | **Created automatically and view-only**; stores the PO-line and Variant links, historical product/size/type/thickness/unit snapshots, damaged quantity, note, and creation time. Restock supplies actor, receipt, and PO context. No edit, delete, or reversal workflow exists. |
-| Stock Movements | Evidence of initial stock, restocking, corrections, sales deductions, and Sale Void restorations | **Created automatically with related transactions**; no unified movement-history screen exists. |
+| Stock Movements | Evidence of initial stock, restocking, corrections, sales deductions, and Sale Void restorations | **Created automatically with related transactions; read-only Movement History available** to active Admin and Staff, one row per movement, all five types, newest first, 20 per page. Stored quantities display at three decimals with a sign; references use linked Restock/Sale records where applicable. |
 | Purchase Orders | Supplier details, status, creator, and procurement history | **Create, list/filter, view details, edit pending orders, receive partial or full deliveries including damaged quantities, and create follow-up POs**; source-to-child lineage is visible. Operational damage history appears in PO details; the dedicated #31 report is linked from Reports and remains Admin-only. |
 | Purchase Order Items | Ordered quantities, expected costs, and saved product details | **Created and editable through pending Purchase Orders**; accepted/outstanding quantities, linked actual receipt costs, and transferred quantities are represented by history evidence. Saved historical details remain available when catalog records later become inactive. |
 | Purchase Order Item Transfers | Immutable source-to-child procurement-demand evidence | **Created automatically and view-only**; records the full quantity transferred, source/target item relationship, actor, and creation time. Transfers do not affect inventory. |
@@ -324,7 +324,7 @@ Development of the system began during the **first week of September 2026**. The
 
 The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are complete, alongside the procurement reports #28, #29, and #31. Procurement also includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full and damaged PO receiving, and Admin follow-up POs with source/child lineage and full-current-remainder transfers.
 
-The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, the Admin-only Audit Log viewer/filtering, and Sale Void are implemented; the last-active-Admin invariant and Sale Void races are guarded-MySQL concurrency-verified. Unified Movement History, expanded formal testing, and final materials remain incomplete.
+The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, the Admin-only Audit Log viewer/filtering, Sale Void, Movement History, and Dashboard Recent Stock Activity are implemented; the last-active-Admin invariant and Sale Void races are guarded-MySQL concurrency-verified. Expanded formal testing, final integration, screenshots, and presentation materials remain incomplete.
 
 ## 5. Technical Decisions & Issues
 
@@ -523,7 +523,11 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 
 Phase C verified two guarded MySQL 8 / InnoDB / REPEATABLE READ races using deterministic fork/socket barriers, with no timing sleeps, destructive reset, or broad cleanup. For two concurrent void attempts on one Sale, exactly one succeeded and one received the controlled already-voided rejection; stock was restored once with one `SALE_VOID` per SaleItem and one `SALE_VOIDED` AuditLog. For checkout racing void on the same ProductVariant, both transactions committed, final stock matched exact serial arithmetic, and the single `SALE` and `SALE_VOID` movements formed a valid serial order with no lost update; one `SALE_VOIDED` was recorded and the register session was unaffected. Fixture cleanup was scoped. The first sandbox attempt failed safely at the identity guard; the approved Unix-socket execution passed.
 
-**Other incomplete areas and limitations:** unified inventory Movement History, Dashboard Recent Stock Activity, refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Stock movement data now includes `INITIAL_STOCK`, `RESTOCK`, `SALE`, `CORRECTION`, and `SALE_VOID`, but no unified history viewer exists. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+**Current Movement History and Recent Stock Activity state:** active Admin and Staff can open the read-only `/inventory/movements` page. It presents one row per stored StockMovement for `INITIAL_STOCK`, `RESTOCK`, `SALE`, `CORRECTION`, and `SALE_VOID`, ordered by creation time and ID descending with 20 rows per page. Stored DECIMAL quantities are shown with three places and an explicit sign, alongside before/after values; references resolve through the linked Restock or Sale when present. A Restock shows PO context only when it has a PO link. The shared `StockMovementQuery` and `StockMovementPresenter` provide eager-loaded data, ordering, labels, reference text, and quantity/actor/catalog presentation for both views. The Dashboard shows the latest five movements with a link to full history. Both views preserve archived catalog and disabled actor history, and GET/HEAD requests are read-only. No filters, schema/migration, or MySQL verification were required. Damage-only receipt quantities create no movement; mixed receipt movements represent accepted quantity only. Stock Correction remains movement evidence without an AuditLog.
+
+**Current engineering verification for Movement History and Recent Stock Activity:** Movement History passed **10 tests / 173 assertions**; Recent Stock Activity passed **6 / 102**; relevant regressions passed **149 / 1,623**; and the full ordinary SQLite suite passed **558 / 6,112**. `npm run build`, targeted Pint, and `git diff --check` passed. Query counts remained constant as fixture rows increased and stayed at or below **10** for history and **14** for Dashboard. GET/HEAD issued only SELECT queries and left the checked domain records unchanged. No migration/schema change was made; MySQL was not run or required. These application tests do not replace the paused FT17 evidence.
+
+**Other incomplete areas and limitations:** refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
 
 The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
 
@@ -561,7 +565,7 @@ The system has not yet been publicly deployed.
 
 ### 8.4 Selected Screenshots
 
-Selected screenshots will be added before final submission; screenshots remain pending. Recommended screens include the Dashboard, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, Purchase Order list/detail, and the Admin Audit Logs page with filters and representative account lifecycle events.
+Selected screenshots will be added before final submission; screenshots remain pending. Recommended screens include the Dashboard Recent Stock Activity, Movement History showing several movement types, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, Purchase Order list/detail, and the Admin Audit Logs page with filters and representative account lifecycle events.
 
 ### 8.5 Requirements and Database Design
 

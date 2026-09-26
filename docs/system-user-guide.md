@@ -80,6 +80,7 @@ Useful application paths are:
 | Products | `/products` | Admin and Staff |
 | Variants | `/product-variants` | Admin and Staff |
 | Stock In | `/stock-in` | Admin and Staff |
+| Movement History | `/inventory/movements` | Admin and Staff |
 | Opening Inventory | `/opening-inventory` | Admin |
 | Stock Correction | `/stock-corrections` | Admin |
 | Purchase Orders | `/purchase-orders` | Admin and Staff |
@@ -476,7 +477,7 @@ Purchase costs and internal checkout tokens are never shown on the receipt.
 Receipts use the historical values captured at checkout. Later catalog renames
 or price changes do not rewrite old receipts.
 
-## 14. Using the Dashboard
+## 14. Dashboard and Movement History
 
 Open **Main → Dashboard**. Admin and Staff see:
 
@@ -485,15 +486,43 @@ Open **Main → Dashboard**. Admin and Staff see:
 - Low-stock count.
 - Out-of-stock count.
 - The five most recent completed Sales.
+- The five latest stock movements in **Recent Stock Activity**.
 - Up to five low-stock items with stock and threshold.
 
 Admins also see the **Seven-day Completed Sales Trend** covering today and the
 previous six Manila calendar days. Select **Sales History** or **View receipt**
 for transaction details, and **View Variants** for the low-stock catalog filter.
+Use **View Movement History** in Recent Stock Activity to open the full list.
+Recent Stock Activity uses the same movement names, references, and signed
+quantity meaning as the full history page.
 
-The Dashboard is informational; viewing it does not alter inventory or sales.
-It does not currently provide a Recent Stock Activity panel or a unified
-inventory Movement History.
+The Dashboard and Movement History are informational; viewing them does not
+alter inventory or sales.
+
+### Reviewing Movement History
+
+Active Admin and Staff accounts can open **Inventory → Movement History**.
+Each row represents one recorded stock movement, and the newest appears first.
+Each row shows its Manila date and time,
+current product and variant, movement type, signed quantity change, quantity
+before and after, reference, reason when present, and the user who performed
+it. Use the page links to continue through older records; each page contains up
+to 20 movements.
+
+Movement names describe the stock event: **Opening Inventory** records a
+Variant's starting quantity; **Stock In** records accepted incoming stock;
+**Sale** records stock sold; **Stock Correction** records an authorized
+physical-count adjustment and its reason; and **Sale Void** records stock
+restored after an Admin voids a completed Sale. Quantities show the recorded
+change with a plus or minus sign and three decimal places, alongside the
+recorded before and after quantities. A Stock In reference includes a Purchase
+Order only when that receipt is linked to one. In mixed receiving, only the
+accepted quantity changes stock; a damage-only receipt has no stock movement.
+
+The page uses current product and variant names for context, so catalog names
+may change over time. Sale and receiving records retain their own historical
+item details where available. Archived catalog items and movements performed
+by users who are now disabled remain in history.
 
 ## 15. Using Reports — Admin Only
 
@@ -714,7 +743,6 @@ The current interface does not provide:
 - Credit or utang sales.
 - Returns or refunds.
 - Voiding a Sale does not issue a refund or cash-out.
-- A unified inventory Movement History or Recent Stock Activity dashboard.
 - Unit conversion.
 - Multiple store locations.
 - Cost-of-goods-sold, profit, or inventory-valuation reports.
@@ -753,6 +781,8 @@ Suggested evidence:
 14. Admin Audit Logs page showing the filters and representative account
     lifecycle events.
 15. Responsive mobile navigation.
+16. Movement History showing several movement types.
+17. Dashboard Recent Stock Activity.
 
 Use consistent browser dimensions, readable demo records, and short captions
 that state what the screenshot proves. Crop or retake any image that exposes a
