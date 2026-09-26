@@ -41,6 +41,7 @@
                     'label' => 'Inventory',
                     'items' => [
                         ['label' => 'Stock In', 'route' => 'stock-in.index', 'active' => 'stock-in.*'],
+                        ['label' => 'Movement History', 'route' => 'inventory.movements.index', 'active' => 'inventory.movements.*'],
                         ...($navigationAdmin ? [
                             ['label' => 'Opening Inventory', 'route' => 'opening-inventory.index', 'active' => 'opening-inventory.*'],
                             ['label' => 'Stock Correction', 'route' => 'stock-corrections.index', 'active' => 'stock-corrections.*'],

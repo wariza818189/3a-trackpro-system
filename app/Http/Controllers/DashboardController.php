@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Sale;
+use App\Presenters\Inventory\StockMovementPresenter;
+use App\Queries\Inventory\StockMovementQuery;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,7 +15,7 @@ use LogicException;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, StockMovementQuery $movements, StockMovementPresenter $presenter): View
     {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         $tomorrow = $today->addDay();
@@ -82,6 +84,7 @@ class DashboardController extends Controller
             'lowStockCount' => (int) ($stockCounts?->low_stock_count ?? 0),
             'outOfStockCount' => (int) ($stockCounts?->out_of_stock_count ?? 0),
             'recentSales' => $recentSales,
+            'recentMovements' => $movements->recent()->map($presenter->present(...)),
             'lowStockItems' => $lowStockItems,
             'sevenDayTrend' => $sevenDayTrend,
         ]);

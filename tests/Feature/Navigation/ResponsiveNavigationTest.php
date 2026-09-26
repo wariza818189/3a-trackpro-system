@@ -7,7 +7,7 @@ use Tests\Feature\Auth\AuthTestCase;
 
 class ResponsiveNavigationTest extends AuthTestCase
 {
-    public function test_admin_navigation_uses_all_thirteen_destinations_in_desktop_and_mobile_menus(): void
+    public function test_admin_navigation_uses_all_fourteen_destinations_in_desktop_and_mobile_menus(): void
     {
         $admin = User::factory()->admin()->create();
         $html = $this->actingAs($admin)->get(route('home'))->assertOk()->getContent();
@@ -20,6 +20,7 @@ class ResponsiveNavigationTest extends AuthTestCase
             'products.index' => 'Products',
             'product-variants.index' => 'Variants',
             'stock-in.index' => 'Stock In',
+            'inventory.movements.index' => 'Movement History',
             'opening-inventory.index' => 'Opening Inventory',
             'stock-corrections.index' => 'Stock Correction',
             'purchase-orders.index' => 'Purchase Orders',
@@ -30,7 +31,7 @@ class ResponsiveNavigationTest extends AuthTestCase
         $this->assertNavigationDestinations($html, $expected);
     }
 
-    public function test_staff_navigation_uses_exactly_the_eight_permitted_destinations_in_both_menus(): void
+    public function test_staff_navigation_uses_exactly_the_nine_permitted_destinations_in_both_menus(): void
     {
         $staff = User::factory()->create();
         $html = $this->actingAs($staff)->get(route('home'))->assertOk()->getContent();
@@ -42,6 +43,7 @@ class ResponsiveNavigationTest extends AuthTestCase
             'products.index' => 'Products',
             'product-variants.index' => 'Variants',
             'stock-in.index' => 'Stock In',
+            'inventory.movements.index' => 'Movement History',
             'purchase-orders.index' => 'Purchase Orders',
         ];
 

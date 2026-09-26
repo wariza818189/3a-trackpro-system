@@ -80,5 +80,19 @@ abstract class AuthTestCase extends TestCase
             $table->timestamp('created_at')->nullable();
             $table->unique(['sale_id', 'product_variant_id']);
         });
+        Schema::create('stock_movements', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('movement_type');
+            $table->decimal('quantity_before', 14, 3);
+            $table->decimal('quantity_change', 14, 3);
+            $table->decimal('quantity_after', 14, 3);
+            $table->foreignId('performed_by')->constrained('users')->restrictOnDelete()->restrictOnUpdate();
+            $table->foreignId('sale_item_id')->nullable()->constrained('sale_items')->restrictOnDelete()->restrictOnUpdate();
+            // Authentication fixtures contain no Restocks or movement records.
+            $table->unsignedBigInteger('restock_item_id')->nullable();
+            $table->text('reason')->nullable();
+            $table->timestamp('created_at')->nullable();
+        });
     }
 }

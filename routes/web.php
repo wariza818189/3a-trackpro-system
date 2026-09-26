@@ -23,6 +23,7 @@ use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\SaleVoidController;
 use App\Http\Controllers\StockCorrectionController;
 use App\Http\Controllers\StockInController;
+use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\UnfulfilledItemsReportController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware(['auth', 'active'])->group(function (): void {
+    Route::get('/inventory/movements', [StockMovementController::class, 'index'])->name('inventory.movements.index');
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');

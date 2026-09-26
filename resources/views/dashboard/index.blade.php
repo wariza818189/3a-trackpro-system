@@ -104,5 +104,32 @@
             </div>
         </section>
     </div>
+    <section class="mt-8" aria-labelledby="recent-stock-title">
+        <div class="flex items-end justify-between gap-4">
+            <div>
+                <h2 id="recent-stock-title" class="text-xl font-bold">Recent Stock Activity</h2>
+                <p class="mt-1 text-sm text-slate-600">The five latest stock changes. Catalog labels are current; times are in Manila.</p>
+            </div>
+            <a href="{{ route('inventory.movements.index') }}" class="text-sm font-semibold text-amber-700">View Movement History →</a>
+        </div>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50"><tr><th scope="col" class="px-3 py-3 text-left text-sm">Date / Time</th><th scope="col" class="px-3 py-3 text-left text-sm">Type / Reference</th><th scope="col" class="px-3 py-3 text-left text-sm">Product / Variant</th><th scope="col" class="px-3 py-3 text-right text-sm">Quantity Change</th><th scope="col" class="px-3 py-3 text-left text-sm">Performed By</th></tr></thead>
+                <tbody class="divide-y divide-slate-200">
+                    @forelse ($recentMovements as $movement)
+                        <tr data-movement-id="{{ $movement['id'] }}">
+                            <td class="whitespace-nowrap px-3 py-3 text-sm"><time datetime="{{ $movement['datetime'] }}">{{ $movement['date'] }}</time></td>
+                            <td class="px-3 py-3 text-sm"><span class="font-semibold">{{ $movement['label'] }}</span><br>{{ $movement['reference'] }}</td>
+                            <td class="px-3 py-3 text-sm"><span class="font-semibold">{{ $movement['product'] }}</span><br>{{ $movement['variant'] }}</td>
+                            <td class="px-3 py-3 text-right text-sm font-semibold tabular-nums">{{ $movement['change'] }}</td>
+                            <td class="px-3 py-3 text-sm">{{ $movement['actor'] }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No stock movement records yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
 @endsection
