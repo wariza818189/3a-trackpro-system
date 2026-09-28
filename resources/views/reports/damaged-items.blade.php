@@ -5,7 +5,7 @@
     <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Management reporting</p>
     <h1 class="mt-1 text-3xl font-bold">Damaged Items Report</h1>
     <p class="mt-2 text-slate-600">Each row records one damaged Purchase Order item in one receipt. Newest receipts appear first.</p>
-    <a href="{{ route('reports.index') }}" class="mt-3 inline-block font-semibold text-amber-700 print:hidden">Back to Reports</a>
+    @include('reports._navigation')
 
     <form method="GET" action="{{ route('reports.damaged-items') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_11rem_auto] print:hidden">
         <label><span class="text-sm font-medium">Supplier</span><input name="supplier" value="{{ $supplier }}" maxlength="150" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Search supplier">@if (isset($filterErrors['supplier']))<span class="mt-1 block text-sm text-red-700">{{ $filterErrors['supplier'] }}</span>@endif</label>

@@ -8,28 +8,22 @@
         <p class="mt-2 text-slate-600">Completed Sales aggregated across an inclusive Manila calendar-date range.</p>
     </div>
 
-    <a href="{{ route('reports.pending-purchase-orders') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Pending Purchase Orders Report</a>
-    <a href="{{ route('reports.product-sales') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Product Sales Report<span class="text-sm font-normal">Quantity sold and sales amount by historical Product/Variant for a selected period.</span></a>
-    <a href="{{ route('reports.inventory') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Inventory Report<span class="text-sm font-normal">Current inventory quantities, units, categories, and stock status.</span></a>
-    <a href="{{ route('reports.low-stock') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Low Stock Report<span class="text-sm font-normal">Active Variants at or below their stock threshold.</span></a>
-    <a href="{{ route('reports.restocking') }}" class="mt-6 inline-flex flex-col rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Restocking Report<span class="text-sm font-normal">Accepted Stock In and Purchase Order receiving history with quantities, actual purchase costs, dates, and responsible users.</span></a>
-    <a href="{{ route('reports.unfulfilled-items') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Unfulfilled Items Report</a>
-    <a href="{{ route('reports.damaged-items') }}" class="mt-6 inline-flex rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900 hover:bg-amber-100">Damaged Items Report</a>
+    @include('reports._navigation')
 
-    <form method="GET" action="{{ route('reports.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-4">
-        <label>
+    <form method="GET" action="{{ route('reports.index') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+        <label class="min-w-0">
             <span class="text-sm font-medium">Date from</span>
-            <input type="date" name="date_from" value="{{ $dateFrom }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            <input type="date" name="date_from" value="{{ $dateFrom }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
             @if (isset($filterErrors['date_from']))<span class="mt-1 block text-sm text-red-700">{{ $filterErrors['date_from'] }}</span>@endif
         </label>
-        <label>
+        <label class="min-w-0">
             <span class="text-sm font-medium">Date to</span>
-            <input type="date" name="date_to" value="{{ $dateTo }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            <input type="date" name="date_to" value="{{ $dateTo }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
             @if (isset($filterErrors['date_to']))<span class="mt-1 block text-sm text-red-700">{{ $filterErrors['date_to'] }}</span>@endif
         </label>
-        <label>
+        <label class="min-w-0">
             <span class="text-sm font-medium">Cashier</span>
-            <select name="cashier" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            <select name="cashier" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
                 <option value="">All cashiers</option>
                 @foreach ($cashiers as $cashierOption)
                     <option value="{{ $cashierOption->id }}" @selected($cashier === (string) $cashierOption->id)>{{ $cashierOption->name }}</option>
@@ -37,9 +31,9 @@
             </select>
             @if (isset($filterErrors['cashier']))<span class="mt-1 block text-sm text-red-700">{{ $filterErrors['cashier'] }}</span>@endif
         </label>
-        <div class="flex items-end gap-2">
-            <button class="flex-1 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-500">Apply filters</button>
-            <a href="{{ route('reports.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100">Reset</a>
+        <div class="flex items-end gap-2 sm:col-span-2 xl:col-span-1">
+            <button class="min-w-0 flex-1 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2">Apply filters</button>
+            <a href="{{ route('reports.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-offset-2">Reset</a>
         </div>
     </form>
 

@@ -5,7 +5,7 @@
     <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Management reporting</p>
     <h1 class="mt-1 text-3xl font-bold">Inventory Report</h1>
     <p class="mt-2 text-slate-600">Current stock by Variant, including archived catalog records. Category, Product, and Variant statuses are shown separately from stock state.</p>
-    <a href="{{ route('reports.index') }}" class="mt-3 inline-block font-semibold text-amber-700 print:hidden">Back to Reports</a>
+    @include('reports._navigation')
 
     <div class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto">

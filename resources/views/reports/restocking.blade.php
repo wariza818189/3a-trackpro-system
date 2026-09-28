@@ -5,7 +5,7 @@
     <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Management reporting</p>
     <h1 class="mt-1 text-3xl font-bold">Restocking Report</h1>
     <p class="mt-2 text-slate-600">Each row records one accepted stock-in item. Newest receipts appear first.</p>
-    <a href="{{ route('reports.index') }}" class="mt-3 inline-block font-semibold text-amber-700 print:hidden">Back to Reports</a>
+    @include('reports._navigation')
 
     <div class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-slate-200 text-sm">

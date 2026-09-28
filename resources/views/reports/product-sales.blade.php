@@ -5,7 +5,7 @@
     <p class="text-sm font-semibold uppercase tracking-wider text-amber-700">Management reporting</p>
     <h1 class="mt-1 text-3xl font-bold">Product Sales Report</h1>
     <p class="mt-2 text-slate-600">Completed sales grouped by historical Product/Variant identity for an inclusive Manila calendar-date range.</p>
-    <a href="{{ route('reports.index') }}" class="mt-3 inline-block font-semibold text-amber-700 print:hidden">Back to Reports</a>
+    @include('reports._navigation')
 
     <form method="GET" action="{{ route('reports.product-sales') }}" class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto] print:hidden">
         <label><span class="text-sm font-medium">Date from</span><input type="date" name="date_from" value="{{ $dateFrom }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">@if (isset($filterErrors['date_from']))<span class="mt-1 block text-sm text-red-700">{{ $filterErrors['date_from'] }}</span>@endif</label>
