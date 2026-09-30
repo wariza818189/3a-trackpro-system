@@ -1,812 +1,925 @@
-# 3A TrackPro — Windows 11 Demo Laptop Setup Guide
+# 3A TrackPro — Windows 11 Presentation Laptop Handoff Guide
 
-This guide prepares a Windows 11 laptop to run the 3A TrackPro classroom demo.
-It is written for beginners and uses Windows Command Prompt (CMD) for most
-commands.
+## 1. Quick Overview
 
-There are two different jobs:
+Prepare the laptop several days before presentation day. A working presentation
+copy needs the TrackPro repository, PHP/Laravel dependencies, Node/npm and built
+frontend assets, MySQL, a private presentation database backup, private demo
+credentials, a local browser, the presentation PPTX, and fallback screenshots.
 
-1. **One-time preparation several days before the presentation** — install the
-   software, clone TrackPro, import the private demo database, and test it.
-2. **Presentation-day startup** — start MySQL, run TrackPro, open the browser,
-   and sign in.
+**GitHub contains project files. It does not contain the prepared database or
+private credentials.** Receive those separately through a private team-controlled
+transfer. A clone, ZIP download, or empty database does not recreate the demo.
 
-> **Important:** A Git clone contains the application source code, but it does
-> not contain the current demo catalog, users, stocks, or transaction history.
-> Those records must be transferred separately in a **private MySQL dump**.
+This guide uses **PowerShell** for Windows commands. Open Start, search for
+PowerShell, and open a normal window. Blocks labelled **MySQL client** are entered
+only at the `mysql>` prompt. Blocks labelled **.env file** are configuration text,
+not commands. Replace every `<PLACEHOLDER>` before using an example.
 
-## 1. What You Need
+Use **Run as administrator** only for installation, approved PATH changes, or
+starting a Windows service. Close that elevated window afterward. Routine
+TrackPro startup does not require administrator privileges. Do not paste Linux
+shell syntax into PowerShell.
 
-Prepare the following:
+Follow the sections in order. Stop at any unexpected error; do not guess a
+password, replace a database, or update dependencies to bypass a failure.
 
-- A Windows 11 laptop with enough free disk space.
-- Internet access during the **first setup**.
-- [Git for Windows](https://git-scm.com/download/win).
-- [Laravel Herd Basic for Windows](https://herd.laravel.com/docs/windows/getting-started/installation).
-- A PHP version satisfying the project's Composer requirement: PHP `^8.3`
-  (PHP 8.3 or a compatible later 8.x version).
-- Composer for the locked Laravel/PHP dependencies.
-- Node.js satisfying `package.json`: `^20.19.0 || >=22.12.0`.
-- npm, supplied with Node.js.
-- A separate [MySQL Server Community](https://dev.mysql.com/downloads/)
-  installation.
-- A modern browser such as Chrome, Edge, or Firefox.
-- The private `trackpro-demo.sql` file exported from the original Linux laptop.
-- An optional USB drive containing a private backup.
+## 2. Presentation Baseline
 
-Herd Basic is recommended because its Windows installer conveniently provides
-PHP, Composer, Node.js, and Laravel tooling. **Do not assume Herd Basic supplies
-MySQL Server.** Use a separate MySQL Community Server installation for this
-free/basic setup.
+| Item | Approved presentation value |
+| --- | --- |
+| Repository | <https://github.com/wariza818189/3a-trackpro-system> |
+| Branch | `main` |
+| Documentation baseline inspected for this guide | `350dfc64b63c5b3f3eded02c85b25a01aa82e1f1` |
+| Presentation database | `trackpro_demo` |
+| Server / browser URL | `http://127.0.0.1:8016` |
+| Runtime values | `DB_DATABASE=trackpro_demo`, `SESSION_COOKIE=trackpro_demo_session`, `APP_URL=http://127.0.0.1:8016`, `APP_DEBUG=false` |
+| Presentation deck | `docs/presentation/TrackPro_Final_Presentation.pptx` |
+| Screenshot fallback | `docs/images/user-guide/` |
 
-After installing Herd, check its Node version. Use it if it satisfies
-`^20.19.0 || >=22.12.0`. If it does not, install a compatible
-[Node.js 22 LTS](https://nodejs.org/en/download) version separately and verify
-which `node` command Windows uses.
+Confirm the **exact approved final Git commit with the team before downloading
+or copying the laptop**. This guide's documentation commit, and later approved
+documentation commits, may follow the inspected baseline above. Do not force a
+checkout, reset, rebase, or force-push to make a revision match. An unexpected
+revision must be resolved before setup continues.
 
-## 2. Do This Before Presentation Day
+The application is feature-frozen. Laptop setup and a read-only smoke check do
+not establish that full group rehearsal or final presentation has occurred.
 
-> **Never attempt the first setup at school immediately before presenting.**
+## 3. PRIVATE — DO NOT COMMIT TO GITHUB
 
-Recommended preparation sequence:
+Receive these privately before choosing the presentation restore path:
 
-1. Borrow the classmate's laptop several days early.
-2. Install Git, Herd Basic, a compatible Node.js/npm, and MySQL Server.
-3. Clone TrackPro and install its locked dependencies.
-4. Create the private presentation database and application `.env`.
-5. Transfer, verify, and import the private demo SQL dump.
-6. Test both the assigned Admin and Staff accounts.
-7. Perform a mostly read-only smoke test of the important pages.
-8. Restart Windows.
-9. Start and test TrackPro again after the restart.
-10. Prepare a private USB backup and pack the laptop charger.
+1. A **full schema + migrations + data backup of `trackpro_demo`**, its SHA-256,
+   and the application revision with which it was prepared.
+2. The dedicated local application MySQL username and password, or an approved
+   private credential pair to create for this new laptop.
+3. The `demo_admin` application login password.
+4. The `demo_staff` application login password.
 
-Leave enough time to solve installation or PATH problems and repeat the smoke
-test after any change.
+Use controlled USB storage, direct local transfer, or another private
+team-controlled channel. MySQL administrator credentials are also private and
+are used only for laptop provisioning. MySQL account credentials and TrackPro
+login credentials are different; do not interchange them.
 
-## 3. Open CMD
+Keep the SQL backup **outside the project folder**, for example in a privately
+controlled `C:\TrackProPrivate` folder. It contains password hashes and business
+history and remains private even though its login passwords are hashed. Keep
+credentials separately in an approved private location; do not place plaintext
+passwords or `.env` beside the SQL backup on a shared USB drive.
 
-1. Open the Windows **Start** menu.
-2. Type `CMD`.
-3. Select **Command Prompt**.
+An emergency private USB copy may contain the SQL backup, its checksum, an
+approved repository ZIP, this guide, the PPTX, and screenshots. Control access to
+that drive. Remove temporary copies from shared machines only after confirming
+an approved backup still exists.
 
-Most commands in this guide should run in a normal CMD window. Use
-**Run as administrator** only when an installer, Windows UAC prompt, PATH
-change, or Windows service operation requires elevation. Close the
-Administrator window after that task; routine TrackPro startup should not need
-administrator rights.
+**STOP if the full backup or demo login credentials are unavailable.** Path B
+can demonstrate an empty installation, but it cannot substitute for the accepted
+prepared presentation dataset. This guide does not require creating a new
+backup or accessing the original machine's protected databases.
 
-Commands marked **CMD** are Windows CMD commands. Do not paste Linux Bash
-commands into CMD. Commands marked **MYSQL** are entered only after the
-`mysql>` prompt appears. Commands marked **LINUX** run only on the original
-Linux development laptop.
+## 4. Download the Project
 
-## 4. Check WinGet
+### Method A — Git Clone (Recommended)
 
-**CMD**
+1. If Git is missing, install [Git for Windows](https://git-scm.com/download/win)
+   from its official site. Alternatively use the established WinGet command
+   below. Accept only the expected installer/publisher and reopen PowerShell
+   after installation.
 
-```cmd
-winget --version
-```
+   **PowerShell — any working folder**
 
-If Windows says `winget` is not recognized, install or update **App Installer**
-through Microsoft Store/Windows Update, following the
-[official WinGet guidance](https://learn.microsoft.com/windows/package-manager/winget/).
-If WinGet still cannot be used, download each tool from its official installer
-page instead.
+   ```powershell
+   winget --version
+   winget install --id Git.Git -e --source winget
+   git --version
+   ```
 
-## 5. Install Git
+   If WinGet is unavailable, use the official installer or repair App Installer
+   through Microsoft Store using [Microsoft's WinGet guidance](https://learn.microsoft.com/windows/package-manager/winget/).
 
-Use the exact Git for Windows package ID:
+2. Choose a normal writable folder. The example uses your Documents folder:
 
-**CMD**
+   **PowerShell**
 
-```cmd
-winget install --id Git.Git -e --source winget
-```
+   ```powershell
+   Set-Location ([Environment]::GetFolderPath('MyDocuments'))
+   git clone https://github.com/wariza818189/3a-trackpro-system.git
+   Set-Location .\3a-trackpro-system
+   git status
+   git branch --show-current
+   git log -1 --oneline
+   git rev-parse HEAD
+   ```
 
-Accept only the expected trusted installer and UAC prompt. Close CMD, open a new
-CMD window so PATH changes take effect, and verify:
+3. Expected: branch `main`, a clean worktree, and the team's approved commit.
+   Record the full commit in the rehearsal record. If the folder already exists,
+   stop and inspect it; do not clone over an existing setup or discard changes.
+   Arrange an approved update several days early if the revision differs.
 
-**CMD**
+### Method B — GitHub Download ZIP
 
-```cmd
-git --version
-```
+1. Open the repository URL in §2, select branch **main**, then **Code → Download ZIP**.
+2. Right-click the downloaded ZIP and select **Extract All**. Extract into a
+   normal writable folder, preferably outside a shared or cloud-synced folder.
+3. Open the extracted folder containing `artisan`, `composer.json`, and
+   `package.json`. Do not run from the compressed ZIP view in Downloads.
+4. Open PowerShell there, or use `Set-Location "C:\path\to\extracted-project"`.
+5. Have the team record the main-branch commit associated with that download and
+   confirm it matches the approved handoff revision.
 
-## 6. Install Laravel Herd Basic
+ZIP downloads do not contain normal Git metadata. Git installation and Git
+checkpoint commands are unnecessary for this method. A ZIP's folder name alone
+is not proof of its revision; retain the team's download/checkpoint record.
 
-Use the official [Laravel Herd Windows installer](https://herd.laravel.com/docs/windows/getting-started/installation).
-This guide does not hard-code a Herd WinGet package ID.
+## 5. Required Software and Installation
 
-1. Download the Windows installer from the official Herd site.
-2. Run it and approve the expected Windows UAC prompt. Herd requires
-   administrator privileges during setup for its helper service.
-3. Complete the first-launch/onboarding screens.
-4. Close CMD and open a new normal CMD window.
-5. Verify the supplied tools:
+### Requirements Established by This Repository
 
-**CMD**
+| Component | Requirement / check |
+| --- | --- |
+| PHP | Use PHP **8.4.1 or newer in a compatible 8.x release**. `composer.json` allows `^8.3`, but current `composer.lock` includes Symfony 8.1 packages requiring `>=8.4.1`. PHP 8.3 is insufficient for this lockfile. Development preflight used PHP 8.4.26. |
+| PHP extensions | Project requires BCMath; application uses PDO MySQL. Locked production packages require ctype, DOM, fileinfo, filter, hash, iconv, JSON, libxml, mbstring, OpenSSL, PCRE, session, and tokenizer; PDO is needed for PDO MySQL. Some are built into PHP. Composer checks the installed platform. |
+| Composer | Composer 2.x; locked Laravel requires Composer runtime API `^2.2`. Use a current Composer 2 release. |
+| Node.js / npm | `package.json` and locked Vite packages require `^20.19.0 || >=22.12.0`. Use Node **24 LTS** as preferred in README, with its bundled npm. Verify the selected executable rather than relying on the installer label. |
+| MySQL | MySQL **8.x** with InnoDB. Repository verification used MySQL 8.0.46. Use a team-approved 8.x server installation and confirm backup compatibility; do not silently substitute MariaDB or a newer major version. |
+| Git | Required only for Method A. |
+| Browser | A modern local browser such as Edge, Chrome, or Firefox. |
+| PPTX application | Desktop PowerPoint or an approved locally installed PowerPoint-compatible application; actual fonts and slide rendering must be checked. |
 
-```cmd
-php --version
-composer --version
-node --version
-npm --version
-```
+PDO SQLite is for isolated tests, not the normal MySQL presentation setup.
+PHP ZIP/cURL or a trusted archive extractor can help Composer downloads; they
+are useful installation tooling, not substitutes for required extensions.
 
-PHP must satisfy `^8.3`. Node must satisfy `^20.19.0 || >=22.12.0`.
+### Install PHP / Composer / Node
 
-If Herd's Node version does not satisfy that expression, install a compatible
-Node.js 22 LTS release from the official Node.js site. Close and reopen CMD,
-then run `node --version` and `npm --version` again. Do not continue while an
-unsupported version is still first on PATH.
+Preserve the existing recommended Windows route: install
+[Laravel Herd Basic for Windows](https://herd.laravel.com/docs/windows/getting-started/installation).
+Its official installer provides PHP, Composer, Node.js, and Laravel tooling.
+Herd requires administrator privileges during installation. Complete onboarding,
+select a compatible PHP version in Herd's PHP controls, then reopen a normal
+PowerShell window and verify the actual CLI versions.
 
-## 7. Install MySQL Server
+**Do not assume Herd Basic provides MySQL Server.** Install it separately.
+If Herd's Node version is incompatible, install Node 24 LTS from the
+[official Node.js download page](https://nodejs.org/en/download). If Composer is
+missing, use the [official Composer Windows installer](https://getcomposer.org/download/)
+and select the intended PHP executable. Avoid duplicate conflicting PATH entries.
 
-For this setup, install MySQL Server Community separately. Herd Basic must not
-be treated as the database server.
+### Install MySQL Server
 
-To discover the package currently offered to that laptop, search first:
+1. Use [official MySQL Community downloads](https://dev.mysql.com/downloads/).
+   Select a team-approved **8.x** Windows server release, not simply the latest
+   major offered. Install the server and command-line client, not only Workbench.
+   Use the provided installer/configuration tool for that release.
+2. Select a local development configuration, InnoDB, and TCP port `3306`, unless
+   a known existing service requires an intentional alternative.
+3. Set a strong private administrator password. Configure a Windows service
+   and record its actual name; do not assume `MySQL80` or `MySQL`.
+4. For a WinGet route, run `winget search MySQL`, inspect the official publisher
+   and version, and install only the exact suitable package ID shown. Do not
+   guess a server package ID or install a different major unintentionally.
 
-**CMD**
+### Verify Tools and Extensions
 
-```cmd
-winget search MySQL
-```
+**PowerShell — any working folder**
 
-Review the names, publishers, sources, and IDs shown. Install the exact official
-MySQL Server result shown on that machine; do not guess a package ID.
-
-Alternatively, download the official MySQL MSI from
-[MySQL Downloads](https://dev.mysql.com/downloads/) and use MySQL Configurator.
-Oracle's current Windows documentation recommends the MSI plus Configurator for
-the simplest installation.
-
-During setup:
-
-- Install MySQL Server, not only a graphical client.
-- Keep TCP port `3306` unless it is already occupied.
-- Create a strong private MySQL root/administrator password.
-- Never place that password in Git, this guide, screenshots, or chat.
-- Configure MySQL to run as a Windows service so it can start with Windows.
-- Record the actual Windows service name privately; do not assume its name.
-
-## 8. Verify Required Tools
-
-Open a new CMD window and run:
-
-**CMD**
-
-```cmd
-git --version
+```powershell
 php --version
 composer --version
 node --version
 npm --version
 mysql --version
+git --version
+php -m
+php --ini
 ```
 
-Required project checks:
+Skip `git --version` for ZIP-only setup. Expected: compatible versions above and
+BCMath / `pdo_mysql` in `php -m`. `php --ini` identifies the CLI configuration if
+an extension is missing. Use the trusted PHP/Herd configuration to enable it;
+reopen PowerShell after PATH changes. Do not bypass Composer platform checks.
 
-- PHP satisfies `^8.3`.
-- PHP includes BCMath.
-- PHP includes PDO MySQL.
-- Composer can install the locked Laravel dependencies.
-- Node satisfies `^20.19.0 || >=22.12.0`.
-- npm is available for the Vite/Tailwind frontend build.
-- MySQL Server and its command-line client are available.
+If `mysql` is not recognized, find the installed MySQL **bin** directory, add
+that exact directory to PATH, and reopen PowerShell. Until PATH is fixed, use
+PowerShell's call operator with its real full path:
 
-Check the two PHP extensions:
-
-**CMD**
-
-```cmd
-php -m | findstr /I "bcmath"
-php -m | findstr /I "pdo_mysql"
+```powershell
+& "C:\path\to\MySQL\bin\mysql.exe" --version
 ```
 
-Each command should print the matching extension name. No output means that the
-extension is not enabled in the PHP used by this CMD window.
+Do not assume an exact versioned installation directory. The same call operator
+can invoke later MySQL commands with that full executable path.
 
-If `mysql` is not recognized, locate the installed MySQL Server **bin** folder.
-Use Windows Search, MySQL Configurator, or the installation details; do not
-assume an exact version folder. Either add that bin folder to PATH and reopen
-CMD, or use the quoted full path to `mysql.exe`, for example:
+## 6. Configure the Local Environment File
 
-**CMD**
+All following application commands run from the **project directory** containing
+`artisan`. Confirm it before continuing:
 
-```cmd
-"C:\path\to\MySQL\bin\mysql.exe" --version
+**PowerShell — project directory**
+
+```powershell
+Get-Location
+Test-Path .\artisan
+Test-Path .\.env.example
+Test-Path .\.env
 ```
 
-Replace the example path with the path actually found on the laptop.
+Expected: `artisan` and `.env.example` are present. On a fresh copy, `.env` is
+absent. Only then create it:
 
-## 9. Clone TrackPro
-
-Use the recommended Documents location:
-
-**CMD**
-
-```cmd
-cd %USERPROFILE%\Documents
-git clone https://github.com/wariza818189/3a-trackpro-system.git
-cd 3a-trackpro-system
-git checkout main
-git pull origin main
-git rev-parse HEAD
+```powershell
+Copy-Item .\.env.example .\.env
+notepad .\.env
 ```
 
-Expected checkpoint when this guide was written:
+**Never overwrite an existing `.env` or application key.** Stop and inspect any
+existing configuration privately. `.env.example` defaults to `trackpro_local`
+and debug enabled: change those values before running Artisan or starting the
+application. Edit the existing keys rather than creating duplicate entries.
 
-`d78f15cdf1f09a745afc9c69108789d40428e1ff`
+**.env file — configuration text, do not execute in PowerShell**
 
-A later approved checkpoint may supersede this value. If the team supplies a
-new expected commit, verify that exact approved commit before presentation.
-Do not reset, rebase, or force the repository merely to make the value match.
-
-## 10. Install TrackPro Dependencies
-
-From the repository folder:
-
-**CMD**
-
-```cmd
-composer install
-npm ci
-npm run build
-```
-
-`composer install` uses `composer.lock`, while `npm ci` uses
-`package-lock.json`. They reproduce the project's reviewed dependency versions.
-
-Do **not** substitute `composer update` or `npm update`; those commands can
-select newer dependency versions and create an untested presentation setup.
-
-## 11. Create `.env`
-
-Only create `.env` if this new clone does not already have one:
-
-**CMD**
-
-```cmd
-copy .env.example .env
-php artisan key:generate
-notepad .env
-```
-
-In Notepad, set the following presentation values. This is configuration text,
-not a CMD command:
-
-**CMD — enter these lines in `.env`; do not execute them**
-
-```cmd
-APP_URL=http://127.0.0.1:8015
+```dotenv
+APP_ENV=local
+APP_DEBUG=false
+APP_URL=http://127.0.0.1:8016
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=trackpro_demo
-DB_USERNAME=trackpro_demo
-DB_PASSWORD=<PRIVATE_LOCAL_PASSWORD>
+DB_USERNAME=<PRIVATE_APP_DB_USER>
+DB_PASSWORD="<PRIVATE_APP_DB_PASSWORD>"
+DB_URL=
+DB_SOCKET=
+
+SESSION_DRIVER=file
+SESSION_COOKIE=trackpro_demo_session
+SESSION_DOMAIN=null
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
 ```
 
-Replace `<PRIVATE_LOCAL_PASSWORD>` privately. Use the same password when the
-MySQL account is created in the next section. Never put the actual password in
-this guide, Git, screenshots, or shared messages. `.env` must remain untracked.
+Replace the username/password privately with the account provisioned in §8.
+Use proper dotenv quoting for the actual password; ask the maintainer privately
+if it contains characters needing escaping. Leave `APP_KEY` initially blank;
+generate it once after dependencies are installed in §7. Keep the remaining
+`.env.example` values unless the approved local setup requires a change.
 
-## 12. Create the Windows Presentation Database
+Remove any stale database URL/socket override and any inherited shell database
+settings from another project. To list only inherited variable names without
+printing their secret values, then remove database overrides from this window:
 
-Start the MySQL client. It will prompt for the private root password:
+**PowerShell — before application commands**
 
-**CMD**
-
-```cmd
-mysql -u root -p
+```powershell
+Get-ChildItem Env:DB_* | Select-Object Name
+Remove-Item -Path Env:DB_CONNECTION,Env:DB_HOST,Env:DB_PORT,Env:DB_DATABASE,Env:DB_USERNAME,Env:DB_PASSWORD,Env:DB_URL,Env:DB_SOCKET -ErrorAction SilentlyContinue
 ```
 
-After the `mysql>` prompt appears, enter:
+This changes only this shell's environment, not `.env` or MySQL. Later sections
+set the intended runtime database explicitly. `DB_URL` can override individual
+connection fields. Do not copy another machine's `.env`. `.env` stays local and untracked;
+never show it on the projector or paste it into slides, screenshots, or chat.
 
-**MYSQL**
+## 7. Install Locked Project Dependencies
 
-```sql
-CREATE DATABASE trackpro_demo
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+After §6 is configured, run these one at a time. Stop if any command fails.
 
-CREATE USER 'trackpro_demo'@'localhost'
-  IDENTIFIED BY '<PRIVATE_LOCAL_PASSWORD>';
+**PowerShell — project directory**
 
-GRANT ALL PRIVILEGES
-  ON trackpro_demo.*
-  TO 'trackpro_demo'@'localhost';
-
-FLUSH PRIVILEGES;
-
-EXIT;
-```
-
-Replace the placeholder privately with the same password placed in `.env`.
-
-If MySQL reports that the database or user already exists, **stop and inspect
-the existing setup**. Do not drop, overwrite, or delete it automatically.
-
-## 13. Why Git Clone Alone Is Not Enough
-
-The two required parts are different:
-
-- **Git repository:** Laravel application code, views, migrations, and locked
-  dependencies.
-- **Private MySQL dump:** the current presentation users, demo catalog, Opening
-  Inventory, current stocks, Stock Movements, Stock In history, Sales, and
-  receipts.
-
-`database/seeders/DatabaseSeeder.php` currently performs no provisioning; its
-`run()` method only states that data provisioning is deferred. Therefore a
-fresh clone or seeder does not reproduce the legitimate `trackpro_local` demo
-state. The private SQL transfer is necessary.
-
-## 14. Export Demo Database From the Original Linux Laptop
-
-These are future instructions only. **Do not export during this documentation
-task.** On the original Linux laptop, first use the approved local database
-account and confirm the intended source database is `trackpro_local`.
-
-Run:
-
-**LINUX**
-
-```bash
-mysqldump \
-  --single-transaction \
-  --quick \
-  --no-tablespaces \
-  -u <LOCAL_DB_USER> \
-  -p \
-  trackpro_local > trackpro-demo.sql
-```
-
-Important safeguards:
-
-- Replace `<LOCAL_DB_USER>` with the approved local username.
-- Never put the database password after `-p`; the program prompts privately.
-- A consistent dump is read-only and must not mutate `trackpro_local`.
-- The SQL contains private application data and password hashes.
-- Never commit, email publicly, or upload the dump to public/shared storage.
-- Transfer it using a controlled private USB drive or approved private storage.
-
-Create a checksum beside the dump:
-
-**LINUX**
-
-```bash
-sha256sum trackpro-demo.sql
-```
-
-Save the displayed SHA-256 value in a separate private text file for comparison
-on Windows.
-
-## 15. Verify Dump Checksum on Windows
-
-Before import, use the real dump path:
-
-**CMD**
-
-```cmd
-certutil -hashfile C:\path\to\trackpro-demo.sql SHA256
-```
-
-Compare the Windows SHA-256 character-for-character with the Linux value. Stop
-if they differ; recopy the file and verify again. Do not import a damaged or
-unverified dump.
-
-## 16. Import Demo Database
-
-Import into the empty `trackpro_demo` database. The client prompts for the
-private presentation-database password:
-
-**CMD**
-
-```cmd
-mysql -u trackpro_demo -p trackpro_demo < C:\path\to\trackpro-demo.sql
-```
-
-Never put the password on the command line. This import restores the current
-demo state into the Windows presentation database; it does not recreate that
-state from the seeder.
-
-After a successful import, return to the repository folder and inspect the
-application state:
-
-**CMD**
-
-```cmd
-cd %USERPROFILE%\Documents\3a-trackpro-system
-php artisan optimize:clear
-php artisan migrate:status
-php artisan about
-```
-
-> **Do not automatically run migrations** if the imported dump already contains
-> the current schema and `migrate:status` shows no legitimate pending migration.
-> If any migration is pending unexpectedly, stop and ask the project maintainer
-> to reconcile the application checkpoint and dump.
-
-Never run these against the presentation database:
-
-**CMD — forbidden commands; shown only so they can be recognized**
-
-```cmd
-php artisan migrate:fresh
-php artisan migrate:refresh
-php artisan db:wipe
-```
-
-## 17. Start TrackPro
-
-From a normal CMD window:
-
-**CMD**
-
-```cmd
-cd %USERPROFILE%\Documents\3a-trackpro-system
-php artisan serve --host=127.0.0.1 --port=8015
-```
-
-Keep that CMD window open. Open `http://127.0.0.1:8015` in the browser.
-
-Press `Ctrl+C` in the server CMD window to stop Laravel after the session.
-
-## 18. Login
-
-Never place real login details in this guide.
-
-- **Admin:** use the privately assigned Admin credentials.
-- **Staff:** use the privately assigned Staff credentials.
-
-Passwords are case-sensitive. Do not save them in a public browser profile,
-shared text file, screenshot, or repository.
-
-## 19. First Windows Smoke Test
-
-Prefer a read-only first smoke test. Check each item:
-
-- [ ] Login page loads.
-- [ ] Admin login works.
-- [ ] Staff login works.
-- [ ] Dashboard loads.
-- [ ] Categories load.
-- [ ] Products load.
-- [ ] Product Variants load.
-- [ ] Whole stock shows `8` instead of `8.000`.
-- [ ] Fractional stock keeps values such as `7.500 kg`.
-- [ ] Opening Inventory pages load for Admin as appropriate.
-- [ ] Stock In loads.
-- [ ] Stock Correction permissions behave correctly.
-- [ ] POS loads.
-- [ ] Sales History loads.
-- [ ] Reports load for Admin and remain unavailable to Staff.
-- [ ] Logout works.
-
-Do not create test Stock In, POS, Opening Inventory, or Stock Correction records
-just to complete this first check. Mutating rehearsal steps require a separately
-approved demo plan.
-
-## 20. MySQL Service on Windows
-
-Do not assume the service is named `MySQL`, `MySQL80`, or anything else. Search
-for the actual installed service:
-
-**CMD**
-
-```cmd
-sc query type= service | findstr /I mysql
-```
-
-After identifying the exact service name, an Administrator CMD can start it:
-
-**CMD**
-
-```cmd
-net start <MYSQL_SERVICE_NAME>
-```
-
-Replace the placeholder with the displayed service name. As a GUI fallback,
-press `Windows+R`, enter `services.msc`, find the MySQL service, and select
-**Start**. MySQL's official Windows documentation recommends running the server
-as a Windows service.
-
-## 21. Presentation-Day Quick Start
-
-Keep presentation-day startup simple:
-
-1. Power on the laptop.
-2. Confirm the MySQL service is running.
-3. Open a normal CMD window.
-4. Go to the TrackPro folder and start Laravel.
-5. Open the saved browser bookmark.
-6. Sign in with the private assigned account.
-7. Present.
-
-**CMD**
-
-```cmd
-cd %USERPROFILE%\Documents\3a-trackpro-system
-php artisan serve --host=127.0.0.1 --port=8015
-```
-
-Open `http://127.0.0.1:8015`.
-
-> **Do not run `git pull`, `composer update`, `npm update`, or reinstall
-> packages on presentation day** unless it is absolutely necessary and there is
-> enough time to repeat the entire smoke test.
-
-## 22. Common Windows Problems
-
-### `php` is not recognized
-
-Close and reopen CMD after installing Herd. Launch Herd once and complete its
-onboarding. Use `where php` to see which executable Windows finds. If none is
-found, repair Herd/PATH through its official installer rather than copying a
-random PHP executable.
-
-**CMD**
-
-```cmd
-where php
-php --version
-```
-
-### `composer` is not recognized
-
-Reopen CMD and verify Herd completed setup. Use `where composer`. If another
-Composer installation is selected first, correct PATH deliberately and reopen
-CMD.
-
-**CMD**
-
-```cmd
-where composer
-composer --version
-```
-
-### `git` is not recognized
-
-Close and reopen CMD. If it remains missing, rerun the trusted Git for Windows
-installer and ensure its command-line PATH option is enabled.
-
-**CMD**
-
-```cmd
-where git
-git --version
-```
-
-### `node` or `npm` is not recognized
-
-Reopen CMD after installing Herd or Node.js. Check both executable locations
-and versions:
-
-**CMD**
-
-```cmd
-where node
-where npm
-node --version
-npm --version
-```
-
-### `mysql` is not recognized
-
-Confirm MySQL Server is installed, find its real bin directory, and add that
-directory to PATH or use the full quoted path to `mysql.exe`. Do not assume the
-versioned installation folder.
-
-### BCMath is missing
-
-Check which PHP is active with `where php`, then use Herd to select/repair a PHP
-installation that includes BCMath. Reopen CMD and confirm:
-
-**CMD**
-
-```cmd
-php -m | findstr /I "bcmath"
-```
-
-Do not continue if the command prints nothing.
-
-### PDO MySQL is missing
-
-Check the active PHP and enable/use its `pdo_mysql` extension through the
-trusted PHP/Herd configuration. Reopen CMD and confirm:
-
-**CMD**
-
-```cmd
-php -m | findstr /I "pdo_mysql"
-```
-
-### Unsupported PHP version
-
-Run `php --version` and `where php`. Select a Herd PHP version satisfying
-`^8.3`, then reopen CMD. Do not bypass Composer's platform check.
-
-### Unsupported Node version
-
-Run `node --version` and `where node`. Install/select Node 22 LTS if necessary.
-The project requires `^20.19.0 || >=22.12.0`; reopen CMD after changing PATH.
-
-### Composer install error
-
-Confirm internet access, PHP version, and required extensions. Then run:
-
-**CMD**
-
-```cmd
+```powershell
+composer check-platform-reqs --lock
+composer install --no-interaction --prefer-dist
 composer check-platform-reqs
-composer install
-```
-
-Read the first real error. Do not use `composer update` as a repair shortcut.
-
-### `npm ci` or frontend build error
-
-Confirm the Node version and that commands are running inside the repository:
-
-**CMD**
-
-```cmd
-node --version
-npm --version
-cd %USERPROFILE%\Documents\3a-trackpro-system
 npm ci
 npm run build
-```
-
-Do not replace `npm ci` with `npm update`.
-
-### MySQL connection refused
-
-The MySQL service may be stopped or port `3306` may not match `.env`. Identify
-and start the actual service as described in Section 20, then retry. Do not
-disable the firewall globally.
-
-### MySQL access denied
-
-Check `DB_USERNAME`, `DB_PASSWORD`, and `DB_DATABASE` privately. Confirm the
-database account was created and granted access. Never paste the password into
-a screenshot, command history, or support message.
-
-### `APP_KEY` is missing
-
-For this new Windows clone only, confirm `.env` exists and run:
-
-**CMD**
-
-```cmd
+php artisan config:clear
 php artisan key:generate
 ```
 
-Do not regenerate the key repeatedly or overwrite another configured system's
-`.env`.
+Expected: Composer reports platform requirements satisfied, installs the reviewed
+`composer.lock` packages into `vendor`, and completes Laravel package discovery.
+`npm ci` installs `package-lock.json` versions into `node_modules`; the build
+creates `public/build/manifest.json` and bundled CSS/JavaScript. Config clearing
+removes any cached configuration; key generation fills the new local `APP_KEY`.
+Do not regenerate a key that is already configured.
 
-### Vite manifest is missing
+An optional smaller presentation installation can use
+`composer install --no-dev --no-interaction --prefer-dist` instead, paired with
+`composer check-platform-reqs --lock --no-dev` before installation and
+`composer check-platform-reqs --no-dev` afterward. Development/test tools are
+then omitted; the locked runtime still requires PHP 8.4.1 or newer. No automated
+test run is part of this laptop handoff.
 
-Build the locked frontend dependencies:
+Do not use `composer update`, `npm update`, or `--ignore-platform-reqs` as repair
+shortcuts. The presentation uses built assets; a running Vite development server
+is unnecessary. Confirm the expected files:
 
-**CMD**
-
-```cmd
-cd %USERPROFILE%\Documents\3a-trackpro-system
-npm ci
-npm run build
+```powershell
+Test-Path .\vendor\autoload.php
+Test-Path .\public\build\manifest.json
 ```
 
-### Port 8015 is already occupied
+Both should return `True`. If PowerShell blocks `npm.ps1`, use `npm.cmd ci` and
+`npm.cmd run build`; do not weaken the machine's execution policy globally.
 
-Find the listener:
+## 8. Database Setup — Choose Exactly One Path
 
-**CMD**
+### Start / Identify MySQL Safely
 
-```cmd
-netstat -ano | findstr :8015
+**PowerShell — any working folder**
+
+```powershell
+Get-Service | Where-Object { $_.Name -like '*mysql*' -or $_.DisplayName -like '*mysql*' }
 ```
 
-Do not terminate an unknown process. Close the known application using that
-port, or choose another unused port, update `APP_URL` to match, and repeat the
-smoke test before presentation.
+Identify the intended local server. If stopped, start that exact service using
+an elevated PowerShell window, replacing the placeholder:
 
-### Laravel shows a 500 error
-
-Check that `.env` exists, `APP_KEY` is set, MySQL is running, the private demo
-database was imported, and dependencies were installed. Clear cached local
-configuration:
-
-**CMD**
-
-```cmd
-php artisan optimize:clear
-php artisan about
+```powershell
+Start-Service -Name "<MYSQL_SERVICE_NAME>"
 ```
 
-Application logs may contain private details. Do not publish or screenshot them
-without reviewing and redacting sensitive information.
+GUI alternative: Windows+R → `services.msc` → the identified MySQL service →
+**Start**. Return to normal PowerShell afterward. Do not interfere with other
+services or disable Windows Defender/firewall globally.
 
-### Login fails because the demo database was never imported
+### Path A — Restore the Prepared Presentation Database (Recommended)
 
-A Git clone and empty seeder create no demo users. Stop attempting credentials,
-verify the private dump checksum, and follow Sections 12 through 16. Do not
-create browser-based replacement accounts or import a preserved test database.
+This path reproduces the stable prepared dataset. It requires the private full
+`trackpro_demo` backup from §3. Perform initial provisioning off-projector on the
+new laptop, several days early.
 
-### Windows Firewall asks about the local PHP server
+1. **Verify the transfer.** Store the trusted backup outside the repository in
+   a private folder. Use a simple filename/path without spaces for the MySQL
+   `SOURCE` example below; replace its filename with the one actually supplied.
 
-The guide binds Laravel to `127.0.0.1`, which is local to the laptop. Never
-disable Windows Defender or the firewall globally. If Windows requests access,
-allow only the minimum trusted private-network access needed by the approved
-setup; do not allow public-network access merely to dismiss the prompt.
+   **PowerShell — any working folder**
 
-## 23. Emergency USB Backup
+   ```powershell
+   Get-FileHash -Algorithm SHA256 -LiteralPath "C:\TrackProPrivate\PRIVATE_DEMO_BACKUP.sql"
+   ```
 
-Keep private backup copies of:
+   Compare the hash character-for-character with the separately supplied private
+   checksum. **STOP on a mismatch**; recopy and verify. Confirm with the backup
+   owner that this is a complete, single-database `trackpro_demo` backup matching
+   the approved application revision. It must not switch to protected databases,
+   create/drop databases, create users/grants, or modify global server settings.
+   Have the maintainer review unexpected directives privately before import.
 
-- `trackpro-demo.sql`.
-- A text file containing its SHA-256 checksum.
-- This Windows setup guide.
-- Optionally, a repository ZIP or archive of the approved checkpoint.
+2. **Open an administrator MySQL client.** This is a private provisioning login,
+   not the runtime application account. `-p` prompts for the password; never
+   append a password to it.
 
-Do **not** place these on the USB drive:
+   **PowerShell — any working folder**
 
-- Plaintext database passwords.
-- Plaintext application passwords.
-- `.env`.
+   ```powershell
+   mysql --protocol=TCP -h 127.0.0.1 -P 3306 -u "<MYSQL_ADMIN_USER>" -p
+   ```
 
-Treat the SQL dump as private even though the passwords inside it are hashed.
-Keep credentials in a separate private location. Physically control the USB
-drive and delete temporary copies from shared computers after the presentation
-only when an approved backup still exists.
+3. **Create / inspect the target.** Enter at `mysql>`:
 
-## 24. Never Do This on the Presentation Database
+   **MySQL client**
 
-Never run:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS trackpro_demo
+     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   USE trackpro_demo;
+   SELECT DATABASE();
+   SHOW TABLES;
+   ```
 
-**CMD — forbidden commands; shown only so they can be recognized**
+   Expected: database `trackpro_demo` and **no tables** before this first import.
+   If tables already exist, **STOP**: investigate whether the laptop is already
+   prepared. Do not import over, drop, or clear an existing database. Do not
+   repeatedly import after a partial failure.
 
-```cmd
+4. **Create a dedicated local runtime user.** Use a new, privately agreed
+   username and password matching §6. SQL password text is entered only in this
+   private provisioning session. If that account already exists, stop and inspect
+   its privileges instead of recreating or resetting it.
+
+   **MySQL client**
+
+   ```sql
+   CREATE USER '<PRIVATE_APP_DB_USER>'@'127.0.0.1'
+     IDENTIFIED BY '<PRIVATE_APP_DB_PASSWORD>';
+   SELECT @@GLOBAL.partial_revokes;
+   ```
+
+   Give runtime DML privileges only on the presentation schema. Because `_` can
+   be a wildcard in database-level grants, choose the statement matching the
+   returned setting. With `partial_revokes = 0`, use this escaped form:
+
+   ```sql
+   GRANT SELECT, INSERT, UPDATE, DELETE ON `trackpro\_demo`.*
+     TO '<PRIVATE_APP_DB_USER>'@'127.0.0.1';
+   ```
+
+   With `partial_revokes = 1`, use the literal database name instead:
+
+   ```sql
+   GRANT SELECT, INSERT, UPDATE, DELETE ON `trackpro_demo`.*
+     TO '<PRIVATE_APP_DB_USER>'@'127.0.0.1';
+   ```
+
+   Do not change `partial_revokes`; this is only a read-only settings check.
+   Do not grant global privileges, `GRANT OPTION`, or runtime schema-reset rights.
+   Check the new account's grants and exit:
+
+   ```sql
+   SHOW GRANTS FOR '<PRIVATE_APP_DB_USER>'@'127.0.0.1';
+   EXIT;
+   ```
+
+   These forms follow [MySQL's database grant rules](https://dev.mysql.com/doc/refman/8.4/en/grant.html).
+   Account creation/grants take effect without `FLUSH PRIVILEGES`.
+
+5. **Import once into the confirmed empty target.** Reopen the administrator
+   client for the reviewed schema/data import; the restricted runtime user does
+   not need schema-creation privileges.
+
+   **PowerShell — any working folder**
+
+   ```powershell
+   mysql --protocol=TCP -h 127.0.0.1 -P 3306 -u "<MYSQL_ADMIN_USER>" -p --default-character-set=utf8mb4 trackpro_demo
+   ```
+
+   **MySQL client**
+
+   ```sql
+   SELECT DATABASE();
+   SHOW TABLES;
+   ```
+
+   Confirm `trackpro_demo` and still no tables before running the next command.
+   A full dump may include table replacement directives, which is why it must
+   be reviewed and used only for this initial import into an empty new target.
+
+   ```sql
+   SOURCE C:/TrackProPrivate/PRIVATE_DEMO_BACKUP.sql;
+   SHOW TABLES;
+   SELECT COUNT(*) AS applied_migrations FROM migrations;
+   EXIT;
+   ```
+
+   `SOURCE` is entered **inside the MySQL client**, not in PowerShell. It avoids
+   PowerShell's unsupported CMD-style input redirection. Use forward slashes and
+   the actual private filename. This method is documented by
+   [MySQL's SQL-file import instructions](https://dev.mysql.com/doc/refman/8.4/en/mysql-batch-commands.html).
+   Expected: no import errors, application tables present, and 19 migration rows
+   for the current frozen baseline. If any statement fails, stop and preserve
+   the error privately; do not use `--force` or reset and retry blindly.
+
+6. **Verify the runtime account without writes.** Exit the administrator session
+   before continuing:
+
+   **PowerShell — any working folder**
+
+   ```powershell
+   mysql --protocol=TCP -h 127.0.0.1 -P 3306 -u "<PRIVATE_APP_DB_USER>" -p trackpro_demo
+   ```
+
+   **MySQL client**
+
+   ```sql
+   SELECT DATABASE();
+   SELECT COUNT(*) AS applied_migrations FROM migrations;
+   EXIT;
+   ```
+
+7. Continue to §10. A full restored backup already contains schema, migrations,
+   and data. **Do not run fresh migrations or create replacement demo users.**
+   Unexpected pending migrations mean stop and compare the Git revision and
+   backup before any database change.
+
+### Path B — Fresh Empty Install (Fallback Only)
+
+**THIS PATH DOES NOT RECREATE THE PREPARED PRESENTATION DATASET.** It will not
+contain the prepared Plywood/G.I. Pipe states, PO #1/#2 history, damage evidence,
+TRX-000001/TRX-000002, or representative reports. The empty seeder does not supply
+those records. This path is not the preferred final-presentation path.
+
+Use a separate new database named `trackproempty`; never migrate or provision
+an empty-install fallback over the prepared `trackpro_demo` database.
+
+1. Open the administrator client as above. Only if this database and account are
+   genuinely new, create the schema and a separate local user:
+
+   **MySQL client**
+
+   ```sql
+   CREATE DATABASE trackproempty
+     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER '<PRIVATE_FRESH_DB_USER>'@'127.0.0.1'
+     IDENTIFIED BY '<PRIVATE_FRESH_DB_PASSWORD>';
+   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
+     ON trackproempty.* TO '<PRIVATE_FRESH_DB_USER>'@'127.0.0.1';
+   EXIT;
+   ```
+
+   Stop if either already exists. The additional DDL privileges are for initial
+   migrations on this new schema only, not for presentation recovery.
+
+2. Configure the local `.env` from §6 with `DB_DATABASE=trackproempty` and this
+   separate account. In a new normal PowerShell window, explicitly select it:
+
+   **PowerShell — project directory**
+
+   ```powershell
+   $env:DB_CONNECTION = "mysql"
+   $env:DB_DATABASE = "trackproempty"
+   $env:DB_URL = ""
+   $env:DB_SOCKET = ""
+   php artisan config:clear
+   php artisan tinker --execute="dump(config('database.default'), config('database.connections.mysql.database'));"
+   ```
+
+   Expected: `mysql`, `trackproempty`. **STOP if any other database is shown.**
+   Only for this confirmed new empty installation:
+
+   ```powershell
+   php artisan migrate
+   php artisan trackpro:create-admin
+   ```
+
+   Migrations create the initial schema. The approved bootstrap command displays
+   the environment/database and asks for confirmation before creating an active
+   Admin. Confirm `trackproempty`, enter a name and username, then a private
+   password of at least 12 characters twice. It accepts no password argument.
+   Do not use this to replace the imported `demo_admin` or `demo_staff` accounts.
+
+3. Using the administrator client, remove initial migration privileges afterward:
+
+   **MySQL client**
+
+   ```sql
+   REVOKE CREATE, ALTER, INDEX, REFERENCES ON trackproempty.*
+     FROM '<PRIVATE_FRESH_DB_USER>'@'127.0.0.1';
+   EXIT;
+   ```
+
+4. An empty-install login uses the Admin just created, not the absent demo
+   accounts. Record that the prepared presentation is unavailable. Do not claim
+   Path A smoke checks passed. Before a future prepared-demo handoff, return to
+   the approved Path A configuration in a **new PowerShell window** and verify
+   the database target again; never let a `trackproempty` shell override a demo
+   `.env` unnoticed.
+
+## 9. Database Safety — STOP Before Guessing
+
+Protected/preserved project databases include `trackpro_local`, `trackpro_demo`,
+`trackpro_test`, `trackpro_ft17_test`, and `trackpro_24e_test`.
+
+**Never use these reset commands against presentation/protected databases:**
+
+```text
+FORBIDDEN — DO NOT RUN:
 php artisan migrate:fresh
 php artisan migrate:refresh
+php artisan migrate:reset
 php artisan db:wipe
 ```
 
-Also never:
+Never use uncontrolled `DROP DATABASE` or `TRUNCATE`. Do not import a demo backup
+into `trackpro_local`, import test fixtures, delete prepared records, rewrite
+stock/history, or restore over a populated demo. Confirm `DB_DATABASE` and the
+actual effective connection before every database command. Initial Path A import
+and Path B provisioning are separate, intentional setup operations on the new
+laptop; neither is a presentation-day reset procedure.
 
-- Delete Sales to reset the demo.
-- Delete Stock Movements or Restocks.
-- Directly rewrite current stock or immutable history.
-- Import `trackpro_test`.
-- Use FT15 or FT17 fixtures.
-- Expose or commit `.env`.
-- Commit the SQL dump.
-- Commit or share credentials.
-- Force-push or replace the approved application checkpoint.
+## 10. Verify the Presentation Database Before Starting
 
-## 25. Pre-Presentation Sign-Off
+For **Path A only**, verify `.env` contains the presentation values and run:
 
-- [ ] Classmate's Windows 11 laptop is fully prepared.
-- [ ] Git, PHP, Composer, Node, npm, and MySQL are verified.
-- [ ] PHP BCMath and PDO MySQL are enabled.
-- [ ] Correct TrackPro checkpoint is installed.
-- [ ] Private demo database is imported.
-- [ ] Dump checksum matched before import.
-- [ ] Admin login is tested.
-- [ ] Staff login is tested.
-- [ ] Whole/fractional stock display is verified.
-- [ ] Dashboard is tested.
-- [ ] POS page is tested without an unauthorized transaction.
-- [ ] Sales History is tested.
-- [ ] Reports are tested with Admin.
-- [ ] Windows has been restarted.
-- [ ] TrackPro has been retested after restart.
-- [ ] Laptop charger is packed.
-- [ ] Private USB backup is packed.
-- [ ] Browser bookmark points to `http://127.0.0.1:8015`.
-- [ ] Credentials are available privately and separately.
+**PowerShell — project directory**
+
+```powershell
+$env:DB_CONNECTION = "mysql"
+$env:DB_DATABASE = "trackpro_demo"
+$env:DB_URL = ""
+$env:DB_SOCKET = ""
+php artisan config:clear
+php artisan tinker --execute="dump(config('database.default'), config('database.connections.mysql.database'));"
+php artisan migrate:status
+```
+
+Expected: `mysql`, `trackpro_demo`, and all **19 current migrations applied**, no
+pending rows, based on the documented frozen preflight. `migrate:status` is
+read-only; it does not apply migrations. Any pending/extra mismatch means **STOP**
+and reconcile the approved revision and backup. Do not run `migrate` on this
+restored copy merely to silence a mismatch.
+
+After login in §12, verify these read-only:
+
+- [ ] Plywood = **2 / 5 sheets**, low and uncovered by an open PO.
+- [ ] G.I. Pipe = **4.500 / 5.000 m**, low but covered by open procurement.
+- [ ] Parent PO #1 shows partial receiving and damage evidence.
+- [ ] Follow-up PO #2 = **7.000 m outstanding** with source lineage.
+- [ ] TRX-000001 = **Completed**, **₱500.00**.
+- [ ] TRX-000002 = **Voided** with preserved details.
+- [ ] Register = **Closed**.
+- [ ] Movement History contains Opening Inventory, Stock In, Sale,
+      Stock Correction, and Sale Void evidence.
+- [ ] Reports contain representative data; choose date filters that include
+      the prepared records if a default range excludes them.
+
+Do not edit data to make the checklist match. Record actual results in
+[Final Testing & Rehearsal](final-testing-rehearsal.md).
+
+## 11. Start the Presentation Server
+
+With the approved `.env` already configured, these valid PowerShell overrides
+make the intended presentation target explicit:
+
+**PowerShell — project directory, normal window**
+
+```powershell
+$env:DB_CONNECTION = "mysql"
+$env:DB_DATABASE = "trackpro_demo"
+$env:DB_URL = ""
+$env:DB_SOCKET = ""
+$env:SESSION_DRIVER = "file"
+$env:CACHE_STORE = "file"
+$env:SESSION_COOKIE = "trackpro_demo_session"
+$env:APP_URL = "http://127.0.0.1:8016"
+$env:APP_DEBUG = "false"
+php artisan config:clear
+php artisan serve --host=127.0.0.1 --port=8016 --tries=1
+```
+
+Expected: Laravel reports the server at **http://127.0.0.1:8016**. Open that URL
+in the browser. The overrides last for this PowerShell window and child processes;
+closing the window removes them. Do not paste Bash `DB_DATABASE=... php ...` or
+Bash continuation backslashes into PowerShell.
+
+Keep this server window running. Press **Ctrl+C in that window** to stop that
+server when finished. Do not terminate unknown PHP/MySQL processes. During the
+presentation, minimize/hide the terminal rather than closing the server window.
+
+## 12. Login and Read-Only Smoke Check
+
+1. Open `http://127.0.0.1:8016`.
+2. Privately sign in as **demo_admin** using the separately supplied password.
+   Do not save it in a public browser profile.
+3. Confirm these Admin pages:
+
+   - [ ] Dashboard loads and shows the Admin role/navigation.
+   - [ ] Products/Variants load; whole/fractional stock displays correctly.
+   - [ ] Purchase Orders load; prepared parent/follow-up details are visible.
+   - [ ] POS loads while register remains Closed; do not submit opening cash.
+   - [ ] Sales History and prepared completed/voided details load.
+   - [ ] Reports load and display representative records.
+   - [ ] Optional User Management/Audit Logs load only if selected for the demo.
+
+4. Sign out normally. Privately sign in as **demo_staff**.
+5. Confirm these Staff pages:
+
+   - [ ] Staff Dashboard loads with the appropriate role/navigation.
+   - [ ] Stock In page loads without submitting a receipt.
+   - [ ] Movement History loads with the prepared movement types.
+   - [ ] Admin-only navigation is absent; Reports remain Admin-only.
+   - [ ] Sign out works.
+
+6. Complete §10's data checklist, check for missing assets/layout problems, and
+   record any issues privately. Restart Windows several days early, repeat
+   MySQL/server startup, and repeat the smoke check to prove the setup survives
+   a reboot. Retain enough time to repair and recheck installation problems.
+
+Do **not** create sales, voids, POs, receiving records, Stock In, corrections,
+account edits, or register changes during this initial check. Navigation is
+sufficient. Do not run broad regression suites just to prepare the laptop;
+release evidence and rerun decisions are in the rehearsal record.
+
+## 13. Presentation Files Stored Locally
+
+**PowerShell — project directory**
+
+```powershell
+Test-Path .\docs\presentation\TrackPro_Final_Presentation.pptx
+Test-Path .\docs\images\user-guide
+Get-FileHash -Algorithm SHA256 .\docs\presentation\TrackPro_Final_Presentation.pptx
+Invoke-Item .\docs\presentation\TrackPro_Final_Presentation.pptx
+Invoke-Item .\docs\images\user-guide
+```
+
+Both paths should exist. The accepted deck has **14 slides** and SHA-256:
+`e7df9d94f052ea4ef53d6f450076c252c005f35caf2518c14aba865c34915a65`.
+The screenshot folder contains **18 approved PNGs** for read-only/offline fallback.
+If the team's deck changes later, obtain the newly approved artifact/checksum.
+
+Open the deck before presentation day in the actual local PPTX application.
+Windows 11 normally provides Edge for local browser checks. If no local app is
+associated with `.pptx`, arrange desktop [PowerPoint](https://www.microsoft.com/microsoft-365/powerpoint)
+under the team's existing license, or a team-approved compatible application
+such as [LibreOffice Impress](https://www.libreoffice.org/download/download-libreoffice/)
+from its official vendor. Install it before rehearsal and repeat slide checks.
+Check fonts, text wrapping, images, slide rendering, and slideshow controls.
+A PowerPoint-compatible application's rendering may differ. Open representative
+screenshots locally and ensure the operator can find the needed evidence.
+Do not rely on online Office, web links, or internet-hosted files during delivery.
+Any exported/local alternate deck must be separately approved; do not assume one
+already exists. Laptop verification is a human result, not a claim made by this
+guide.
+
+## 14. Normal Startup on Presentation Day
+
+1. Connect the charger and check power/display.
+2. Start the identified MySQL service if it is not running.
+3. Open a normal PowerShell window in the prepared project folder.
+4. Privately confirm the approved revision, local `.env`, and `trackpro_demo`
+   target; use §10's effective-target check if uncertain.
+5. Start Laravel on **port 8016** using §11.
+6. Open **http://127.0.0.1:8016**.
+7. Privately check Admin login and required pages.
+8. Sign out, privately check Staff login, then return to the opening demo role
+   before the audience flow begins.
+9. Confirm prepared data, especially Closed register, PO #2, and the two Sales.
+10. Open the PPTX locally and confirm slideshow readiness.
+11. Open the screenshot fallback folder for quick access.
+12. Hide/minimize terminals and close secret files/Developer Tools from audience
+    view; leave the server running. Keep credentials private.
+13. Begin the approved presentation sequence in the demo run sheet.
+
+Do not perform first setup at school immediately before presenting. Do not run
+`git pull`, `composer update`, `npm update`, or reinstall packages on presentation
+day unless an intentional approved repair leaves enough time for the full smoke
+check afterward.
+
+## 15. Offline Readiness — HUMAN CHECK
+
+Once software, Composer/npm dependencies, built assets, database, PPTX, and
+screenshots are present locally, the normal prepared demo is intended to operate
+through local PHP/MySQL/browser services. Assets use system fonts. Initial
+installation/downloads require internet; ordinary prepared startup should not.
+
+The **actual final laptop must verify this during rehearsal**:
+
+- [ ] Temporarily disconnect/disable internet after startup and preparation.
+- [ ] Confirm the local URL and required read-only pages still work.
+- [ ] Confirm CSS/JavaScript assets load without the network.
+- [ ] Confirm the local PPTX opens and slides render.
+- [ ] Confirm local screenshots open.
+- [ ] Re-enable networking afterward if desired.
+
+Keep MySQL and Laravel running; internet loss does not require stopping local
+services or changing databases. Record actual results in the rehearsal record.
+
+## 16. Common Windows Problems — Symptom → Check → Safe Fix
+
+| Symptom | Check | Safe fix / stop rule |
+| --- | --- | --- |
+| `php` not recognized | Reopen PowerShell; use `where.exe php` and `php --version` | Complete Herd onboarding; repair/select the trusted PHP installation and PATH. Do not copy random PHP binaries. |
+| `composer` not recognized | `where.exe composer`; `composer --version` | Reopen terminal, repair Herd or the official Composer installer, select the intended PHP. |
+| `git` not recognized | `where.exe git` | Reopen terminal or repair Git for Windows command-line PATH. ZIP method does not need Git. |
+| `node` / `npm` not recognized | `where.exe node`; `where.exe npm`; check versions | Reopen terminal after installing/selecting compatible Node; remove conflicting PATH entries deliberately. |
+| `npm.ps1` execution-policy error | Confirm `npm.cmd --version` | Use `npm.cmd ci` / `npm.cmd run build`; do not globally relax execution policy. |
+| `mysql` not recognized | Find actual MySQL Server bin folder | Fix PATH or use `& "C:\actual\path\mysql.exe"` as in §5. |
+| BCMath/PDO MySQL or other PHP extension missing | `php --ini`; `php -m`; Composer platform errors | Enable it through the active trusted PHP/Herd configuration; reopen terminal. Stop until platform checks pass. |
+| Unsupported PHP / Node | Check actual CLI versions and `where.exe` paths | PHP must satisfy the lockfile's 8.4.1 minimum; select compatible Node. Never bypass platform checks or update locks. |
+| Composer installation error | Correct project folder, internet, PHP/extensions; first real error | Repeat §7 after fixing the cause; do not use `composer update`. |
+| npm/build error | Correct project folder, Node version, internet during install | Use locked `npm ci` then `npm run build`; do not use `npm update`. |
+| MySQL connection refused | Intended service running? `DB_HOST`/`DB_PORT` correct? | Start the identified service and retry. Do not disable firewall globally. |
+| Access denied for database user | Privately compare local `.env` and account host/grants | Correct the intended local credentials/grants off-projector; do not publish passwords or grant global access. |
+| Unknown database `trackpro_demo` | Path A database/import completed? | Stop and provision the new laptop via Path A; do not redirect to `trackpro_local`. |
+| Import errors / unexpected migration status | Backup checksum, empty-target guard, Git/backup revision | Stop; preserve the error privately and reconcile with maintainer. Do not reset, reimport blindly, or apply pending migrations casually. |
+| APP_KEY missing | `.env` exists, new key still blank? | For this new local copy only, run `php artisan key:generate` once. Never overwrite an existing key as routine recovery. |
+| Vite manifest/assets missing | `vendor` and build manifest exist? npm build succeeded? | Run §7's frontend install/build off-projector, then repeat smoke checks. Do not require a Vite dev server. |
+| 500 error | Private logs, local key, dependencies, demo DB connection, built assets | Keep `APP_DEBUG=false`; inspect logs privately. Use screenshots during presentation; do not debug live. |
+| Session/login problem | Correct role, demo import, private password, `SESSION_COOKIE`? | Sign out normally, verify `trackpro_demo_session`, clear only this local site's cookies if needed. Do not clear all browser data or change roles/passwords as a shortcut. |
+| PPTX layout differs | Actual local PPTX application, installed fonts, slide rendering | Correct the viewer/font setup before presentation; use an approved local alternate only if available. Recheck all slides. |
+
+### Port 8016 Already in Use
+
+**PowerShell — any working folder**
+
+```powershell
+Get-NetTCPConnection -LocalPort 8016 -State Listen
+Get-Process -Id <OWNING_PROCESS_ID>
+```
+
+Use the `OwningProcess` value from the first command in the second. No listener
+can produce a no-matching-object message. If a listener exists, identify it
+before acting. Stop a **known task-owned TrackPro server using Ctrl+C in its
+own window**. Do not randomly terminate services. An intentional port change
+requires agreement, a matching APP_URL/bookmark, and repeated smoke checks;
+8016 remains the approved default.
+
+### Private 500-Error Inspection
+
+After confirming the target settings, `php artisan config:clear` safely removes
+stale cached configuration. To inspect the local log off-projector:
+
+**PowerShell — project directory**
+
+```powershell
+Get-Content .\storage\logs\laravel.log -Tail 50
+```
+
+Logs can contain private details; do not share or screenshot them without review
+and redaction. Do not enable debug mode in front of the audience. Windows Firewall
+prompts must be handled deliberately for this local loopback setup; never disable
+Defender/firewall globally or allow public-network access merely to dismiss a prompt.
+
+## 17. Safe Recovery During Presentation
+
+| Situation | Safe response |
+| --- | --- |
+| Laravel server stopped | Restart §11 in the prepared folder; reopen the local URL. |
+| MySQL stopped | Start only the identified MySQL service, then retry local pages. |
+| Browser closed | Reopen the local bookmark and sign in privately if needed. |
+| Session expired | Return to Login, sign in privately, continue from the planned step. |
+| Wrong role logged in | Sign out normally and log in as the intended role; never change account roles. |
+| Page unavailable | Continue with approved local screenshot/read-only evidence and note the issue. |
+| Internet unavailable | Continue with local services/deck/screenshots after rehearsed offline checks. |
+| Prepared record unexpectedly changed | Preserve current state, use approved screenshots, and record the issue for later investigation. No reset, reimport, history rewrite, or compensating transaction. |
+
+**Do not debug or reset data live in front of the audience.** Recover simply
+where safe; otherwise use the screenshot fallback. Never describe a failed
+live action as successful. Backup restoration, if genuinely needed later, is a
+separately authorized off-presentation operation, not this emergency procedure.
+
+## 18. Copy / Handoff Checklist — Wariza and Receiving Teammate
+
+All checks below are initially uncompleted. Record who prepared/checked the
+actual laptop and the results in `docs/final-testing-rehearsal.md`.
+
+### Public / Repository
+
+- [ ] Repository downloaded via clone or ZIP.
+- [ ] Correct main branch / exact approved handoff baseline confirmed.
+- [ ] Presentation PPTX present.
+- [ ] Approved screenshots present.
+
+### Private
+
+- [ ] Full `trackpro_demo` SQL backup received privately.
+- [ ] Backup checksum and matching source revision supplied and verified.
+- [ ] Application DB credentials received/agreed privately.
+- [ ] Demo Admin credential received privately.
+- [ ] Demo Staff credential received privately.
+- [ ] SQL backup kept outside repository; passwords kept separately.
+
+### Software
+
+- [ ] PHP compatible with lockfile; required extensions available.
+- [ ] Composer 2 available.
+- [ ] Node/npm compatible with package/lock requirements.
+- [ ] MySQL 8.x server/client available; actual service identified.
+- [ ] Local browser available.
+- [ ] Local PowerPoint-compatible application available.
+- [ ] Git available if using clone method.
+
+### Application
+
+- [ ] Locked Composer dependencies installed and platform checks passed.
+- [ ] Locked npm dependencies installed.
+- [ ] Assets built and manifest present.
+- [ ] Local `.env` configured with `trackpro_demo` and debug false.
+- [ ] New local APP_KEY configured once.
+- [ ] Reviewed full demo DB imported into the initially empty new target.
+- [ ] Runtime DB access and read-only migration status verified.
+- [ ] Admin login/pages checked privately.
+- [ ] Staff login/pages checked privately.
+- [ ] Prepared data checked without business mutation.
+- [ ] Port 8016/local URL works.
+- [ ] Windows restarted and startup/smoke checks repeated afterward.
+
+### Presentation
+
+- [ ] All 14 slides open/render correctly on this actual laptop.
+- [ ] Screenshot fallback accessible locally.
+- [ ] Local/offline test completed and recorded.
+- [ ] Charger/power ready.
+- [ ] Credentials kept private.
+- [ ] Terminals/secret files hidden from audience; server left running.
+- [ ] Laptop operator and private backup/fallback arrangements confirmed.
+- [ ] Group rehearsal results recorded separately; readiness not assumed.
+
+## 19. DO NOT DO THIS
+
+> **DO NOT** commit `.env` or SQL backups, publish credentials, restore into
+> `trackpro_local`, use `migrate:fresh` or `db:wipe`, delete prepared data, or
+> perform test sales/voids/receiving against the final prepared database unless
+> intentionally authorized. Never expose passwords on the projector, rely only
+> on internet-hosted presentation files, or debug live when screenshot fallback
+> is available. Do not use FT15/FT17 fixtures or protected test databases to
+> manufacture presentation data, and do not force-push or replace approved Git
+> history during laptop preparation.
+
+## 20. Source of Truth and Responsibility
+
+| Document | Responsibility |
+| --- | --- |
+| [Windows 11 Demo Setup](windows-11-demo-setup.md) | Laptop installation, private initial restore, startup, and safe setup troubleshooting. |
+| [Demo Preparation](demo-preparation.md) | Approved demo flow, presenters, teacher-scope map, read-only-first policy, and recovery strategy. |
+| [Final Testing & Rehearsal](final-testing-rehearsal.md) | Actual final-machine smoke results, group rehearsal, timing, handoffs, Q&A/fallback practice, and readiness decision. |
+| [System User Guide](system-user-guide.md) | Functional user instructions and supported application behavior. |
+| [Project Tracker](project-tracker.md) | Authoritative current phase status. |
+| [README](../README.md), [Composer requirements](../composer.json), [Composer lockfile](../composer.lock), [frontend requirements](../package.json), [frontend lockfile](../package-lock.json), [.env example](../.env.example) | Repository setup/dependency evidence used by this guide. |
+
+Use this guide to prepare the laptop; use the approved run sheet for the actual
+demo sequence. Completing installation does not close Final Testing & Rehearsal
+or Final Presentation. Record only checks actually performed on the final machine.
