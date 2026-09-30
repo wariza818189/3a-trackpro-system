@@ -14,26 +14,20 @@ project status.
 
 ## Current Focus
 
-Current development focus: **Final integration, remaining testing, documentation, and presentation preparation**
+Current focus: **Feature freeze — user guide/screenshots, final integration, documentation, demo preparation, final testing/rehearsal, and presentation preparation**
 
 Status: **In Progress**
 
-The Purchase Order schema/model foundation, authoritative low-stock eligibility
-and open-coverage queries, Admin-only pending Purchase Order creation,
-list/detail browsing, and pending/no-activity editing are implemented. #26
-PO-based partial/full receiving is complete, including Admin/Staff access,
-accepted/outstanding tracking, actual-cost evidence, inventory and movement
-posting, idempotent replay, and guarded MySQL concurrency verification.
-Follow-up POs, the Pending Purchase Orders Report, the Unfulfilled Items Report,
-#30 damaged receiving, and the separate #31 Damaged Items Report are complete.
-The dedicated Product Sales, Inventory, Low Stock, and Restocking Reports are
-also complete. Movement History and Dashboard Recent Stock Activity are now
-implemented. Remaining work is final integration, testing, documentation, and
-presentation preparation.
-User Management is implemented; its account workflows, role/access controls,
-transactional account AuditLogs, and Admin-only Audit Log viewer/filtering are
-documented below. Sale Void and its `SALE_VOIDED` event are implemented and
-guarded-MySQL concurrency verified. Final screenshots remain pending.
+Core application features are implemented, and Edge Cases & Permissions is
+complete after automated pre-verification and the revised current-scope FT18
+browser validation (19/19 Pass). Existing guarded MySQL concurrency evidence
+is retained. Historical FT17 remains paused at 8 Pass / 1 Fail / 0 Blocked /
+28 Remaining; its `TC-AUTH-006` failure is unchanged. The later Reports UI
+polish passed its separate post-FT18 browser visual regression. Feature freeze
+applies to core application features; no known core implementation blocker,
+unresolved security/data-integrity defect, or current-scope manual blocker is
+known. Remaining work is project finalization, including screenshots, which
+are still pending.
 
 ## Status Definitions
 
@@ -112,7 +106,7 @@ guarded-MySQL concurrency verified. Final screenshots remain pending.
 | AUDIT TRAIL | View Logs | Display audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Completed | Working audit trail viewer | Admin-only read-only `/audit-logs` page; one row per AuditLog with Manila timestamp, current actor account context, action, affected-record context, description, and allowlisted change summary. |
 | AUDIT TRAIL | Filter Logs | Search and filter audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Completed | Working audit log filtering | Actor (`audit_logs.user_id`), stored action, and optional inclusive Manila `date_from` / `date_to` filters compose with AND; all-time default, partial dates, fail-closed validation, and pagination persistence are implemented. |
 | TESTING | Functional Testing | Test all completed modules and document errors or unexpected results | Rommel Jave Casipong | 10/12/2026 | 10/13/2026 | Completed | Functional test results | Report discovered bugs to the project lead and retest after fixes. Formal run `FT15-20260909-A`: 30/30 Passed, 0 Failed, 0 Blocked, 0 Remaining. |
-| TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | In Progress | Edge-case / security test report | Include permission checks and transaction failure scenarios. PAUSED after teacher scope expansion. Historical FT17: 8 Pass, 1 Fail, 0 Blocked, 28 Remaining. AUTH006 retains its initial formal FAIL and provisional `TEST_SPEC_PROCEDURE_DEFECT`; controlled cross-origin retest is deferred. |
+| TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | Completed | Edge-case / security test report | Automated pre-verification passed (focused 220 tests / 2,604 assertions; SQLite 558 / 6,112). Revised current-scope FT18 passed 19/19. Historical FT17 remains paused, unchanged at 8/1/0/28. Post-FT18 Reports visual regression passed. Core feature freeze declared; details in project documentation. |
 | DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | In Progress | User guide draft | Cover login, sales, products, inventory, reports, and other final user-facing features. A substantial user-guide draft exists; final screenshots and teacher-expansion updates remain. |
 | FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Not Started | Release candidate | No major new features after this phase; prioritize stability and correctness. This phase has not begun. |
 | DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Not Started | Final documentation | Final document should be reviewed by the group before submission/presentation. Finalization has not begun. |
@@ -122,12 +116,15 @@ guarded-MySQL concurrency verified. Final screenshots remain pending.
 
 ## Status Summary
 
-- Completed: 64
-- In Progress: 2
+- Completed: 65
+- In Progress: 1
 - Not Started: 5
 - Total: 71
 
-Arithmetic check: **64 + 2 + 5 = 71**.
+Arithmetic check: **65 + 1 + 5 = 71**.
+The sole In Progress item is **User Guide & Screenshots**. Not Started items
+remain Integration & Bug Fixing, Project Documentation, Demo Preparation,
+Final Testing & Rehearsal, and Final Presentation.
 
 ## Excel Sync
 

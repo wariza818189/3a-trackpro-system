@@ -90,12 +90,18 @@ The current system includes the following implemented areas:
 - Admin-only User Management for searching, creating, editing, changing roles, disabling/reactivating, and resetting account passwords. Accounts are never hard-deleted; account changes retain transactional AuditLog evidence and the last-active-Admin invariant; and
 - an Admin-only, read-only Audit Log viewer with actor, action, and optional Manila date filters over the User Management and Sale Void event types.
 
-### 2.2 In-Progress and Planned Scope
+### 2.2 Feature Freeze and Finalization Scope
 
-The following work is incomplete or planned and must not be treated as available functionality:
-
-- remaining edge-case, permission, integration, and final system testing; and
-- final screenshots, documentation review, and presentation preparation.
+Core application features are at **FEATURE FREEZE**. The approved required
+feature scope is implemented, current permission and edge-case validation is
+complete, and no known core implementation blocker or unresolved
+security/data-integrity defect remains. Future changes are limited to
+confirmed defect correction, documentation and screenshots, integration
+cleanup, demo preparation, rehearsal, presentation preparation, and explicitly
+approved final polish. This freeze does not mean the project is finished: the user
+guide screenshots, final documentation, integration/review, demo, rehearsal,
+and presentation work remain. It does not rule out future bug fixes or alter
+historical test results.
 
 ### 2.3 Explicit Exclusions
 
@@ -322,9 +328,17 @@ Development of the system began during the **first week of September 2026**. The
 
 ### 4.3 Current Progress Summary
 
-The current system has a working core covering access control, catalog and inventory processes, cash sales, register opening and closing, transaction history, and operational reporting. Dedicated Product Sales, Inventory, Low Stock, and Restocking reports are complete, alongside the procurement reports #28, #29, and #31. Procurement also includes low-stock recommendations, Purchase Order creation/browsing/editing, Admin/Staff partial/full and damaged PO receiving, and Admin follow-up POs with source/child lineage and full-current-remainder transfers.
-
-The project remains in active development. PO-based receiving, #27 follow-up ordering, #30 damaged receiving, User Management, the Admin-only Audit Log viewer/filtering, Sale Void, Movement History, and Dashboard Recent Stock Activity are implemented; the last-active-Admin invariant and Sale Void races are guarded-MySQL concurrency-verified. Expanded formal testing, final integration, screenshots, and presentation materials remain incomplete.
+The approved core feature scope is implemented, including access control,
+catalog and inventory processes, cash sales, register operations, transaction
+history, procurement, User Management/Audit Logs, Sale Void, Movement History,
+Dashboard Recent Stock Activity, and operational reports. Permission and
+edge-case validation is complete, and the project has reached **FEATURE
+FREEZE** for core application features. There are no known core implementation
+gaps, unresolved security/data-integrity defects, current-scope manual
+blockers, or outstanding schema/migration mismatches. Remaining tracker work
+is finalization, documentation/screenshots, integration, demo preparation,
+final testing/rehearsal, and presentation preparation; screenshots and the
+presentation are not complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -455,8 +469,36 @@ The detailed test-case catalog was first prepared on **September 9, 2026** as an
 | September 8, 2026 | Historical automated application test suite using isolated SQLite in memory | 191 tests / 2,023 assertions passing | A historical regression baseline for the core application at that date; not evidence for later register or procurement features. |
 | Completed September 11, 2026 — `FT15-20260909-A` | Formal functional testing | 30 Pass / 0 Fail / 0 Blocked | All 30 cases in that functional run were finalized as passing. |
 | Began September 12, 2026 — `FT17-20260912-A` | Edge-case and permission testing | 8 Pass / 1 Fail / 0 Blocked / 28 Remaining | **Paused and incomplete.** The completed evidence is preserved, while the changed project scope requires a revised test baseline before remaining work continues. |
+| September 28–29, 2026 — `FT18-20260927-A` | Revised current-scope manual browser validation | 19 Pass / 0 Fail / 0 Blocked / 0 Not Run | Complete. Separate current-scope run after scope expansion; automated pre-verification and existing guarded MySQL evidence are supporting evidence, not manual cases. FT18 does not rewrite FT17. |
 
 The single FT17 failure remains recorded and is provisionally identified as a test-procedure issue; its controlled retest was deferred. It must not be changed into a passing result without completing and documenting the retest.
+
+For the revised manual run, automated **pre-verification** passed: focused
+suites **220 tests / 2,604 assertions**, and the full ordinary SQLite suite
+**558 tests / 6,112 assertions**. These were run before FT18 as its
+pre-verification; they are not represented as rerun after FT18. The FT18
+execution record separately reports its final **19 Pass / 0 Fail / 0 Blocked
+/ 0 Not Run** result and that automated suites and guarded MySQL were not
+rerun during manual execution. Focused coverage included authentication and
+authorization, User Management, Sale Void, POS, Stock In, Stock Correction,
+Movement History, PO receiving, Reports authorization, Audit Logs, and
+Dashboard Recent Stock Activity.
+
+Existing guarded MySQL transaction/concurrency evidence is retained without
+creating an unsupported consolidated total. Relevant documented results
+include PO receiving **6 tests / 220 assertions**, follow-up PO **6 / 299**,
+damaged receiving **4 / 152**, last-active-Admin **1 / 37**, and Sale Void
+**2 / 93**, along with other already-recorded transaction-sensitive workflow
+coverage. This evidence was not rerun for the FT18 closeout.
+
+During FT18 setup, a read-only local-schema audit classified the issue as
+`PENDING_MIGRATIONS_ONLY`: migration ledger and physical schema agreed, with
+nine migrations pending and no corruption found. A private backup was created
+and verified; plain forward `php artisan migrate` applied the pending
+migrations, after which all 19 migrations reported Ran and existing business
+data remained intact. No reset/fresh/refresh/wipe operation was used. The
+seven schema-blocked FT18 cases were then retested and passed. This was local
+development environment drift, not an application defect.
 
 Focused feature and isolated MySQL-specific tests cover the cash-register implementation, including simultaneous-operation behavior. The committed results document does not provide one consolidated register run count, so none is claimed here.
 
@@ -527,9 +569,53 @@ Phase C verified two guarded MySQL 8 / InnoDB / REPEATABLE READ races using dete
 
 **Current engineering verification for Movement History and Recent Stock Activity:** Movement History passed **10 tests / 173 assertions**; Recent Stock Activity passed **6 / 102**; relevant regressions passed **149 / 1,623**; and the full ordinary SQLite suite passed **558 / 6,112**. `npm run build`, targeted Pint, and `git diff --check` passed. Query counts remained constant as fixture rows increased and stayed at or below **10** for history and **14** for Dashboard. GET/HEAD issued only SELECT queries and left the checked domain records unchanged. No migration/schema change was made; MySQL was not run or required. These application tests do not replace the paused FT17 evidence.
 
-**Other incomplete areas and limitations:** refreshed edge/permission testing, final integration, screenshots, and final documentation review remain outstanding. Some accessibility checks, including contrast measurement and stronger programmatic association of validation messages, also remain for later evaluation.
+### 6.5 Feature Freeze and Current-Scope Closeout
 
-The project is functional in its implemented core, but it is not presented as complete, fully tested, or ready for production use.
+The permission matrix remains consistent with current Admin/Staff policy.
+Automated pre-verification passed, the current-scope revised manual run
+`FT18-20260927-A` passed **19/19**, and the previously documented guarded
+transaction/concurrency evidence remains available. Historical
+`FT17-20260912-A` is still **PAUSED / historical** at **8 Pass / 1 Fail / 0
+Blocked / 28 Remaining**; `TC-AUTH-006` remains formally **FAIL**. FT18 is a
+separate current-scope run after scope expansion, and its passing CSRF retest
+does not retroactively convert the FT17 result. The corrected FT18-AUTH-005
+targeted the real Create User form with its CSRF evidence deliberately
+removed/invalid; the mutation was rejected, with no account created and no
+`USER_CREATED` AuditLog.
+
+The final Reports navigation polish was committed after FT18 in
+`9eafec5b982588069f3fdde8434bb70d72085b51` (`Polish reports navigation
+interface`). Its separate post-FT18 verification passed **52 focused report
+tests / 752 assertions**, `npm run build`, and `git diff --check`, and the
+direct browser check was `REPORTS_VISUAL_CHECK_PASSED`. At about 1366px,
+desktop grouping, alignment, active state and filters were clear; alternate
+report selection made Product Sales Current and cleared Sales Summary's active
+state while content remained readable. At about 768px, tablet used
+two-column cards and usable filters/content. At about 390px, mobile used
+one-column cards with stacked filters and a usable menu; the Product Sales
+table had its own horizontal scroll. Keyboard access and visible focus worked
+without a focus trap. There was no horizontal page overflow and no visual
+defect. This was a separate post-FT18 regression, not part of FT18.
+
+Feature freeze applies to core application features and records that no known
+core implementation blocker, unresolved security/data-integrity defect,
+current-scope manual blocker, or schema/migration mismatch remains. It does
+not mean project work, screenshots, or the presentation are complete, and it
+does not rule out fixing future defects. The sole In Progress tracker item is
+**User Guide & Screenshots**; screenshots remain pending. Other remaining
+tracker rows are final integration/bug fixing, project documentation, demo
+preparation, final testing/rehearsal, and final presentation. Work after the
+freeze is limited to confirmed defect correction, documentation, screenshots,
+integration cleanup, demo preparation, rehearsal, presentation preparation,
+and explicitly approved final polish.
+
+**Remaining closeout and limitations:** Final integration/review, screenshots,
+documentation, demo preparation, final testing/rehearsal, and presentation
+work remain. Some accessibility checks, including contrast measurement and
+stronger programmatic association of validation messages, remain for later
+evaluation. The project is not yet finished or claimed production-ready;
+feature freeze does not mean every possible defect is impossible or that all
+future changes are prohibited.
 
 ## 7. Reflection & Conclusion
 
