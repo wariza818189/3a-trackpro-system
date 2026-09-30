@@ -2,11 +2,30 @@
 
 Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
 
-## Current scope: through Tracker #16 Dashboard & Reports
+## Current scope
 
-Laravel 13 application with Blade, Tailwind CSS 4, Vite, and PHPUnit. The schema and model foundation is implemented and verified on isolated local and test databases running MySQL 8.0.46. Username/password authentication, active/disabled account enforcement, and Admin/Staff authorization use Laravel's native session guard. Stage 3A provides server-rendered catalog management, Stage 3B provides Admin-only opening inventory, Stage 3C adds normal multi-item Stock In for Admin and Staff, and Stage 3D adds Admin-only Stock Correction. Tracker #12 cash-only POS and Tracker #13 Receipt & Sales History are complete, including verification, browser smoke, and application checkpoints. Responsive navigation and Tracker #16 Dashboard & Reports are also implemented, verified, browser-smoked, committed, and pushed. Dashboard is shared by Admin and Staff; the seven-day trend and Sales Summary Reports are Admin-only. `SALE_VOID`, User Management UI, and supplier workflows remain unimplemented.
+3A TrackPro is an academic Laravel 13 application for hardware-store sales
+and inventory workflows. Its core feature scope is implemented and
+feature-frozen; Integration & Bug Fixing is complete, and the application is a
+stable release candidate for the remaining documentation, demo, final testing
+and rehearsal, and presentation phases. This does not mean the school project
+is complete or publicly deployed.
 
-See the [Project Tracker](docs/project-tracker.md) for authoritative current status. The [Client Problem and Requirements Baseline](docs/requirements.md) records team-approved/project-derived requirements, assumptions, acceptance outcomes, and scope boundaries, while [PROJECT_STATUS.md](PROJECT_STATUS.md) retains detailed historical checkpoints and verification evidence.
+The system includes username/password authentication with Admin/Staff roles,
+catalog and variant inventory workflows, opening cash and cash POS, receipts
+and Sales History, Admin-only full Sale Void, Purchase Order creation and
+receiving, procurement and inventory reports, User Management, Audit Logs, and
+role-aware Dashboard and navigation. Admin User Management supports account
+role/status changes and password reset while protecting the last active Admin.
+Current application and guarded MySQL verification is summarized in the project
+documentation. See the [Project Tracker](docs/project-tracker.md)
+for authoritative current status and [Project Documentation](docs/project-documentation.md)
+for the academic project narrative. The [Requirements Baseline](docs/requirements.md)
+records the assumed scenario, approved requirements, implementation state, and
+scope boundaries. Supplier master data remains outside the approved scope.
+
+`PROJECT_STATUS.md` retains detailed historical checkpoints and verification
+evidence.
 
 ## Requirements
 
@@ -104,10 +123,10 @@ The backend derives the signed change from exact three-decimal strings, updates 
 
 Active Admin and Staff users can perform cash-only checkout for one to 100 cart components. Duplicate Variant components are independently validated and consolidated into one SaleItem. The service locks all Categories, then Products, then Product Variants in ascending ID order, rechecks the active initialized hierarchy, and uses exact BCMath quantity and money calculations. Locked catalog selling prices are authoritative; submitted `expected_unit_price` values only detect a price changed since the cashier reviewed the cart.
 
-Each successful checkout atomically creates one completed immutable Sale, one immutable SaleItem per distinct Variant, one stock deduction per Variant, and one linked immutable `SALE` movement per SaleItem. A unique checkout token arbitrates durable idempotent retries, including concurrent collisions, while canonical actor, tender, Variant, quantity, and stored historical price comparison rejects semantic token reuse. The POS selects and displays no purchase-cost fields. All void behavior remains deferred to a later tracker.
+Each successful checkout atomically creates one completed immutable Sale, one immutable SaleItem per distinct Variant, one stock deduction per Variant, and one linked immutable `SALE` movement per SaleItem. A unique checkout token arbitrates durable idempotent retries, including concurrent collisions, while canonical actor, tender, Variant, quantity, and stored historical price comparison rejects semantic token reuse. The POS selects and displays no purchase-cost fields. An active Admin may void a completed Sale in full with a required reason. The original sale, payment, and item history remain; stock is restored with recorded void status and movement/audit evidence. Partial voids, refunds, and cash-out are not provided.
 
 ## Receipt & Sales History behavior
 
 Active Admin and Staff may browse all Sales and open the same read-only Sale detail page for receipt viewing and browser reprinting. The history index supports exact canonical receipt lookup, cashier filtering, and inclusive Asia/Manila calendar-date filtering with server-side pagination. Receipt numbers remain derived from immutable Sale IDs.
 
-History and receipt presentation selects only the Sale payment header and immutable SaleItem name, Variant identity, unit, quantity, selling-price, and line-total snapshots. It does not consult current catalog values or expose checkout tokens, purchase costs, inventory movements, or user authentication fields. Printing uses the normal authenticated page and `window.print()`; views, reloads, and prints create no writes or AuditLog entries. There is no PDF generation or `SALE_VOID` behavior.
+History and receipt presentation selects only the Sale payment header and immutable SaleItem name, Variant identity, unit, quantity, selling-price, and line-total snapshots. It does not consult current catalog values or expose checkout tokens, purchase costs, inventory movements, or user authentication fields. Printing uses the normal authenticated page and `window.print()`; views, reloads, and prints create no writes or AuditLog entries. A voided receipt preserves the original sale/payment details and displays its recorded void status and reason. There is no PDF generation.

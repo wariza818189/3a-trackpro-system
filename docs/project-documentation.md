@@ -95,14 +95,16 @@ The current system includes the following implemented areas:
 Core application features are at **FEATURE FREEZE**. The approved required
 feature scope is implemented, current permission and edge-case validation is
 complete, and no known core implementation blocker or unresolved
-security/data-integrity defect remains. Future changes are limited to
-confirmed defect correction, documentation, integration cleanup, demo
-preparation, rehearsal, presentation preparation, and explicitly approved
-final polish. This freeze does not mean the project is finished: final
-integration/review, Project Documentation, demo, rehearsal, and presentation
-work remain. The System User Guide and its 18 privacy-reviewed screenshots are
-complete. This does not rule out future bug fixes or alter historical test
-results.
+security/data-integrity defect remains. Integration & Bug Fixing is complete:
+the final audit found no current implementation defect, and the same-revision
+PO edit verification closed the last identified integration gap. The
+feature-frozen application is a stable release candidate. Remaining tracker
+work is Project Documentation, Demo Preparation, Final Testing & Rehearsal,
+and Final Presentation. Future changes are limited to confirmed defect
+correction, documentation, demo preparation, rehearsal, presentation
+preparation, and explicitly approved final polish. The System User Guide and
+its 18 privacy-reviewed screenshots are complete. This does not rule out
+future bug fixes or alter historical test results.
 
 ### 2.3 Explicit Exclusions
 
@@ -336,11 +338,10 @@ Dashboard Recent Stock Activity, and operational reports. Permission and
 edge-case validation is complete, and the project has reached **FEATURE
 FREEZE** for core application features. There are no known core implementation
 gaps, unresolved security/data-integrity defects, current-scope manual
-blockers, or outstanding schema/migration mismatches. Remaining tracker work
-is finalization, beginning with integration/bug fixing, followed by Project
-Documentation, demo preparation, final testing/rehearsal, and presentation
-preparation. The System User Guide and its final screenshots are complete; the
-presentation is not complete.
+blockers, or outstanding schema/migration mismatches. Integration & Bug Fixing
+is complete. Remaining tracker work is Project Documentation, Demo Preparation,
+Final Testing & Rehearsal, and Final Presentation. The System User Guide and
+its final screenshots are complete; the presentation is not complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -452,7 +453,8 @@ The register-opening and closing workflow was treated as active implementation/f
 
 ### 6.2 Test Coverage and Detailed Test Cases
 
-The separate [Detailed Test Cases](./test-cases.md) document contains a **79-case pre-expansion baseline**:
+The separate [Detailed Test Cases](./test-cases.md) document preserves a
+**79-case historical, pre-expansion baseline**:
 
 | Category | Cases |
 | --- | ---: |
@@ -462,7 +464,13 @@ The separate [Detailed Test Cases](./test-cases.md) document contains a **79-cas
 | Review Only | 4 |
 | **Total** | **79** |
 
-The detailed test-case catalog was first prepared on **September 9, 2026** as an early testing baseline. For the September 17–18 WST 1 activity, the team documented the four-part testing approach and identified the modules then ready for testing. Later register and procurement changes require the detailed catalog to be updated. The 79 cases are supporting planning evidence and were not all executed.
+The catalog was first prepared on **September 9, 2026** and remains a
+checkpoint-specific planning artifact. It is not a retroactively revised
+catalog or the current comprehensive execution record. Its 79 cases are
+supporting historical evidence and were not all executed. The revised
+current-scope manual validation is recorded separately in FT18; it passed
+19/19 cases. Historical FT17 remains separately preserved as paused and
+incomplete.
 
 ### 6.3 Test Execution and Results
 
@@ -471,7 +479,7 @@ The detailed test-case catalog was first prepared on **September 9, 2026** as an
 | September 8, 2026 | Historical automated application test suite using isolated SQLite in memory | 191 tests / 2,023 assertions passing | A historical regression baseline for the core application at that date; not evidence for later register or procurement features. |
 | Completed September 11, 2026 — `FT15-20260909-A` | Formal functional testing | 30 Pass / 0 Fail / 0 Blocked | All 30 cases in that functional run were finalized as passing. |
 | Began September 12, 2026 — `FT17-20260912-A` | Edge-case and permission testing | 8 Pass / 1 Fail / 0 Blocked / 28 Remaining | **Paused and incomplete.** The completed evidence is preserved, while the changed project scope requires a revised test baseline before remaining work continues. |
-| September 28–29, 2026 — `FT18-20260927-A` | Revised current-scope manual browser validation | 19 Pass / 0 Fail / 0 Blocked / 0 Not Run | Complete. Separate current-scope run after scope expansion; automated pre-verification and existing guarded MySQL evidence are supporting evidence, not manual cases. FT18 does not rewrite FT17. |
+| September 28–29, 2026 — `FT18-20260927-A` | Revised current-scope manual browser validation | 19 Pass / 0 Fail / 0 Blocked / 0 Not Run / 19 Total | Complete. Separate current-scope run after scope expansion; automated pre-verification and existing guarded MySQL evidence are supporting evidence, not manual cases. FT18 does not rewrite FT17. |
 
 The single FT17 failure remains recorded and is provisionally identified as a test-procedure issue; its controlled retest was deferred. It must not be changed into a passing result without completing and documenting the retest.
 
@@ -528,7 +536,18 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 
 **Current engineering verification for Product Sales Report (user-run):** the focused Product Sales suite passed 8 tests; Reports authorization, Sales Summary, Sales History, and POS regressions passed 39 tests; the full ordinary SQLite suite passed 477 tests. Sales Summary reconciliation passed. One SaleItem SELECT served 12 Product/Variant groups. `npm run build`, targeted Pint, and `git diff --check` passed. No MySQL run or migration/schema change occurred. These are current engineering results, separate from teacher/manual testing and the historical FT15 and paused FT17 records.
 
-**Implemented with evidence; documentation reconciliation remains:** The register feature has focused application and MySQL-specific evidence, including simultaneous-operation behavior, but no consolidated register-specific result summary. The expanded formal case catalog and consolidated execution record remain for Project Documentation. Same-revision concurrent edits to one pending Purchase Order are now verified on guarded MySQL: exactly one edit committed, the competing edit was rejected through the controlled stale-revision path, and the loser produced no partial write. The winner's complete state remained persisted without a lost update, mixed state, deadlock, or uncontrolled error. The focused scenario passed 3/3; its containing class passed 5 tests / 178 assertions.
+**Register and final concurrency verification:** The register feature has focused
+application and MySQL-specific evidence, including simultaneous-operation
+behavior, but no consolidated register-specific result count is documented;
+none is claimed. The historical 79-case pre-expansion catalog is preserved as
+such, while FT18 is the separate revised current-scope manual validation run.
+The later Final Testing & Rehearsal tracker row remains pending. Same-revision
+edits to one pending Purchase Order were verified on guarded MySQL: exactly one
+edit committed, the competing edit received controlled stale-revision
+rejection, and the loser produced no partial write. The persisted state matched
+the complete winner without a lost update, mixed state, deadlock, or uncontrolled
+error. The focused scenario passed 3/3; its containing class passed 5 tests /
+178 assertions.
 
 **Current Purchase Order state:**
 

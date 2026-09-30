@@ -18,7 +18,7 @@ than newly collected client-interview evidence. No original client interview
 transcript or formal client sign-off is available in the repository. The
 scenario below is a team/project assumption, not newly verified client evidence.
 The problem statement, assumptions, adopted requirements, implemented baseline,
-planned work, and exclusions are distinguished below.
+remaining project finalization, and scope exclusions are distinguished below.
 
 Sources: [project status and verification evidence](../PROJECT_STATUS.md),
 [project constraints](../AGENTS.md), [system overview](../README.md), and
@@ -113,9 +113,10 @@ process.
 Admin may perform normal Staff workflows plus catalog mutation, Opening
 Inventory, Stock Correction, Reports, the Admin-only Dashboard trend, and
 Purchase Order creation/editing, receiving, and follow-up creation. Admin may
-open the register and close any active register session. Other future sensitive
-procurement workflows require implementation before they become available.
-Admin does not imply store owner.
+open the register and close any active register session. The approved current
+procurement workflows are implemented; supplier master data, payments, and
+other listed scope exclusions remain outside this version. Admin does not imply
+store owner.
 
 Staff may use POS, browse permitted catalog/inventory, perform legacy Stock In
 and PO-based receiving, access Sales History/receipts, and use the operational
@@ -130,9 +131,10 @@ receipts/history do not expose purchase costs.
 
 ## 6. Functional requirements
 
-Rows below distinguish the implemented application checkpoint from the planned
-teacher expansion. Acceptance outcomes describe required observable behavior;
-the status column is authoritative about whether that behavior exists.
+Rows below distinguish implemented application behavior from approved scope
+that remains outside this version. Acceptance outcomes describe required
+observable behavior; the status column is authoritative about whether that
+behavior exists.
 Admin/Staff entries mean active authenticated users unless otherwise stated.
 
 | ID | Requirement | Role | Acceptance outcome | Implementation status / traceability |
@@ -170,15 +172,15 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-CORR-02 | Require a physical target and reason for correction. | Admin | An eligible nonnegative target and nonblank reason are required. | Implemented; #14 |
 | FR-CORR-03 | Reject stale and no-op corrections. | Admin | Intervening movement invalidates the form; unchanged targets cause no write. | Implemented; #14 |
 | FR-CORR-04 | Correct quantity with movement evidence only. | Admin | Stock changes with one CORRECTION movement; cost stays unchanged. | Implemented; immutable CORRECTION StockMovement is the required correction evidence; #14 |
-| FR-REG-01 | **Teacher-requested:** Record a starting cash box/opening register amount. | Admin, Staff | Either role can open the single register with a nonnegative amount, including zero. | Planned; #24 |
-| FR-REG-02 | **Derived:** Enforce at most one active register session and provide minimal closure. | Admin, Staff | Concurrent opens cannot create two active sessions; Staff may close their own session and Admin may close any session without reconciliation. | Planned; #24 |
-| FR-REG-03 | **Derived:** Require and retain the authoritative active register relationship for new Sales. | Admin, Staff | New checkout is blocked without an active session; the server selects and locks it; legacy Sales may have no session link. | Planned; #24 |
-| FR-POS-01 | Provide cash-only POS access through the active register. | Admin, Staff | Both roles can perform eligible cash checkout only while the global register is active; other payment workflows are absent. | Cash-only baseline implemented; register precondition planned; #12/#24 |
+| FR-REG-01 | **Teacher-requested:** Record a starting cash box/opening register amount. | Admin, Staff | Either role can open the single register with a nonnegative amount, including zero. | Implemented; #24 |
+| FR-REG-02 | **Derived:** Enforce at most one active register session and provide minimal closure. | Admin, Staff | Concurrent opens cannot create two active sessions; Staff may close their own session and Admin may close any session without reconciliation. | Implemented; #24; focused application and guarded MySQL evidence retained |
+| FR-REG-03 | **Derived:** Require and retain the authoritative active register relationship for new Sales. | Admin, Staff | New checkout is blocked without an active session; the server selects and locks it; legacy Sales may have no session link. | Implemented; #24; POS integration and current verification retained |
+| FR-POS-01 | Provide cash-only POS access through the active register. | Admin, Staff | Both roles can perform eligible cash checkout only while the global register is active; other payment workflows are absent. | Implemented; #12/#24 |
 | FR-POS-02 | Determine checkout price and stock on the server. | Admin, Staff | Submitted values cannot override stock or price; stale expected prices are rejected. | Implemented; #12 |
-| FR-POS-03 | Complete checkout atomically. | Admin, Staff | The server-selected register relationship, Sale, items, deductions, and movements commit together or roll back. | Implemented baseline; register relationship planned; #12/#24 |
+| FR-POS-03 | Complete checkout atomically. | Admin, Staff | The server-selected register relationship, Sale, items, deductions, and movements commit together or roll back. | Implemented; #12/#24 |
 | FR-POS-04 | Reject checkout exceeding available stock. | Admin, Staff | Insufficient stock produces no Sale or deduction, including concurrent checkout. | Implemented; #12 |
 | FR-POS-05 | Prevent duplicate effects on equivalent retry. | Admin, Staff | Equivalent checkout-token replay returns the existing Sale without another deduction. | Implemented; #12 |
-| FR-POS-06 | Preserve successful checkout evidence. | Admin, Staff | One immutable Sale and one SaleItem plus SALE movement per distinct Variant are recorded; each new Sale retains its register session while legacy Sales remain valid without one. | Implemented baseline; register relationship planned; #12/#24 |
+| FR-POS-06 | Preserve successful checkout evidence. | Admin, Staff | One immutable Sale and one SaleItem plus SALE movement per distinct Variant are recorded; each new Sale retains its register session while legacy Sales remain valid without one. | Implemented; #12/#24 |
 | FR-POS-07 | Require sufficient cash and exact change. | Admin, Staff | Underpayment is rejected; change equals cash less authoritative total. | Implemented; #12 |
 | FR-SALES-01 | Allow browsing of Sale history. | Admin, Staff | Both roles can browse Sales regardless of the recording user, with historical status preserved. | Implemented; #13 |
 | FR-SALES-02 | Filter Sales History by receipt, user recording the sale, and Manila date. | Admin, Staff | Receipt, cashier, and date filters narrow results; invalid filters fail closed. | Implemented; #13 |
@@ -188,7 +190,7 @@ Admin/Staff entries mean active authenticated users unless otherwise stated.
 | FR-SALE-VOID-01 | Allow an active Admin to void a completed Sale in full with a required normalized reason. | Admin | Staff retain history/receipt access but cannot void; preserve original Sale/payment/item evidence; restore exact sold stock once; write one SALE_VOID movement per SaleItem and one privacy-safe SALE_VOIDED AuditLog; reject repeat voids. No partial void, unvoid, refund, or cash-out workflow. | Implemented; Phase A/B/C closeout |
 | FR-NAV-01 | Provide desktop sidebar navigation. | Admin, Staff | At lg and above, destinations are reachable beside unobstructed content. | Implemented; UI mini-checkpoint |
 | FR-NAV-02 | Provide mobile navigation below lg. | Admin, Staff | Below 64rem / 1024px, a top bar and off-canvas drawer replace the sidebar. | Implemented; UI mini-checkpoint |
-| FR-NAV-03 | Match navigation visibility to role permissions. | Admin, Staff | Destinations reflect authorized Sales, Procurement, Inventory, and Reports workflows; restricted destinations are absent for Staff. | Implemented baseline counts; expansion revision planned; UI mini-checkpoint/#16/#24–#30 |
+| FR-NAV-03 | Match navigation visibility to role permissions. | Admin, Staff | Destinations reflect authorized Sales, Procurement, Inventory, and Reports workflows; restricted destinations are absent for Staff. | Implemented; UI mini-checkpoint/#16/#24–#30 |
 | FR-NAV-04 | Support keyboard and focus interaction in the drawer. | Admin, Staff | Focus enters the drawer; Escape closes it; focus returns appropriately and background interaction is controlled. | Implemented; UI mini-checkpoint |
 | FR-DASH-01 | Provide an operational Dashboard. | Admin, Staff | Both roles can access the existing home route. | Implemented; #16 |
 | FR-DASH-02 | Display operational summary cards. | Admin, Staff | Today's Sales, Transactions Today, Low Stock, and Out of Stock reflect the defined populations. | Implemented; #16 |
@@ -305,9 +307,10 @@ boundaries; requirement acceptance concerns their resulting values and access.
   Damaged Items reports; #30 damaged receiving is described above.
 - Responsive navigation, shared Dashboard, and Admin Sales Summary Reports.
 
-### Planned current-project future work
+### Remaining project finalization
 
-- Final integration and remaining testing, documentation, and presentation work.
+- Project Documentation, Demo Preparation, Final Testing & Rehearsal, and Final
+  Presentation remain in the tracker. Integration & Bug Fixing is complete.
 
 ### Approved User Management policy and implementation state
 
@@ -373,7 +376,9 @@ outside the approved authentication scope; Admin bootstrap is CLI-only.
 
 The functional table provides acceptance outcomes; this table links those areas
 to existing evidence. All implementation statuses refer to section 12's
-application checkpoint. Detailed procedures and test-case preparation remain #7.
+application checkpoint. The retrospective detailed-case preparation artifact
+is recorded under completed Tracker #7; current manual validation is separately
+recorded in FT18.
 
 | Requirement area | Formal tracker | Implementation evidence | Verification evidence |
 | --- | --- | --- | --- |
@@ -385,8 +390,8 @@ application checkpoint. Detailed procedures and test-case preparation remain #7.
 | Navigation (FR-NAV) | Separate UI mini-checkpoint; #16 menu additions | Shared Blade navigation and drawer behavior | Navigation suite, keyboard/breakpoint/mobile/print evidence |
 | Dashboard/Reports (FR-DASH, FR-REP) | #16 | DashboardController, ReportsController and Blade views | Dashboard/Reports suites, desktop/mobile, filter and receipt-link smoke |
 | Movement views (current tracker: Movement History and Recent Stock Activity) | Current inventory/Dashboard implementation | Shared StockMovement query and presentation layer; read-only 20-row history and latest-five Dashboard section for Admin/Staff | Current engineering verification recorded in project documentation; no schema change or MySQL run required |
-| Register sessions (FR-REG; expanded FR-POS) | #24 | Planned CashRegisterSession and RecordSale extension | Not implemented; revised test catalog and execution pending |
-| Purchase Orders/low stock (FR-PO) | #25 | Planned PO header/item workflow and initialized low-stock recommendation | Not implemented; revised test catalog and execution pending |
+| Register sessions (FR-REG; expanded FR-POS) | #24 | Implemented CashRegisterSession and POS integration | Register open/close, active-session checkout relationship, and current focused application/manual evidence retained; no consolidated register-specific run count is claimed |
+| Purchase Orders/low stock (FR-PO) | #25 | Implemented PO header/item workflow and initialized low-stock prioritization | Creation, pending edit, receiving, partial delivery, damage evidence, follow-up lineage, and current procurement reports implemented; current verification is recorded in project documentation |
 | PO receiving (FR-RECV; expanded FR-STOCKIN) | #26 | Transactional PO-linked receiving, partial/full quantities, linked evidence, and inventory posting | Implemented; 6 guarded MySQL concurrency tests / 220 assertions passed |
 | Follow-up POs (FR-FOLLOWUP) | #27A–#27D | Transactional full-current-remainder transfer evidence, child lineage, idempotent creation, and Admin workflow | Implemented; 6 guarded MySQL concurrency tests / 299 assertions passed |
 | Damage receiving (FR-RECV-03) | #30 / expansion item #8 | Immutable `RestockDamageItem` evidence linked to Restock, PO line, and Variant; accepted/damage receipt semantics in the existing receiving flow | Implemented; manual guarded MySQL verification recorded below |
@@ -433,7 +438,8 @@ behavior, not original client interviews.
 
 Tracker #3 defines why, what, for whom, business rules, quality constraints,
 scope, and acceptance outcomes. It does not complete #4 actual product-data
-preparation, #5 UI/UX planning evidence, or #7 detailed test-case preparation.
+preparation or #5 UI/UX planning evidence. Tracker #7 test-case preparation is
+complete; its artifact remains a retrospective pre-expansion baseline.
 
 ## 11. Open assumptions / validation status
 
