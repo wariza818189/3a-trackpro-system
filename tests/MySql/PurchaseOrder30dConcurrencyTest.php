@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Procurement\CreateFollowUpPurchaseOrder;
 use App\Services\Procurement\CreatePurchaseOrder;
 use App\Services\Procurement\ReceivePurchaseOrder;
+use App\Services\Procurement\UpdatePurchaseOrder;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
@@ -212,6 +213,90 @@ final class PurchaseOrder30dConcurrencyTest extends MySql24eConcurrencyTestCase
             $this->assertSame('10.00', $this->cost($db, $f));
             $this->assertDelta($db, $f, $before, 1, 1, $received ? 1 : 0, 0, $received ? 1 : 0, 0);
         });
+    }
+
+    public function test_concurrent_edits_from_same_purchase_order_revision_allow_exactly_one_update(): void
+    {
+        $this->scenario(function (Connection $db, array $f, array &$workers, ?Connection &$gate): void {
+            [$po, $item] = $this->order($db, $f);
+            // Separate Admin actors avoid serializing the race at a shared User lock.
+            $db->table('users')->where('id', $f['users'][1])->update(['role' => 'admin']);
+            $revision = app(UpdatePurchaseOrder::class)->revision($po);
+            $headerBefore = (array) $db->table('purchase_orders')->where('id', $po->id)->sole();
+            $lineBefore = (array) $db->table('purchase_order_items')->where('id', $item)->sole();
+            $before = $this->evidence($db, $f);
+            $edits = [
+                ['supplier' => 'Edit A supplier', 'notes' => 'Edit A note', 'quantity' => '6.125', 'cost' => '13.25'],
+                ['supplier' => 'Edit B supplier', 'notes' => 'Edit B note', 'quantity' => '7.375', 'cost' => '14.50'],
+            ];
+            foreach ([0, 1] as $i) {
+                $this->start($workers, fn ($socket, Connection $child): int => $this->sameRevisionEditWorker(
+                    $socket, $child, $f['users'][$i], (int) $po->id, $revision, $f['variant'], $edits[$i],
+                ));
+            }
+            $this->race($workers, $gate, $f['variant']);
+            $results = $this->results($workers);
+            $statuses = array_column($results, 'status');
+            sort($statuses);
+            $this->assertSame(['edit-conflict', 'edited'], $statuses);
+            $winner = $results[0]['status'] === 'edited' ? 0 : 1;
+            $edit = $edits[$winner];
+
+            // Compare every persisted header/line field except automatic timestamps,
+            // proving the losing request left neither a partial header nor line write.
+            $expectedHeader = array_replace($headerBefore, ['supplier_name' => $edit['supplier'], 'notes' => $edit['notes']]);
+            $expectedLine = array_replace($lineBefore, ['ordered_quantity' => $edit['quantity'], 'expected_unit_cost' => $edit['cost']]);
+            $actualHeader = (array) $db->table('purchase_orders')->where('id', $po->id)->sole();
+            $actualLine = (array) $db->table('purchase_order_items')->where('purchase_order_id', $po->id)->sole();
+            unset($expectedHeader['updated_at'], $actualHeader['updated_at'], $expectedLine['updated_at'], $actualLine['updated_at']);
+            $this->assertSame($expectedHeader, $actualHeader);
+            $this->assertSame($expectedLine, $actualLine);
+
+            // Revision is a semantic hash, not an incrementing version counter.
+            $expectedRevision = hash('sha256', json_encode([
+                'purchase_order_id' => (int) $po->id,
+                'supplier_name' => $edit['supplier'],
+                'notes' => $edit['notes'],
+                'status' => 'pending',
+                'created_by' => $f['users'][0],
+                'parent_purchase_order_id' => null,
+                'items' => [[
+                    'purchase_order_item_id' => $item,
+                    'product_variant_id' => $f['variant'],
+                    'ordered_quantity' => $edit['quantity'],
+                    'expected_unit_cost' => $edit['cost'],
+                ]],
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            $this->assertNotSame($revision, $expectedRevision);
+            $this->assertSame($expectedRevision, $results[$winner]['data']['revision']);
+            $this->assertSame($expectedRevision, app(UpdatePurchaseOrder::class)->revision($po));
+            $this->assertSame($before, $this->evidence($db, $f));
+            $this->assertSame('0.000', $this->stock($db, $f));
+            $this->assertSame('10.00', $this->cost($db, $f));
+        });
+    }
+
+    private function sameRevisionEditWorker($socket, Connection $db, int $actor, int $po, string $revision, int $variant, array $edit): int
+    {
+        $this->workerReady($socket, $db);
+        try {
+            $updater = app(UpdatePurchaseOrder::class);
+            $updated = $updater->execute(
+                User::query()->findOrFail($actor), PurchaseOrder::query()->findOrFail($po),
+                $revision, $edit['supplier'], $edit['notes'],
+                [['product_variant_id' => $variant, 'ordered_quantity' => $edit['quantity'], 'expected_unit_cost' => $edit['cost']]],
+            );
+            $this->writeResult($socket, 'edited', ['revision' => $updater->revision($updated)]);
+        } catch (ValidationException $exception) {
+            $this->assertSame([
+                'expected_revision' => ['This Purchase Order changed while the form was open. Review it and try again.'],
+            ], $exception->errors());
+            $this->writeResult($socket, 'edit-conflict');
+        } catch (QueryException $exception) {
+            return $this->queryFailure($socket, $exception);
+        }
+
+        return self::CHILD_EXIT_SUCCESS;
     }
 
     private function readyConnection(): Connection
