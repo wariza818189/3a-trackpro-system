@@ -96,12 +96,13 @@ Core application features are at **FEATURE FREEZE**. The approved required
 feature scope is implemented, current permission and edge-case validation is
 complete, and no known core implementation blocker or unresolved
 security/data-integrity defect remains. Future changes are limited to
-confirmed defect correction, documentation and screenshots, integration
-cleanup, demo preparation, rehearsal, presentation preparation, and explicitly
-approved final polish. This freeze does not mean the project is finished: the user
-guide screenshots, final documentation, integration/review, demo, rehearsal,
-and presentation work remain. It does not rule out future bug fixes or alter
-historical test results.
+confirmed defect correction, documentation, integration cleanup, demo
+preparation, rehearsal, presentation preparation, and explicitly approved
+final polish. This freeze does not mean the project is finished: final
+integration/review, Project Documentation, demo, rehearsal, and presentation
+work remain. The System User Guide and its 18 privacy-reviewed screenshots are
+complete. This does not rule out future bug fixes or alter historical test
+results.
 
 ### 2.3 Explicit Exclusions
 
@@ -336,9 +337,10 @@ edge-case validation is complete, and the project has reached **FEATURE
 FREEZE** for core application features. There are no known core implementation
 gaps, unresolved security/data-integrity defects, current-scope manual
 blockers, or outstanding schema/migration mismatches. Remaining tracker work
-is finalization, documentation/screenshots, integration, demo preparation,
-final testing/rehearsal, and presentation preparation; screenshots and the
-presentation are not complete.
+is finalization, beginning with integration/bug fixing, followed by Project
+Documentation, demo preparation, final testing/rehearsal, and presentation
+preparation. The System User Guide and its final screenshots are complete; the
+presentation is not complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -600,17 +602,16 @@ defect. This was a separate post-FT18 regression, not part of FT18.
 Feature freeze applies to core application features and records that no known
 core implementation blocker, unresolved security/data-integrity defect,
 current-scope manual blocker, or schema/migration mismatch remains. It does
-not mean project work, screenshots, or the presentation are complete, and it
-does not rule out fixing future defects. The sole In Progress tracker item is
-**User Guide & Screenshots**; screenshots remain pending. Other remaining
-tracker rows are final integration/bug fixing, project documentation, demo
-preparation, final testing/rehearsal, and final presentation. Work after the
-freeze is limited to confirmed defect correction, documentation, screenshots,
-integration cleanup, demo preparation, rehearsal, presentation preparation,
-and explicitly approved final polish.
+not mean project work or the presentation are complete, and it does not rule
+out fixing future defects. The System User Guide and all 18 approved screenshots
+are complete. Remaining tracker rows are final integration/bug fixing, Project
+Documentation, demo preparation, final testing/rehearsal, and final
+presentation. Work after the freeze is limited to confirmed defect correction,
+documentation reconciliation, integration cleanup, demo preparation, rehearsal,
+presentation preparation, and explicitly approved final polish.
 
-**Remaining closeout and limitations:** Final integration/review, screenshots,
-documentation, demo preparation, final testing/rehearsal, and presentation
+**Remaining closeout and limitations:** Final integration/review, Project
+Documentation, demo preparation, final testing/rehearsal, and presentation
 work remain. Some accessibility checks, including contrast measurement and
 stronger programmatic association of validation messages, remain for later
 evaluation. The project is not yet finished or claimed production-ready;
@@ -633,7 +634,13 @@ If we started the project again, we would complete more of the requirements and 
 
 3A TrackPro now provides a working foundation for catalog and inventory management, Opening Inventory, Stock In and corrections, cash POS, Sales History and receipts, operational reporting, the opening-cash/register workflow, Purchase Order creation, browsing, detail viewing, pending-order editing, PO-based partial/full and damaged receiving, and Admin follow-up ordering for unfulfilled demand. Follow-up child POs preserve source lineage and transfer the full current remainder of each selected line without changing inventory. Receiving preserves accepted quantities, outstanding demand, actual cost evidence, linked history, and accepted-quantity inventory movements for Admin and Staff. Damaged receiving preserves immutable damage evidence and does not change sellable stock, cost, movement history, accepted/transferred quantities, or outstanding demand. The Admin-only #31 Damaged Items Report presents that evidence separately as one row per immutable damage record, using historical snapshots and receipt/PO/actor/time provenance. Current guarded MySQL concurrency verification covers receipt-versus-damage, equivalent damage-only replay, and damage-versus-follow-up races; #31 itself is read-only and required no MySQL run.
 
-The project is still being developed. Other management workflows and final testing remain incomplete. The team will continue testing, refining the documentation, and preparing the system before the final presentation without presenting the current version as fully complete.
+Approved core management workflows are implemented. Edge Cases & Permissions
+validation is complete, and FT18 current-scope validation passed 19/19 (0 Fail,
+0 Blocked, 0 Not Run). Final User Guide screenshots have been captured and
+privacy-reviewed, and the core feature freeze is declared. Remaining tracker
+work concerns integration/bug fixing, Project Documentation, demo preparation,
+final testing/rehearsal, and presentation preparation; the school project is not
+yet complete.
 
 ## 8. Appendices / Links
 
@@ -651,7 +658,12 @@ The system has not yet been publicly deployed.
 
 ### 8.4 Selected Screenshots
 
-Selected screenshots will be added before final submission; screenshots remain pending. Recommended screens include the Dashboard Recent Stock Activity, Movement History showing several movement types, Product Variants, Inventory Report, Opening Inventory or Stock In, POS, Sales History, receipt/reprint view, Purchase Order creation, Purchase Order list/detail, and the Admin Audit Logs page with filters and representative account lifecycle events.
+The [System User Guide](./system-user-guide.md) contains all 18 final,
+privacy-reviewed screenshots, embedded with the relevant workflow instructions.
+The set includes Admin and Staff Dashboard views, Product Variants, Stock In,
+POS opening cash, completed and voided sales, PO planning/receiving/follow-up,
+Reports, and Movement History. The User Guide records the full image index and
+captions.
 
 ### 8.5 Requirements and Database Design
 

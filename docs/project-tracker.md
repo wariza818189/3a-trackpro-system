@@ -14,9 +14,9 @@ project status.
 
 ## Current Focus
 
-Current focus: **Feature freeze — user guide/screenshots, final integration, documentation, demo preparation, final testing/rehearsal, and presentation preparation**
+Current focus: **Finalization — begin with Integration & Bug Fixing, then Project Documentation, demo preparation, final testing/rehearsal, and presentation preparation**
 
-Status: **In Progress**
+Status: **Core feature freeze complete; finalization work is next**
 
 Core application features are implemented, and Edge Cases & Permissions is
 complete after automated pre-verification and the revised current-scope FT18
@@ -26,8 +26,8 @@ is retained. Historical FT17 remains paused at 8 Pass / 1 Fail / 0 Blocked /
 polish passed its separate post-FT18 browser visual regression. Feature freeze
 applies to core application features; no known core implementation blocker,
 unresolved security/data-integrity defect, or current-scope manual blocker is
-known. Remaining work is project finalization, including screenshots, which
-are still pending.
+known. Remaining work is project finalization. The System User Guide and 18
+approved screenshots are complete; no tracker item is currently In Progress.
 
 ## Status Definitions
 
@@ -107,7 +107,7 @@ are still pending.
 | AUDIT TRAIL | Filter Logs | Search and filter audit trail records | Rommel Jave Casipong | 10/12/2026 | 10/14/2026 | Completed | Working audit log filtering | Actor (`audit_logs.user_id`), stored action, and optional inclusive Manila `date_from` / `date_to` filters compose with AND; all-time default, partial dates, fail-closed validation, and pagination persistence are implemented. |
 | TESTING | Functional Testing | Test all completed modules and document errors or unexpected results | Rommel Jave Casipong | 10/12/2026 | 10/13/2026 | Completed | Functional test results | Report discovered bugs to the project lead and retest after fixes. Formal run `FT15-20260909-A`: 30/30 Passed, 0 Failed, 0 Blocked, 0 Remaining. |
 | TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | Completed | Edge-case / security test report | Automated pre-verification passed (focused 220 tests / 2,604 assertions; SQLite 558 / 6,112). Revised current-scope FT18 passed 19/19. Historical FT17 remains paused, unchanged at 8/1/0/28. Post-FT18 Reports visual regression passed. Core feature freeze declared; details in project documentation. |
-| DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | In Progress | User guide draft | Cover login, sales, products, inventory, reports, and other final user-facing features. A substantial user-guide draft exists; final screenshots and teacher-expansion updates remain. |
+| DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | Completed | Final System User Guide and screenshot set | Guide synchronized with frozen behavior; 18 mandatory screenshots captured, reviewed, and inserted; Admin/Staff boundaries and opening cash, procurement, damage, and report workflows represented; privacy review passed. Screenshot checkpoint `915a200` retained. |
 | FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Not Started | Release candidate | No major new features after this phase; prioritize stability and correctness. This phase has not begun. |
 | DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Not Started | Final documentation | Final document should be reviewed by the group before submission/presentation. Finalization has not begun. |
 | PRESENTATION | Demo Preparation | Prepare presentation slides, system demo flow, and speaking assignments | ALL MEMBERS | 10/18/2026 | 10/20/2026 | Not Started | Presentation materials | Every member should understand the system and assigned speaking part. Presentation preparation has not begun. |
@@ -116,15 +116,15 @@ are still pending.
 
 ## Status Summary
 
-- Completed: 65
-- In Progress: 1
+- Completed: 66
+- In Progress: 0
 - Not Started: 5
 - Total: 71
 
-Arithmetic check: **65 + 1 + 5 = 71**.
-The sole In Progress item is **User Guide & Screenshots**. Not Started items
-remain Integration & Bug Fixing, Project Documentation, Demo Preparation,
-Final Testing & Rehearsal, and Final Presentation.
+Arithmetic check: **66 + 0 + 5 = 71**.
+There are no In Progress items. Not Started items remain Integration & Bug
+Fixing, Project Documentation, Demo Preparation, Final Testing & Rehearsal,
+and Final Presentation.
 
 ## Excel Sync
 

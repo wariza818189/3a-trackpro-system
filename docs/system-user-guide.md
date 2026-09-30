@@ -68,6 +68,8 @@ denied. TrackPro has no public registration, forgot-password, password-reset,
 or browser-based account setup page. Ask the project administrator if an
 assigned account cannot sign in.
 
+![TrackPro login page. Sign in with an assigned active account.](images/user-guide/01-login.png)
+
 Useful application paths are:
 
 | Screen | Path | Access |
@@ -244,6 +246,8 @@ Category.
 
 Open **Catalog → Variants**.
 
+![Product Variants show stock maintained for each Variant.](images/user-guide/03-product-variants.png)
+
 Use the available search and Category, Product, Unit, Status, and **Low stock
 only** filters. The list shows Product identity, quantity mode, prices, current
 stock, threshold, and status according to the viewer's role.
@@ -317,6 +321,8 @@ cost reference. The system calculates line and receipt totals.
 Staff can enter the costs for the receipt they are recording, but existing
 catalog costs and historical purchase-cost values are not shown to Staff.
 
+![Staff Stock In form. Staff can record a receipt without seeing prior protected purchase costs.](images/user-guide/17-stock-in.png)
+
 Do not reload or resubmit a completed receipt intentionally. TrackPro has a
 server-generated submission token to protect against accidental duplicate
 submission.
@@ -350,6 +356,8 @@ Once receiving or follow-up transfer activity makes an order ineligible for
 editing, it is read-only. Use the order's displayed status and quantities to
 understand its current state.
 
+![PO planning distinguishes uncovered low-stock demand, shown by Plywood, from G.I. Pipe demand already covered by an open PO. Threshold values are shown in the Inventory Report in Section 15.](images/user-guide/04-po-low-stock-prioritization.png)
+
 ### 9.2 Receiving a Purchase Order — Admin and Staff
 
 1. Open a Purchase Order and select **Receive Purchase Order** when it has
@@ -377,6 +385,8 @@ The damage remains outstanding until accepted or transferred to a follow-up
 order. Damage evidence is retained in the order's operational history; there
 are no damage edit, delete, or reversal actions.
 
+![PO receiving records accepted stock separately from damaged quantity and evidence.](images/user-guide/09-po-partial-damage-evidence.png)
+
 ### 9.3 Creating a follow-up order — Admin only
 
 When a source order has eligible outstanding quantities, an Admin can use
@@ -385,6 +395,8 @@ outstanding quantities to a child PO. The child PO retains source/parent
 context where shown. The transfer changes procurement allocation; it does not
 receive goods or change stock. Receiving or damage recorded on a child order is
 shown against that child PO.
+
+![An Admin-created follow-up PO retains its source relationship and transferred outstanding quantity.](images/user-guide/10-follow-up-po-lineage.png)
 
 ## 10. Recording a Stock Correction — Admin Only
 
@@ -413,8 +425,8 @@ reason. This does not mean a separate AuditLog activity record is created.
 1. Open **Sales → POS**.
 2. If the Cash Register is **Closed**, enter the **Starting cash amount** and
    select **Open Register**. The register is shared; its open status and opener
-   are shown on the POS screen. Only the user who opened it or an Admin may
-   close it.
+   are shown on the POS screen. Starting cash is register state, not sales
+   revenue. Only the user who opened it or an Admin may close it.
 3. Use **Search products** to find a Product or Variant identity.
 4. Check the unit, quantity mode, available stock, and selling price.
 5. Select **Add to cart**. Out-of-stock items cannot be added.
@@ -427,7 +439,8 @@ reason. This does not mean a separate AuditLog activity record is created.
 
 Whole-mode items require whole quantities. Fractional-mode items accept up to
 three decimal places. Cash must cover the authoritative sale total, and stock
-cannot become negative.
+cannot become negative. If checkout finds insufficient stock, the sale is
+rejected, no Sale is created, and stock is not deducted.
 
 The backend rechecks current stock and selling prices during checkout. If a
 price changed while the cart was open, TrackPro refreshes the price and asks the
@@ -436,6 +449,8 @@ Sale Item per distinct Variant, and one linked `SALE` stock movement per item.
 
 TrackPro currently supports cash sales only. It does not support discounts,
 credit or utang, returns, refunds, or a cash-out workflow.
+
+![POS with the shared register opening cash state visible.](images/user-guide/05-pos-opening-cash.png)
 
 ## 12. Voiding a Completed Sale — Admin Only
 
@@ -455,6 +470,8 @@ change remain visible. The voided receipt shows the Voided status, reason,
 responsible Admin, and time. A Sale that is already voided cannot be voided
 again. Partial voids, reopening/unvoiding a Sale, refunds, and cash-out are not
 available.
+
+![Voided Sale details preserve the original payment and items while recording the status and reason.](images/user-guide/08-voided-sale-details.png)
 
 ## 13. Viewing Receipts and Sales History
 
@@ -476,6 +493,10 @@ Purchase costs and internal checkout tokens are never shown on the receipt.
 
 Receipts use the historical values captured at checkout. Later catalog renames
 or price changes do not rewrite old receipts.
+
+![Completed receipt showing sale-time details.](images/user-guide/06-completed-sale-receipt.png)
+
+![Sales History retains both Completed and Voided transactions.](images/user-guide/07-sales-history.png)
 
 ## 14. Dashboard and Movement History
 
@@ -499,6 +520,10 @@ quantity meaning as the full history page.
 The Dashboard and Movement History are informational; viewing them does not
 alter inventory or sales.
 
+![Admin Dashboard with shared summary content, the seven-day completed-sales trend, and Recent Stock Activity.](images/user-guide/02-admin-dashboard.png)
+
+![Staff Dashboard with shared content and Recent Stock Activity, without the Admin-only trend or navigation.](images/user-guide/16-staff-dashboard.png)
+
 ### Reviewing Movement History
 
 Active Admin and Staff accounts can open **Inventory → Movement History**.
@@ -519,6 +544,8 @@ recorded before and after quantities. A Stock In reference includes a Purchase
 Order only when that receipt is linked to one. In mixed receiving, only the
 accepted quantity changes stock; a damage-only receipt has no stock movement.
 
+![Movement History shows recorded signed stock changes, before/after quantities, and available references and actor details.](images/user-guide/18-movement-history.png)
+
 The page uses current product and variant names for context, so catalog names
 may change over time. Sale and receiving records retain their own historical
 item details where available. Archived catalog items and movements performed
@@ -527,7 +554,12 @@ by users who are now disabled remain in history.
 ## 15. Using Reports — Admin Only
 
 Open **Main → Reports**. This module is Admin-only; Staff cannot access it.
+The Reports hub groups the current report set under **Sales**, **Inventory**,
+and **Procurement**. The final grouped hub is shown below.
+
 Current reports are:
+
+![Reports hub grouped into Sales, Inventory, and Procurement with the current report set.](images/user-guide/11-reports-sales-summary.png)
 
 - **Sales Summary** — completed sales within a selected date range, optionally
   filtered by cashier.
@@ -559,6 +591,8 @@ Current reports are:
   status: zero is **Out of stock**, positive stock at or below threshold is
   **Low stock**, and stock above threshold is **In stock**. Archived records
   remain listed with their stored stock state.
+  For example, the report shows Plywood at 2 / 5 sheets and G.I. Pipe at
+  4.500 / 5.000 m, providing threshold evidence complementary to PO planning.
 - **Low Stock Report** — active-hierarchy Product Variants with current stock
   at or below their configured low-stock threshold. The report shows one row
   per Variant with Category, Product, size, type/series, thickness, unit,
@@ -584,10 +618,12 @@ Current reports are:
   Damaged Items Report. Opening Inventory and Stock Corrections are not
   Restocking Report history. Expected PO cost is not shown. The report has no
   filters, pagination, or mutation controls.
-- **Pending Purchase Orders Report** — open orders that currently have
-  outstanding demand.
-- **Unfulfilled Items Report** — individual PO lines that remain unfulfilled,
-  with their quantities and PO context.
+- **Pending Purchase Orders Report** — open orders with outstanding demand;
+  available context includes supplier, open status, supplier/status filters,
+  PO lineage, and ordered, accepted, transferred, and outstanding quantities.
+- **Unfulfilled Items Report** — individual open PO lines with positive
+  outstanding demand, showing supplier, item snapshot, open status, PO number,
+  and ordered, accepted, transferred, and outstanding quantities where shown.
 - **Damaged Items Report** — historical damaged receiving evidence. Each row is
   one damage record and displays its PO, supplier, `RST-` receipt, historical
   item identity, damaged quantity and unit, note, receiving actor, and time.
@@ -603,6 +639,14 @@ for Admin and Staff; the dedicated report is available only to Admin.
 
 Reports are Admin-only. Staff can still see permitted stock information in
 operational Dashboard and catalog screens, but cannot access this report.
+
+![Inventory Report with current stock and low-stock thresholds.](images/user-guide/12-inventory-report.png)
+
+![Pending Purchase Orders Report with open procurement demand.](images/user-guide/13-pending-po-report.png)
+
+![Unfulfilled Items Report with PO-line quantities and context.](images/user-guide/14-unfulfilled-items-report.png)
+
+![Damaged Items Report with recorded damage evidence.](images/user-guide/15-damaged-items-report.png)
 
 For the **Sales Summary**:
 
@@ -749,42 +793,33 @@ The current interface does not provide:
 - PDF receipt generation; receipt output uses browser printing.
 
 There is no general UI for editing or deleting immutable sales, stock receipts,
-or damage evidence. Screenshots have not been captured as part of this guide
-update. Do not present the unavailable features above as implemented.
+or damage evidence. Core application features are feature-frozen, no known core
+implementation blocker remains, and current-scope validation is complete.
+Finalization continues; Project Documentation, demo preparation, final
+testing/rehearsal, and presentation work remain pending in the tracker. Do not
+present the unavailable features above as implemented.
 
-## 21. Future Screenshot Checklist
+## 21. Screenshot Reference and Privacy
 
-Screenshots remain pending and were not captured for this guide update. Capture
-them only after checking that no credential, token, cost, or private client
-information is visible.
+The final, privacy-reviewed screenshot set is embedded beside its related
+instructions above. Its 18 references are: [login](images/user-guide/01-login.png),
+[Admin Dashboard](images/user-guide/02-admin-dashboard.png),
+[Product Variants](images/user-guide/03-product-variants.png),
+[PO low-stock planning](images/user-guide/04-po-low-stock-prioritization.png),
+[POS opening cash](images/user-guide/05-pos-opening-cash.png),
+[completed receipt](images/user-guide/06-completed-sale-receipt.png),
+[Sales History](images/user-guide/07-sales-history.png),
+[voided Sale](images/user-guide/08-voided-sale-details.png),
+[PO receiving and damage](images/user-guide/09-po-partial-damage-evidence.png),
+[follow-up PO lineage](images/user-guide/10-follow-up-po-lineage.png),
+[Reports hub](images/user-guide/11-reports-sales-summary.png),
+[Inventory Report](images/user-guide/12-inventory-report.png),
+[Pending Purchase Orders](images/user-guide/13-pending-po-report.png),
+[Unfulfilled Items](images/user-guide/14-unfulfilled-items-report.png),
+[Damaged Items](images/user-guide/15-damaged-items-report.png),
+[Staff Dashboard](images/user-guide/16-staff-dashboard.png),
+[Stock In](images/user-guide/17-stock-in.png), and
+[Movement History](images/user-guide/18-movement-history.png).
 
-Suggested evidence:
-
-1. Login page without entered credentials.
-2. Admin Dashboard and Staff Dashboard showing role-specific content.
-3. Categories, Products, and Variants lists, plus Product detail with per-Variant
-   whole/fractional stock and status.
-4. Admin Opening Inventory and Stock Correction screens.
-5. Stock In form and receipt detail.
-6. POS with a closed register, the open-register state, and a reviewed cart.
-7. Completed sale receipt and Sales History.
-8. Voided Sale receipt/history showing void status, reason, actor, and time;
-   optionally capture the Admin Void Sale action before submission.
-9. Purchase Orders list, create/edit screen, and order detail.
-10. PO receiving screen showing accepted quantity and damaged quantity/note.
-11. Follow-up PO screen and its source/child context.
-12. Reports index, Sales Summary, Product Sales, Inventory Report, Low Stock
-    Report, Pending Purchase Orders, Unfulfilled Items, Restocking, and Damaged
-    Items reports.
-13. Admin User Management list/search, create form, profile edit, role change,
-    archive/reactivate actions, and password reset form.
-14. Admin Audit Logs page showing the filters and representative account
-    lifecycle events.
-15. Responsive mobile navigation.
-16. Movement History showing several movement types.
-17. Dashboard Recent Stock Activity.
-
-Use consistent browser dimensions, readable demo records, and short captions
-that state what the screenshot proves. Crop or retake any image that exposes a
-password, submission token, checkout token, environment value, or unrelated
-personal information.
+Keep credentials, tokens, purchase costs, private configuration, and personal
+information out of screenshots. The approved images passed privacy review.
