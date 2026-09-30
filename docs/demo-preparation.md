@@ -14,10 +14,10 @@
 
 **Core application:** FEATURE FROZEN
 
-**Current preparation status:** Demo flow, presentation-duration policy, and
-primary speaking assignments are prepared. The slide deck and remaining group
-decisions still require completion. Demo Preparation remains Not Started and is
-not complete.
+**Current preparation status:** Demo Preparation deliverables are complete. The
+final presentation deck and demo plan passed internal project-group review.
+Demo Preparation is ready to close; actual dry runs and rehearsal remain in
+Final Testing & Rehearsal.
 
 ## 1. Demo Principles
 
@@ -380,10 +380,11 @@ credentials private; never commit a dump or credentials to Git.
 
 ## 13. Slide Deck Brief
 
-The tracker requires presentation slides. **Actual presentation slide deck:
-NOT YET CREATED.** Creating it is a separate remaining deliverable. These are
-recommended topics, not a fixed slide count if a later presentation requirement
-specifies otherwise:
+The final presentation deck is available at
+[`docs/presentation/TrackPro_Final_Presentation.pptx`](presentation/TrackPro_Final_Presentation.pptx)
+and was accepted in the internal project-group review. These are recommended
+topics, not a fixed slide count if a later presentation requirement specifies
+otherwise:
 
 1. Title
 2. Project problem and purpose
@@ -403,35 +404,33 @@ specifies otherwise:
 Use documented project evidence only. Do not fabricate client results, adoption,
 deployment, or metrics.
 
-## 14. Group Decisions Still Required
+## 14. Final Testing & Rehearsal Operational Checks
 
 - [x] Confirm presentation-duration policy: open-ended until the group finishes
       explaining the system; no fixed limit was communicated by the instructor.
 - [x] Assign all five speaking/demo roles as listed above.
 - [ ] Confirm who controls the laptop during the demo.
-- [ ] Confirm whether User Management and Audit Logs are included live.
-- [ ] Create/finalize the actual slide deck.
-- [ ] Group review of the slide deck.
-- [ ] Confirm the presentation laptop.
+- [ ] Decide during rehearsal whether User Management and Audit Logs are
+      included live; both remain optional read-only scope.
+- [ ] Confirm the presentation laptop and perform its smoke test.
 - [ ] Confirm backup/fallback strategy before rehearsal.
-- [ ] Confirm every member understands their assigned part and handoffs.
+- [ ] Confirm every member can deliver their assigned part and handoffs.
 
 ## 15. Final Testing & Rehearsal Handoff
 
 The later Final Testing & Rehearsal phase owns:
 
 - actual dry runs and full end-to-end rehearsal;
-- presentation timing practice;
-- final environment smoke test and local/offline readiness check;
-- verification of role transitions;
-- confirmation that prepared demo data remains intact; and
+- presentation timing and speaker handoff practice;
+- presentation-machine smoke test and local/offline readiness confirmation;
+- demo account/login confirmation and role-transition checks;
+- checking the prepared `trackpro_demo` state;
+- testing fallback screenshots/slides; and
 - discovery and correction of defects found during rehearsal.
 
 None of these activities is marked complete by this run sheet.
 
-## 16. Demo Preparation Closeout Criteria
-
-Demo Preparation can close only when:
+## 16. Demo Preparation Closeout
 
 - [x] This run sheet exists and is current.
 - [x] Demo environment and stable dataset are prepared.
@@ -440,15 +439,11 @@ Demo Preparation can close only when:
 - [x] Startup, recovery, and screenshot fallback instructions are prepared.
 - [x] Primary speaking assignments for all five members are established.
 - [x] Presentation-duration policy and internal pacing target are established.
-- [ ] Actual presentation slide deck exists.
-- [ ] Laptop operator is confirmed.
-- [ ] Group decides whether User Management and Audit Logs are included live.
-- [ ] Final backup/fallback strategy is confirmed.
-- [ ] Group reviews the slide deck and demo plan.
-- [ ] Every member confirms understanding of their section, the full system
-      flow, basic questions about their features, and handoffs before/after
-      their section.
-- [ ] The plan is ready to enter Final Testing & Rehearsal.
+- [x] Final presentation slide deck exists.
+- [x] Group reviewed and accepted the revised slide deck and demo plan.
+- [x] Demo Preparation plan is ready to enter Final Testing & Rehearsal.
 
-The slide deck, remaining group decisions, and group review are outstanding.
-Demo Preparation is not complete.
+Internal project-group review passed. No instructor approval, client
+acceptance, external signoff, or presentation completion is implied. Actual
+member delivery practice and the operational checks in §14 remain with Final
+Testing & Rehearsal; no rehearsal is claimed here.

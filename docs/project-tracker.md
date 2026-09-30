@@ -14,7 +14,7 @@ project status.
 
 ## Current Focus
 
-Current focus: **Demo Preparation, followed by Final Testing & Rehearsal and Final Presentation**
+Current focus: **Final Testing & Rehearsal, followed by Final Presentation**
 
 Status: **Core feature freeze complete; finalization work is next**
 
@@ -110,20 +110,20 @@ approved screenshots are complete; no tracker item is currently In Progress.
 | DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | Completed | Final System User Guide and screenshot set | Guide synchronized with frozen behavior; 18 mandatory screenshots captured, reviewed, and inserted; Admin/Staff boundaries and opening cash, procurement, damage, and report workflows represented; privacy review passed. Screenshot checkpoint `915a200` retained. |
 | FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Completed | Stable feature-frozen release candidate | Final integration audit found no current implementation defect; no production fix was required. Existing automated, FT18, and guarded MySQL evidence retained. Same-revision PO edits passed 3/3; one commit and one controlled stale rejection, no partial loser write; containing guarded class passed 5 tests / 178 assertions. |
 | DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Completed | Final documentation | Final project documents reconciled; README, requirements, project documentation, and database design reviewed. Current implementation/test status synchronized; historical evidence preserved; User Guide/screenshots complete. Internal group review passed; no further corrections requested. |
-| PRESENTATION | Demo Preparation | Prepare presentation slides, system demo flow, and speaking assignments | ALL MEMBERS | 10/18/2026 | 10/20/2026 | Not Started | Presentation materials | Every member should understand the system and assigned speaking part. Presentation preparation has not begun. |
+| PRESENTATION | Demo Preparation | Prepare presentation slides, system demo flow, and speaking assignments | ALL MEMBERS | 10/18/2026 | 10/20/2026 | Completed | Presentation materials | Final deck, demo flow, speaking assignments, teacher-requested scope map, read-only-first strategy, and recovery/fallback guidance prepared. Revised deck and demo plan passed internal group review; ready for Final Testing & Rehearsal. |
 | TESTING | Final Testing & Rehearsal | Perform final end-to-end testing and practice the system presentation | ALL MEMBERS | 10/20/2026 | 10/21/2026 | Not Started | Final checklist / rehearsal | Freeze the system before the final presentation except for critical fixes. Final testing and rehearsal have not begun. |
 | PRESENTATION | Final Presentation | Present and demonstrate 3A TrackPro on finals day | ALL MEMBERS | 10/22/2026 | 10/22/2026 | Not Started | Final presentation | Finals day. |
 
 ## Status Summary
 
-- Completed: 68
+- Completed: 69
 - In Progress: 0
-- Not Started: 3
+- Not Started: 2
 - Total: 71
 
-Arithmetic check: **68 + 0 + 3 = 71**.
-There are no In Progress items. Not Started items remain Demo Preparation,
-Final Testing & Rehearsal, and Final Presentation.
+Arithmetic check: **69 + 0 + 2 = 71**.
+There are no In Progress items. Not Started items remain Final Testing &
+Rehearsal and Final Presentation.
 
 ## Excel Sync
 
