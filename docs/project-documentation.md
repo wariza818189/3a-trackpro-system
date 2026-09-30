@@ -98,13 +98,13 @@ complete, and no known core implementation blocker or unresolved
 security/data-integrity defect remains. Integration & Bug Fixing is complete:
 the final audit found no current implementation defect, and the same-revision
 PO edit verification closed the last identified integration gap. The
-feature-frozen application is a stable release candidate. Remaining tracker
-work is Project Documentation, Demo Preparation, Final Testing & Rehearsal,
-and Final Presentation. Future changes are limited to confirmed defect
-correction, documentation, demo preparation, rehearsal, presentation
-preparation, and explicitly approved final polish. The System User Guide and
-its 18 privacy-reviewed screenshots are complete. This does not rule out
-future bug fixes or alter historical test results.
+feature-frozen application is a stable release candidate. Project
+Documentation is complete. Remaining tracker work is Demo Preparation, Final
+Testing & Rehearsal, and Final Presentation. Future changes are limited to
+confirmed defect correction, documentation maintenance, demo preparation,
+rehearsal, presentation preparation, and explicitly approved final polish.
+The System User Guide and its 18 privacy-reviewed screenshots are complete.
+This does not rule out future bug fixes or alter historical test results.
 
 ### 2.3 Explicit Exclusions
 
@@ -339,9 +339,11 @@ edge-case validation is complete, and the project has reached **FEATURE
 FREEZE** for core application features. There are no known core implementation
 gaps, unresolved security/data-integrity defects, current-scope manual
 blockers, or outstanding schema/migration mismatches. Integration & Bug Fixing
-is complete. Remaining tracker work is Project Documentation, Demo Preparation,
-Final Testing & Rehearsal, and Final Presentation. The System User Guide and
-its final screenshots are complete; the presentation is not complete.
+and Project Documentation are complete. The reconciled documents passed the
+internal group review; no further corrections were requested. Remaining
+tracker work is Demo Preparation, Final Testing & Rehearsal, and Final
+Presentation. The System User Guide and its final screenshots are complete; the
+presentation is not complete.
 
 ## 5. Technical Decisions & Issues
 
@@ -627,13 +629,13 @@ are complete. Integration & Bug Fixing is complete: the final integration audit
 found no current implementation defect, the same-revision PO edit race passed
 the guarded MySQL verification, and no production-code fix was required. The
 feature-frozen application is a stable release candidate for the remaining
-Project Documentation, demo preparation, final testing/rehearsal, and final
-presentation work. Work after the freeze remains limited to confirmed defect
-correction, documentation reconciliation, demo preparation, rehearsal,
-presentation preparation, and explicitly approved final polish.
+Demo Preparation, Final Testing & Rehearsal, and Final Presentation phases.
+Project Documentation is complete. Work after the freeze remains limited to
+confirmed defect correction, documentation maintenance, demo preparation,
+rehearsal, presentation preparation, and explicitly approved final polish.
 
-**Remaining closeout and limitations:** Project Documentation, demo preparation,
-final testing/rehearsal, and presentation work remain. Some accessibility
+**Remaining closeout and limitations:** Demo Preparation, Final Testing &
+Rehearsal, and Final Presentation remain. Some accessibility
 checks, including contrast measurement and stronger programmatic association of
 validation messages, remain for later evaluation. The project is not yet
 finished or claimed production-ready;
@@ -659,13 +661,13 @@ If we started the project again, we would complete more of the requirements and 
 Approved core management workflows are implemented. Edge Cases & Permissions
 validation is complete, and FT18 current-scope validation passed 19/19 (0 Fail,
 0 Blocked, 0 Not Run). Final User Guide screenshots have been captured and
-privacy-reviewed, and the core feature freeze is declared. Remaining tracker
-work concerns Project Documentation, demo preparation, final testing/rehearsal,
-and presentation preparation. Final integration found no current implementation
-defect; the guarded MySQL same-revision PO edit verification passed, and no
-production-code fix was required. The feature-frozen application is a stable
-release candidate for those remaining phases; the school project is not yet
-complete.
+privacy-reviewed, and the core feature freeze is declared. Project
+Documentation is complete. Remaining tracker work concerns Demo Preparation,
+Final Testing & Rehearsal, and Final Presentation. Final integration found no
+current implementation defect; the guarded MySQL same-revision PO edit
+verification passed, and no production-code fix was required. The
+feature-frozen application is a stable release candidate for those remaining
+phases; the school project is not yet complete.
 
 ## 8. Appendices / Links
 

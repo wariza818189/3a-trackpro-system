@@ -14,7 +14,7 @@ project status.
 
 ## Current Focus
 
-Current focus: **Finalization — Project Documentation, demo preparation, final testing/rehearsal, and presentation preparation**
+Current focus: **Demo Preparation, followed by Final Testing & Rehearsal and Final Presentation**
 
 Status: **Core feature freeze complete; finalization work is next**
 
@@ -49,7 +49,7 @@ approved screenshots are complete; no tracker item is currently In Progress.
 | PROJECT PLANNING | UI/UX | Prepare layout ideas for Dashboard, POS, Products, Inventory, and Reports | Jayson Amores | 09/10/2026 | 09/15/2026 | Completed | Wireframe / layout plan | Review layouts before major implementation. A retrospective, source-accurate UI/UX layout and workflow plan is complete. |
 | PROJECT PLANNING | Business Rules | Define sales, stock-in, stock correction, permissions, and transaction rules | ROBERT JAMES WARIZA | 09/13/2026 | 09/17/2026 | Completed | Workflow and business rules | Include important edge cases and transaction-integrity rules. Requirements and database-design documents record the approved rules. |
 | PROJECT PLANNING | Test Cases | Prepare test scenarios for login, sales, stock, restocking, and permissions | Rommel Jave Casipong | 09/15/2026 | 09/19/2026 | Completed | Testing checklist | Use throughout functional and edge-case testing. The prepared catalog contains 79 consolidated cases with 87/87 approved requirements and assumptions represented. |
-| PROJECT PLANNING | Documentation | Prepare the structure of the project documentation and user guide | Willmer Largo | 09/17/2026 | 09/21/2026 | Completed | Documentation outline | The requirements, project documentation, database design, and user guide have an organized structure. Final narrative review and submission/presentation materials remain in the separate Not Started Project Documentation and finalization work. |
+| PROJECT PLANNING | Documentation | Prepare the structure of the project documentation and user guide | Willmer Largo | 09/17/2026 | 09/21/2026 | Completed | Documentation outline | The requirements, project documentation, database design, and user guide have an organized structure. The final narrative was later reconciled and group-reviewed under Project Documentation; submission and presentation preparation remain in their separate tracker rows. |
 | PROJECT PLANNING | Database Design | Design database entities, relationships, constraints, roles, and authorization rules | ROBERT JAMES WARIZA | 09/18/2026 | 09/23/2026 | Completed | ERD / database design | Approve the database and system design before core coding. The implemented baseline and approved additive expansion design are documented. |
 | DASHBOARD | Summary | Display sales and inventory summary | Jayson Amores | 10/09/2026 | 10/11/2026 | Completed | Working dashboard summary | Show key sales, transaction, product, and inventory information using current system data. Implemented and verified. |
 | DASHBOARD | Low Stock | Display products reaching low-stock level | Jayson Amores | 10/10/2026 | 10/12/2026 | Completed | Working low-stock alert section | Show active products or variants whose stock is at or below the configured low-stock threshold. Implemented and verified. |
@@ -109,21 +109,21 @@ approved screenshots are complete; no tracker item is currently In Progress.
 | TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | Completed | Edge-case / security test report | Automated pre-verification passed (focused 220 tests / 2,604 assertions; SQLite 558 / 6,112). Revised current-scope FT18 passed 19/19. Historical FT17 remains paused, unchanged at 8/1/0/28. Post-FT18 Reports visual regression passed. Core feature freeze declared; details in project documentation. |
 | DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | Completed | Final System User Guide and screenshot set | Guide synchronized with frozen behavior; 18 mandatory screenshots captured, reviewed, and inserted; Admin/Staff boundaries and opening cash, procurement, damage, and report workflows represented; privacy review passed. Screenshot checkpoint `915a200` retained. |
 | FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Completed | Stable feature-frozen release candidate | Final integration audit found no current implementation defect; no production fix was required. Existing automated, FT18, and guarded MySQL evidence retained. Same-revision PO edits passed 3/3; one commit and one controlled stale rejection, no partial loser write; containing guarded class passed 5 tests / 178 assertions. |
-| DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Not Started | Final documentation | Final document should be reviewed by the group before submission/presentation. Finalization has not begun. |
+| DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Completed | Final documentation | Final project documents reconciled; README, requirements, project documentation, and database design reviewed. Current implementation/test status synchronized; historical evidence preserved; User Guide/screenshots complete. Internal group review passed; no further corrections requested. |
 | PRESENTATION | Demo Preparation | Prepare presentation slides, system demo flow, and speaking assignments | ALL MEMBERS | 10/18/2026 | 10/20/2026 | Not Started | Presentation materials | Every member should understand the system and assigned speaking part. Presentation preparation has not begun. |
 | TESTING | Final Testing & Rehearsal | Perform final end-to-end testing and practice the system presentation | ALL MEMBERS | 10/20/2026 | 10/21/2026 | Not Started | Final checklist / rehearsal | Freeze the system before the final presentation except for critical fixes. Final testing and rehearsal have not begun. |
 | PRESENTATION | Final Presentation | Present and demonstrate 3A TrackPro on finals day | ALL MEMBERS | 10/22/2026 | 10/22/2026 | Not Started | Final presentation | Finals day. |
 
 ## Status Summary
 
-- Completed: 67
+- Completed: 68
 - In Progress: 0
-- Not Started: 4
+- Not Started: 3
 - Total: 71
 
-Arithmetic check: **67 + 0 + 4 = 71**.
-There are no In Progress items. Not Started items remain Project Documentation,
-Demo Preparation, Final Testing & Rehearsal, and Final Presentation.
+Arithmetic check: **68 + 0 + 3 = 71**.
+There are no In Progress items. Not Started items remain Demo Preparation,
+Final Testing & Rehearsal, and Final Presentation.
 
 ## Excel Sync
 
