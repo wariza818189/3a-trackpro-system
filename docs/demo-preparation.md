@@ -14,9 +14,10 @@
 
 **Core application:** FEATURE FROZEN
 
-**Current preparation status:** Demo flow prepared; final speaker assignments,
-presentation timing, and slide deck still require completion. Demo Preparation
-is not complete.
+**Current preparation status:** Demo flow, presentation-duration policy, and
+primary speaking assignments are prepared. The slide deck and remaining group
+decisions still require completion. Demo Preparation remains Not Started and is
+not complete.
 
 ## 1. Demo Principles
 
@@ -149,7 +150,15 @@ account can alter prepared state or report results.
 Use one business story and keep Admin work together. Navigate existing records;
 do not submit forms during the formal demo.
 
+### Opening — Layupan: Project Overview
+
+Introduce the project title, problem/context, purpose, objectives, intended
+users, and Admin/Staff roles. Give a short introduction to TrackPro, then hand
+off to Wariza for the inventory and procurement workflow.
+
 ### Segment A — Admin: Inventory and Procurement
+
+**Presenter: Wariza**
 
 1. Sign in as Admin.
 2. Show the Dashboard and role-labelled navigation.
@@ -171,17 +180,21 @@ reporting.
 
 ### Segment B — Admin: Sales and Control
 
+**Presenter: Largo**
+
 9. Show the closed-register POS/opening-cash state without submitting. Explain
    that opening cash is register state, not sales revenue.
 10. Show the TRX-000001 completed receipt and Sales History.
 11. Show TRX-000002 as Voided. Explain that the original transaction is
     preserved, stock was restored, and the reason, actor, and time are retained.
-12. Show the Reports hub and Sales Summary.
-13. If selected by the group, show User Management and Audit Logs read-only.
+12. If selected by the group, show User Management and Audit Logs read-only.
+13. Hand off to Amores for the Staff daily-operation view.
 
 Do not open the register, create another sale, or void another transaction.
 
 ### Segment C — Staff: Daily Operations
+
+**Presenter: Amores**
 
 14. Sign out of Admin and sign in as Staff.
 15. Show the Staff Dashboard and its role difference from Admin.
@@ -190,8 +203,42 @@ Do not open the register, create another sale, or void another transaction.
 18. Show Movement History and point out the absence of Admin-only navigation
     and actions.
 
-Close by summarizing role separation, inventory traceability, report coverage,
-and the feature-frozen state. Avoid further role switching.
+After Segment C, hand off to Casipong for reports, testing evidence, and the
+closing summary. Avoid further role switching.
+
+### Closing — Casipong: Reports, Quality Evidence, and Q&A
+
+Use the approved screenshot evidence to show how the Reports hub groups Sales,
+Inventory, and Procurement, and point to representative Sales, Inventory, and
+Procurement reports. This avoids another role switch after the Staff segment.
+Summarize the validation evidence and feature-frozen stable release-candidate
+state, then invite instructor questions.
+
+Useful report images include `11-reports-sales-summary.png`,
+`12-inventory-report.png`, `13-pending-po-report.png`,
+`14-unfulfilled-items-report.png`, and `15-damaged-items-report.png` from
+`docs/images/user-guide/`.
+
+Concise evidence for the closing may include:
+
+- FT18 current-scope validation: 19 / 19 Pass.
+- Ordinary SQLite: 558 tests / 6,112 assertions PASS.
+- Same-revision PO edit verification: 3 / 3 focused repeats PASS; its
+  containing guarded MySQL class passed 5 tests / 178 assertions.
+
+Keep these results separate; do not combine them into a grand total.
+
+**Speaking handoffs** should be short cues, not memorized scripts:
+
+- **Layupan → Wariza:** introduce the inventory/procurement workflow after the
+  project overview.
+- **Wariza → Largo:** move from procurement/report evidence to daily sales and
+  register operations.
+- **Largo → Amores:** move from Admin-side sales controls to Staff daily
+  operations.
+- **Amores → Casipong:** move from Staff workflow and Movement History to
+  reports, verification, and closing.
+- **Casipong → Q&A:** summarize the system and invite instructor questions.
 
 ## 7. Teacher-Scope Coverage
 
@@ -208,16 +255,15 @@ and the feature-frozen state. Avoid further role switching.
 
 ## 8. Speaking Assignments
 
-Assignments are not yet made. The group should fill this table; no member is
-assumed to have accepted an assignment.
+The group has confirmed these balanced primary responsibilities:
 
-| Segment / responsibility | Assigned member |
-| --- | --- |
-| Opening / project overview | TBD |
-| Admin inventory and procurement demo | TBD |
-| POS / Sales / Sale Void demo | TBD |
-| Staff workflow / Movement History | TBD |
-| Reports / closing summary / Q&A support | TBD |
+| Segment / responsibility | Assigned member | Topics |
+| --- | --- | --- |
+| Opening / Project Overview | Layupan | Project title, problem/context, purpose, objectives, intended users, Admin/Staff overview, introduction, and handoff. |
+| Admin Inventory & Procurement | Wariza | Dashboard, Plywood and G.I. Pipe stock/coverage, PO prioritization, PO #1 receiving/damage, PO #2 lineage, and Pending PO, Unfulfilled Items, and Damaged Items reports. Wariza anchors this interconnected workflow based on deep end-to-end project and technical context. |
+| POS / Sales / Sale Void | Largo | Closed register, opening-cash concept, TRX-000001 receipt and history, and TRX-000002 void status, preserved details, reason, and stock-restoration concept. |
+| Staff Workflow / Movement History | Amores | Staff login/dashboard, role boundary, Stock In form, useful PO access, and Movement History. |
+| Reports / Testing / Closing / Q&A Support | Casipong | Reports organization and representative reports, concise testing evidence, feature-freeze/release-candidate summary, closing, and question invitation. |
 
 Team members available for assignment, in documented order:
 
@@ -227,27 +273,45 @@ Team members available for assignment, in documented order:
 - Largo
 - Amores
 
-Each member must understand the full system even if responsible for only one
-primary segment. These placeholders are not approved assignments.
+Each member must understand the full system even if responsible for one primary
+segment. Wariza is also the **secondary technical Q&A backup**; this does not
+make Wariza the default answerer for every question. The member responsible for
+the relevant section answers first. If a question crosses modules or needs
+deeper implementation detail, that presenter may hand off to Wariza. Other
+members should understand the complete system and contribute where appropriate.
+Each member should be able to answer basic questions about their demonstrated
+features and know the handoff before and after their section; this understanding
+has not yet been confirmed for all members.
+
+Technical handoff topics may include database transactions, concurrency,
+stale-revision protection, authorization boundaries, inventory arithmetic,
+Sale Void stock restoration, PO lineage, guarded MySQL testing, and data
+integrity. This support role does not mean other members lack system knowledge.
 
 ## 9. Timing
 
-**Official presentation/demo duration:** NOT DOCUMENTED IN CURRENT REPOSITORY
-MATERIALS.
+**Official presentation allowance:** Open-ended / until the group finishes
+explaining the system. The group reports that the instructor communicated no
+fixed time limit; this is not presented as a formally published school rule.
 
-- Confirmed presentation allowance: **TBD by group / instructor**
-- Internal demo target: **TBD after the allowance is confirmed**
+**INTERNAL TARGET — approximately 12–15 minutes for the structured
+presentation/demo, excluding open-ended Q&A.** This target is intended to keep
+the presentation focused, avoid repetition, leave time for questions, and cover
+the important teacher-requested workflows. It is not an instructor-mandated
+limit.
 
-| Segment | Timing |
+| Presenter / segment | Internal pacing target |
 | --- | --- |
-| Opening / context | TBD |
-| Admin procurement segment | TBD |
-| Sales / control segment | TBD |
-| Staff segment | TBD |
-| Closing / Q&A buffer | TBD |
+| Layupan — Opening / Project Overview | 1.5–2 minutes |
+| Wariza — Inventory & Procurement | 4–5 minutes |
+| Largo — POS / Sales / Sale Void | 2.5–3 minutes |
+| Amores — Staff Workflow / Movement History | 2–2.5 minutes |
+| Casipong — Reports / Testing / Closing | 2–3 minutes |
+| **Structured presentation/demo total** | **Approximately 12–15 minutes** |
+| Q&A | Open-ended / instructor-directed |
 
-Do not treat a suggested internal target as a school requirement. Actual timing
-practice belongs to Final Testing & Rehearsal.
+These are internal rehearsal targets only, not official time limits. Refine
+final pacing during Final Testing & Rehearsal.
 
 ## 10. Screenshot Fallback
 
@@ -316,9 +380,10 @@ credentials private; never commit a dump or credentials to Git.
 
 ## 13. Slide Deck Brief
 
-The tracker requires presentation slides. The actual slide deck is a separate
-deliverable and is not included here. These are recommended topics, not a fixed
-slide count if a later presentation requirement specifies otherwise:
+The tracker requires presentation slides. **Actual presentation slide deck:
+NOT YET CREATED.** Creating it is a separate remaining deliverable. These are
+recommended topics, not a fixed slide count if a later presentation requirement
+specifies otherwise:
 
 1. Title
 2. Project problem and purpose
@@ -340,14 +405,16 @@ deployment, or metrics.
 
 ## 14. Group Decisions Still Required
 
-- [ ] Confirm official presentation duration with the group/instructor.
-- [ ] Assign all five speaking/demo roles.
+- [x] Confirm presentation-duration policy: open-ended until the group finishes
+      explaining the system; no fixed limit was communicated by the instructor.
+- [x] Assign all five speaking/demo roles as listed above.
 - [ ] Confirm who controls the laptop during the demo.
-- [ ] Confirm who handles questions while another member demonstrates.
 - [ ] Confirm whether User Management and Audit Logs are included live.
-- [ ] Confirm final slide deck content.
+- [ ] Create/finalize the actual slide deck.
+- [ ] Group review of the slide deck.
 - [ ] Confirm the presentation laptop.
 - [ ] Confirm backup/fallback strategy before rehearsal.
+- [ ] Confirm every member understands their assigned part and handoffs.
 
 ## 15. Final Testing & Rehearsal Handoff
 
@@ -366,19 +433,22 @@ None of these activities is marked complete by this run sheet.
 
 Demo Preparation can close only when:
 
-- [ ] This run sheet exists and is current.
-- [ ] Demo environment and data are prepared.
-- [ ] Teacher-requested scope is mapped to demo evidence.
-- [ ] Live/read-only decisions are finalized.
-- [ ] Startup, recovery, and fallback instructions are ready.
-- [ ] Final presentation slides exist.
-- [ ] Speaking assignments for all five members are filled.
-- [ ] Official presentation allowance is confirmed, or remains explicitly
-      unknown with an agreed internal timing plan.
-- [ ] Every member understands their assigned section and the full system.
-- [ ] The group has reviewed the demo plan.
+- [x] This run sheet exists and is current.
+- [x] Demo environment and stable dataset are prepared.
+- [x] Teacher-requested scope is mapped to demo evidence.
+- [x] Demo sequence and read-only/live strategy are prepared.
+- [x] Startup, recovery, and screenshot fallback instructions are prepared.
+- [x] Primary speaking assignments for all five members are established.
+- [x] Presentation-duration policy and internal pacing target are established.
+- [ ] Actual presentation slide deck exists.
+- [ ] Laptop operator is confirmed.
+- [ ] Group decides whether User Management and Audit Logs are included live.
+- [ ] Final backup/fallback strategy is confirmed.
+- [ ] Group reviews the slide deck and demo plan.
+- [ ] Every member confirms understanding of their section, the full system
+      flow, basic questions about their features, and handoffs before/after
+      their section.
 - [ ] The plan is ready to enter Final Testing & Rehearsal.
 
-This run sheet alone does **not** satisfy these closeout criteria: slides,
-assignments, timing decisions, and group review remain outstanding. Demo
-Preparation is not complete.
+The slide deck, remaining group decisions, and group review are outstanding.
+Demo Preparation is not complete.
