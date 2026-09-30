@@ -14,7 +14,7 @@ project status.
 
 ## Current Focus
 
-Current focus: **Finalization — begin with Integration & Bug Fixing, then Project Documentation, demo preparation, final testing/rehearsal, and presentation preparation**
+Current focus: **Finalization — Project Documentation, demo preparation, final testing/rehearsal, and presentation preparation**
 
 Status: **Core feature freeze complete; finalization work is next**
 
@@ -108,7 +108,7 @@ approved screenshots are complete; no tracker item is currently In Progress.
 | TESTING | Functional Testing | Test all completed modules and document errors or unexpected results | Rommel Jave Casipong | 10/12/2026 | 10/13/2026 | Completed | Functional test results | Report discovered bugs to the project lead and retest after fixes. Formal run `FT15-20260909-A`: 30/30 Passed, 0 Failed, 0 Blocked, 0 Remaining. |
 | TESTING | Edge Cases & Permissions | Test invalid inputs, insufficient stock, duplicate actions, and unauthorized access | Rommel Jave Casipong | 10/14/2026 | 10/15/2026 | Completed | Edge-case / security test report | Automated pre-verification passed (focused 220 tests / 2,604 assertions; SQLite 558 / 6,112). Revised current-scope FT18 passed 19/19. Historical FT17 remains paused, unchanged at 8/1/0/28. Post-FT18 Reports visual regression passed. Core feature freeze declared; details in project documentation. |
 | DOCUMENTATION | User Guide & Screenshots | Prepare user instructions and organize final system screenshots | Willmer Largo | 10/14/2026 | 10/16/2026 | Completed | Final System User Guide and screenshot set | Guide synchronized with frozen behavior; 18 mandatory screenshots captured, reviewed, and inserted; Admin/Staff boundaries and opening cash, procurement, damage, and report workflows represented; privacy review passed. Screenshot checkpoint `915a200` retained. |
-| FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Not Started | Release candidate | No major new features after this phase; prioritize stability and correctness. This phase has not begun. |
+| FINALIZATION | Integration & Bug Fixing | Review all modules, fix identified issues, and prepare a stable final build | ROBERT JAMES WARIZA | 10/15/2026 | 10/18/2026 | Completed | Stable feature-frozen release candidate | Final integration audit found no current implementation defect; no production fix was required. Existing automated, FT18, and guarded MySQL evidence retained. Same-revision PO edits passed 3/3; one commit and one controlled stale rejection, no partial loser write; containing guarded class passed 5 tests / 178 assertions. |
 | DOCUMENTATION | Project Documentation | Finalize project description, objectives, features, workflows, and screenshots | Willmer Largo | 10/16/2026 | 10/19/2026 | Not Started | Final documentation | Final document should be reviewed by the group before submission/presentation. Finalization has not begun. |
 | PRESENTATION | Demo Preparation | Prepare presentation slides, system demo flow, and speaking assignments | ALL MEMBERS | 10/18/2026 | 10/20/2026 | Not Started | Presentation materials | Every member should understand the system and assigned speaking part. Presentation preparation has not begun. |
 | TESTING | Final Testing & Rehearsal | Perform final end-to-end testing and practice the system presentation | ALL MEMBERS | 10/20/2026 | 10/21/2026 | Not Started | Final checklist / rehearsal | Freeze the system before the final presentation except for critical fixes. Final testing and rehearsal have not begun. |
@@ -116,15 +116,14 @@ approved screenshots are complete; no tracker item is currently In Progress.
 
 ## Status Summary
 
-- Completed: 66
+- Completed: 67
 - In Progress: 0
-- Not Started: 5
+- Not Started: 4
 - Total: 71
 
-Arithmetic check: **66 + 0 + 5 = 71**.
-There are no In Progress items. Not Started items remain Integration & Bug
-Fixing, Project Documentation, Demo Preparation, Final Testing & Rehearsal,
-and Final Presentation.
+Arithmetic check: **67 + 0 + 4 = 71**.
+There are no In Progress items. Not Started items remain Project Documentation,
+Demo Preparation, Final Testing & Rehearsal, and Final Presentation.
 
 ## Excel Sync
 

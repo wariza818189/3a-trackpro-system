@@ -363,8 +363,8 @@ presentation is not complete.
 | Problem or Issue | Decision or Solution | Current Status |
 | --- | --- | --- |
 | The teacher-requested expansion changed the expected final workflows. | Requirements, database design, development priorities, and the testing plan were revised before continuing formal edge testing. | At the planning checkpoint recorded here, #27 follow-up ordering and #28–#29 procurement reports were complete, while damage handling and the Damaged Items Report had not yet been implemented. #30 and #31 were completed later. |
-| The edge and permission testing run no longer covered the expanded final scope. | Completed results were preserved, and the run was paused instead of executing an outdated case set against changing architecture. | Paused and awaiting a refreshed test baseline. |
-| Simultaneous requests could conflict or rely on older inventory/register data. | The system rechecks the latest stored data and uses database transaction protection before saving. The single-register rule also has database-level protection and isolated MySQL-specific tests. | Applied to register and inventory services; Purchase Order updates still need final simultaneous-update verification. |
+| The edge and permission testing run no longer covered the expanded final scope. | Completed results were preserved, and the run was paused instead of executing an outdated case set against changing architecture. | Historical FT17 remains paused at 8 Pass / 1 Fail / 0 Blocked / 28 Remaining. The separate current-scope FT18 subsequently passed 19/19; FT18 does not rewrite FT17. |
+| Simultaneous requests could conflict or rely on older inventory/register data. | The system rechecks the latest stored data and uses database transaction protection before saving. The single-register rule also has database-level protection and isolated MySQL-specific tests. | Register and inventory concurrency are verified. Guarded MySQL same-revision edits to one pending PO passed: exactly one update committed and the competing edit received controlled stale-revision rejection, with no partial loser write, mixed state, lost update, deadlock, or uncontrolled error. The focused scenario passed 3/3; its containing class passed 5 tests / 178 assertions. |
 | Current catalog values can change after a sale. | Sale and Sale Item snapshots preserve the historical receipt values instead of substituting current catalog data. | Implemented for Sales History and receipt/reprint. |
 
 ### 5.3 Instructor and Team Interventions
@@ -528,7 +528,7 @@ Product Sales grouped amount reconciliation with Sales Summary's completed-sales
 
 **Current engineering verification for Product Sales Report (user-run):** the focused Product Sales suite passed 8 tests; Reports authorization, Sales Summary, Sales History, and POS regressions passed 39 tests; the full ordinary SQLite suite passed 477 tests. Sales Summary reconciliation passed. One SaleItem SELECT served 12 Product/Variant groups. `npm run build`, targeted Pint, and `git diff --check` passed. No MySQL run or migration/schema change occurred. These are current engineering results, separate from teacher/manual testing and the historical FT15 and paused FT17 records.
 
-**Implemented but needing additional testing:** The register feature has focused application and MySQL-specific evidence but no consolidated result summary. The expanded formal case catalog and consolidated execution record still need completion. Purchase Order edit-versus-edit behavior also needs its own simultaneous-update verification.
+**Implemented with evidence; documentation reconciliation remains:** The register feature has focused application and MySQL-specific evidence, including simultaneous-operation behavior, but no consolidated register-specific result summary. The expanded formal case catalog and consolidated execution record remain for Project Documentation. Same-revision concurrent edits to one pending Purchase Order are now verified on guarded MySQL: exactly one edit committed, the competing edit was rejected through the controlled stale-revision path, and the loser produced no partial write. The winner's complete state remained persisted without a lost update, mixed state, deadlock, or uncontrolled error. The focused scenario passed 3/3; its containing class passed 5 tests / 178 assertions.
 
 **Current Purchase Order state:**
 
@@ -604,17 +604,20 @@ core implementation blocker, unresolved security/data-integrity defect,
 current-scope manual blocker, or schema/migration mismatch remains. It does
 not mean project work or the presentation are complete, and it does not rule
 out fixing future defects. The System User Guide and all 18 approved screenshots
-are complete. Remaining tracker rows are final integration/bug fixing, Project
-Documentation, demo preparation, final testing/rehearsal, and final
-presentation. Work after the freeze is limited to confirmed defect correction,
-documentation reconciliation, integration cleanup, demo preparation, rehearsal,
+are complete. Integration & Bug Fixing is complete: the final integration audit
+found no current implementation defect, the same-revision PO edit race passed
+the guarded MySQL verification, and no production-code fix was required. The
+feature-frozen application is a stable release candidate for the remaining
+Project Documentation, demo preparation, final testing/rehearsal, and final
+presentation work. Work after the freeze remains limited to confirmed defect
+correction, documentation reconciliation, demo preparation, rehearsal,
 presentation preparation, and explicitly approved final polish.
 
-**Remaining closeout and limitations:** Final integration/review, Project
-Documentation, demo preparation, final testing/rehearsal, and presentation
-work remain. Some accessibility checks, including contrast measurement and
-stronger programmatic association of validation messages, remain for later
-evaluation. The project is not yet finished or claimed production-ready;
+**Remaining closeout and limitations:** Project Documentation, demo preparation,
+final testing/rehearsal, and presentation work remain. Some accessibility
+checks, including contrast measurement and stronger programmatic association of
+validation messages, remain for later evaluation. The project is not yet
+finished or claimed production-ready;
 feature freeze does not mean every possible defect is impossible or that all
 future changes are prohibited.
 
@@ -638,9 +641,12 @@ Approved core management workflows are implemented. Edge Cases & Permissions
 validation is complete, and FT18 current-scope validation passed 19/19 (0 Fail,
 0 Blocked, 0 Not Run). Final User Guide screenshots have been captured and
 privacy-reviewed, and the core feature freeze is declared. Remaining tracker
-work concerns integration/bug fixing, Project Documentation, demo preparation,
-final testing/rehearsal, and presentation preparation; the school project is not
-yet complete.
+work concerns Project Documentation, demo preparation, final testing/rehearsal,
+and presentation preparation. Final integration found no current implementation
+defect; the guarded MySQL same-revision PO edit verification passed, and no
+production-code fix was required. The feature-frozen application is a stable
+release candidate for those remaining phases; the school project is not yet
+complete.
 
 ## 8. Appendices / Links
 
