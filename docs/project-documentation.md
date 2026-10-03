@@ -468,11 +468,49 @@ The separate [Detailed Test Cases](./test-cases.md) document preserves a
 
 The catalog was first prepared on **September 9, 2026** and remains a
 checkpoint-specific planning artifact. It is not a retroactively revised
-catalog or the current comprehensive execution record. Its 79 cases are
-supporting historical evidence and were not all executed. The revised
-current-scope manual validation is recorded separately in FT18; it passed
-19/19 cases. Historical FT17 remains separately preserved as paused and
-incomplete.
+catalog. Its 79 cases are supporting historical evidence and were not all
+executed.
+
+#### WST 1 — System Testing 2 — Test Cases & Test Execution
+
+- **Date:** October 3, 2026
+- **Total Cases:** 15
+- **Executed:** 15
+- **PASS:** 15
+- **FAIL:** 0
+- **Not Executed:** 0
+- **Responsible Tester/Reviewer:** Casipong
+- **Execution Tool:** Codex Desktop browser
+- **Environment:** `http://127.0.0.1:8017`
+- **Authorized test database:** `trackpro_wst2_test`
+
+All 15 planned cases were executed and passed. No WST2 defect was confirmed.
+Supporting members are shown per case; Casipong is the responsible
+tester/reviewer for the run. The results below are the final WST2 record.
+
+| Test Case | Expected Result | Actual Result | Result | Supporting Member |
+| --- | --- | --- | --- | --- |
+| TC-ST2-001 — Admin Login | Valid Admin credentials authenticate and open the Dashboard with Admin identity and navigation. | `demo_admin` authenticated and reached the TrackPro Dashboard as Demo Administrator — Admin. Admin navigation, including User Management and Audit Logs, was visible. | PASS | Layupan |
+| TC-ST2-002 — Invalid Admin Password | Invalid credentials are rejected; protected pages remain unavailable without an authenticated session. | The invalid password was rejected at `/login` with “The provided credentials are incorrect.” Direct access to `/` and `/users` returned to `/login`; no authenticated Dashboard or Admin navigation was available. **Clean-repeat result:** an earlier access check was invalidated because a separate login occurred before protected-page verification; the clean repeat is final. | PASS | Layupan |
+| TC-ST2-003 — Staff attempts Admin-only feature | Staff cannot access Admin-only User Management or perform an Admin-only mutation. | `demo_staff` authenticated as Demo Staff — Staff. Administration links were absent. Direct access to `/users` returned 403 with “This action is unauthorized.” No Admin-only mutation occurred. | PASS | Wariza |
+| TC-ST2-004 — POS blocked when register closed | Checkout is unavailable with a closed register and creates no sale or inventory movement. | POS showed Cash Register: Closed. Common Nail could be added to the cart, but Checkout remained disabled. No sale or SALE movement was created; Common Nail remained at 15 kg. | PASS | Wariza |
+| TC-ST2-005 — Open register with valid opening cash | A valid opening balance opens the register and does not count as sales revenue. | Opening cash of ₱1,000.00 was submitted. “Cash register opened” and Cash Register: Open appeared. Sales Summary remained ₱0.00 before the test sale. | PASS | Wariza |
+| TC-ST2-006 — Complete valid POS sale | A valid sale records the receipt and payment, deducts exact stock, and creates a linked SALE movement. | `TRX-000003` completed for Common Nail, quantity 1.000 kg. Receipt total was ₱100.00, cash ₱200.00, and change ₱100.00. Stock decreased from 15.000 to 14.000 kg; Movement History showed one linked SALE movement of -1.000. | PASS | Wariza |
+| TC-ST2-007 — Sale exceeding available stock | An over-stock sale is rejected without changing stock, creating a sale, or recording a SALE movement. | Plywood stock was 2 sheets. The attempted sale of 3 was rejected with “Insufficient stock. Current availability is 2.000 sheet.” Stock remained 2; no sale or Plywood SALE movement was created. | PASS | Wariza |
+| TC-ST2-008 — Create PO from uncovered low stock | A purchase order can be created for an uncovered low-stock item and retains its entered quantity and cost. | Plywood showed 2 sheets in stock, threshold 5, and Priority — No Open PO Coverage. Submitting WST2 Supplier A, 5 sheets, and ₱100.00 expected unit cost created PO #3, Pending, with one Plywood line and 5.000 sheets outstanding. | PASS | Wariza |
+| TC-ST2-009 — Partial PO receiving with accepted + damaged | Receiving records accepted and damaged quantities separately, adds only accepted quantity to stock, and updates outstanding PO quantity. | `RST-000003` recorded 2.000 accepted and 1.000 damaged Plywood sheet against PO #3 at actual unit cost ₱100.00. Sellable stock rose from 2 to 4; one linked Stock In movement showed +2.000. PO #3 became Partially Received with 3.000 outstanding. | PASS | Wariza |
+| TC-ST2-010 — Follow-up PO transfer | Outstanding quantities transfer to a linked follow-up PO without changing inventory; parent transfer and receipt history remain traceable. | All 3.000 outstanding Plywood sheets transferred from PO #3 to PO #4 for WST2 Supplier B. PO #4 became Pending with 3.000 outstanding and linked to PO #3. PO #3 showed 3.000 transferred, 0.000 outstanding, Closed With Remainder, child linkage, and receipt history. Stock remained 4. | PASS | Wariza |
+| TC-ST2-011 — Void test sale | An eligible sale can be voided once, preserving receipt history and reason while restoring stock with a linked void movement. | `TRX-000003` changed from Completed to Voided; receipt details remained visible. Reason “WST2 manual test void,” Admin actor, and void time were retained. Common Nail stock returned from 14.000 to 15.000 kg with one linked Sale Void movement of +1.000. Repeat void was unavailable. | PASS | Wariza |
+| TC-ST2-012 — Reports reflect WST2 state | All five documented reports load and reflect the resulting WST2 data, including exclusion of voided sales. | All five reports loaded. Sales Summary for Sep 27–Oct 3 showed no completed Oct 3 transaction, excluding voided `TRX-000003`. Inventory showed Plywood 4 sheets and Common Nail 15 kg. Pending Purchase Orders and Unfulfilled Items each showed PO #4 with 3 Plywood sheets outstanding. Damaged Items showed 1 damaged Plywood sheet on `RST-000003`. | PASS | Wariza |
+| TC-ST2-013 — Movement History traceability | Successful sale, receipt, and void movements link to their source records; rejected sale creates no movement. | Movement History showed Common Nail Sale -1.000 kg (15.000 → 14.000), linked to `TRX-000003`; Plywood Stock In +2.000 sheets (2.000 → 4.000), linked to `RST-000003` and PO #3; and Common Nail Sale Void +1.000 kg (14.000 → 15.000), linked to `TRX-000003`. No movement appeared for the rejected Plywood sale. | PASS | Wariza |
+| TC-ST2-014 — User Management missing required username | A missing required username is blocked by validation and creates neither a user nor an audit event. | With Name “WST2 Test User,” Staff selected, and Username blank, submission remained on Create User and showed “Please fill out this field” at Username. The list still contained only the two demo accounts; Audit Logs showed no new User Created event. | PASS | Wariza |
+| TC-ST2-015 — Mobile/responsive authenticated UI | At the recorded mobile viewport, content fits available width, navigation works, forms remain usable, and tables scroll within their containers. | At a verified 390 × 844 content viewport, Dashboard was readable and mobile navigation worked. Create User fields stacked and accepted focus. The User Management table scrolled horizontally inside its container while the page remained in place. Dashboard document width was 390 px, matching available width; attempted horizontal page scrolling remained at 0. **Clean-retest result:** the previous attempt was superseded due to test-execution/setup error. | PASS | Wariza |
+
+This WST2 run is distinct from the historical FT15, paused FT17, and FT18
+records. FT17 remains preserved at 8 Pass / 1 Fail / 0 Blocked / 28 Remaining,
+and `TC-AUTH-006` remains historical FAIL. FT18 remains a separate
+current-scope manual validation run at 19/19. WST2 does not complete Final
+Testing & Rehearsal or Final Presentation.
 
 ### 6.3 Test Execution and Results
 
