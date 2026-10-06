@@ -14,19 +14,17 @@
 
 **Core application:** FEATURE FROZEN
 
-**Current preparation status:** Demo Preparation deliverables are complete. The
-final presentation deck and demo plan passed internal project-group review.
-Demo Preparation is ready to close; actual dry runs and rehearsal remain in
-Final Testing & Rehearsal.
+**Current preparation status:** Demo Preparation is complete. The team reviewed
+the presentation deck and demo plan. Dry runs and group rehearsal are still
+pending in Final Testing & Rehearsal.
 
 ## 1. Demo Principles
 
 ### READ-ONLY FIRST
 
-Prefer prepared records and read-only evidence during the formal demo. Do not
-consume or alter the stable demo dataset unless a specific live action has been
-intentionally approved. If an action could change important prepared evidence,
-show the existing record or an approved screenshot instead.
+Use prepared records and read-only evidence during the formal demo. Change the
+demo data only for an approved live action. If an action could change important
+evidence, show the saved record or an approved screenshot.
 
 - Use `trackpro_demo` only. Never run the presentation against
   `trackpro_local`.
@@ -122,8 +120,8 @@ and Sale Void evidence.
 
 | Feature / Evidence | Role | Mode | Reason |
 | --- | --- | --- | --- |
-| Sign in and role-labelled navigation | Admin, then Staff | LIVE NAVIGATION | Demonstrates authentication and role boundary without changing business records. |
-| Admin Dashboard | Admin | READ-ONLY / LIVE NAVIGATION | Show prepared summaries and recent activity; avoid actions that change the dataset. |
+| Sign in and role-labelled navigation | Admin, then Staff | LIVE NAVIGATION | Shows login and role access without changing business records. |
+| Admin Dashboard | Admin | READ-ONLY / LIVE NAVIGATION | Show saved summaries and recent activity. Do not change the dataset. |
 | Product and Variant details | Admin | READ-ONLY | Show saved stock, units, and thresholds. |
 | PO low-stock prioritization | Admin | READ-ONLY | Open the PO creation screen if useful, but do not submit a new PO. |
 | Parent PO #1 receiving and damage evidence | Admin | READ-ONLY | Preserves accepted, damaged, and transferred history. |
@@ -174,9 +172,8 @@ off to Wariza for the inventory and procurement workflow.
 8. Show the Pending Purchase Orders, Unfulfilled Items, and Damaged Items
    reports.
 
-This segment covers PO prioritization, PO-based delivery/receiving, partial
-receiving, follow-up procurement, outstanding demand, and damage evidence and
-reporting.
+This segment shows PO prioritization, partial receiving, follow-up ordering,
+remaining demand, and damage evidence and reporting.
 
 ### Segment B — Admin: Sales and Control
 
@@ -208,9 +205,8 @@ closing summary. Avoid further role switching.
 
 ### Closing — Casipong: Reports, Quality Evidence, and Q&A
 
-Use the approved screenshot evidence to show how the Reports hub groups Sales,
-Inventory, and Procurement, and point to representative Sales, Inventory, and
-Procurement reports. This avoids another role switch after the Staff segment.
+Use the approved screenshots to show the Sales, Inventory, and Procurement
+reports. This avoids switching roles again after the Staff segment.
 Summarize the validation evidence and feature-frozen stable release-candidate
 state, then invite instructor questions.
 
@@ -273,15 +269,14 @@ Team members available for assignment, in documented order:
 - Largo
 - Amores
 
-Each member must understand the full system even if responsible for one primary
-segment. Wariza is also the **secondary technical Q&A backup**; this does not
-make Wariza the default answerer for every question. The member responsible for
-the relevant section answers first. If a question crosses modules or needs
-deeper implementation detail, that presenter may hand off to Wariza. Other
-members should understand the complete system and contribute where appropriate.
-Each member should be able to answer basic questions about their demonstrated
-features and know the handoff before and after their section; this understanding
-has not yet been confirmed for all members.
+Each member must understand the full system, even if they present one segment.
+The presenter for a topic answers first. They can hand off to Wariza for
+cross-module or detailed technical questions. Wariza is the **secondary
+technical backup**, not the default answerer. Other members should understand
+the complete system and contribute where appropriate. Each member should be
+able to answer basic questions about their demonstrated features and know the
+handoff before and after their section; this understanding has not yet been
+confirmed for all members.
 
 Technical handoff topics may include database transactions, concurrency,
 stale-revision protection, authorization boundaries, inventory arithmetic,
