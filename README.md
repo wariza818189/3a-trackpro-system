@@ -1,28 +1,26 @@
 # 3A TrackPro
 
-Hardware Store Sales and Inventory Management System for a single-location Philippine hardware store. School project; final presentation: October 22, 2026.
+Academic sales and inventory system for a single-location hardware store in the Philippines. Final presentation: October 22, 2026.
 
 ## Current scope
 
-3A TrackPro is an academic Laravel 13 application for hardware-store sales
-and inventory workflows. Its core feature scope is implemented and
-feature-frozen; Integration & Bug Fixing is complete, and the application is a
-stable release candidate for the remaining documentation, demo, final testing
-and rehearsal, and presentation phases. This does not mean the school project
-is complete or publicly deployed.
+3A TrackPro is an academic Laravel 13 sales and inventory system for a hardware
+store. Its core features are implemented and feature-frozen. Integration & Bug
+Fixing is complete, and the application is a stable release candidate.
+Documentation, demo preparation, final testing and rehearsal, and presentation
+work remain. The project is not publicly deployed.
 
-The system includes username/password authentication with Admin/Staff roles,
-catalog and variant inventory workflows, opening cash and cash POS, receipts
-and Sales History, Admin-only full Sale Void, Purchase Order creation and
-receiving, procurement and inventory reports, User Management, Audit Logs, and
+The system provides Admin and Staff access; catalog and inventory workflows;
+cash POS, receipts, Sales History, and Admin-only full Sale Void; Purchase
+Orders and receiving; reports; User Management and Audit Logs; and a
 role-aware Dashboard and navigation. Admin User Management supports account
-role/status changes and password reset while protecting the last active Admin.
-Current application and guarded MySQL verification is summarized in the project
-documentation. See the [Project Tracker](docs/project-tracker.md)
-for authoritative current status and [Project Documentation](docs/project-documentation.md)
+role and status changes and password resets while protecting the last active
+Admin. Current application and guarded MySQL verification is summarized in the
+project documentation. See the [Project Tracker](docs/project-tracker.md) for
+authoritative current status and [Project Documentation](docs/project-documentation.md)
 for the academic project narrative. The [Requirements Baseline](docs/requirements.md)
 records the assumed scenario, approved requirements, implementation state, and
-scope boundaries. Supplier master data remains outside the approved scope.
+scope boundaries. Supplier master data is outside the approved scope.
 
 `PROJECT_STATUS.md` retains detailed historical checkpoints and verification
 evidence.
