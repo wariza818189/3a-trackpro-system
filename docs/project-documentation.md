@@ -388,9 +388,9 @@ The team responded by reviewing the requirements, revising the database design a
 
 ### 6.1 Testing Approach
 
-This section records the testing approach for the **September 17–18, 2026 WST 1 System Testing Approach activity**. It describes what was ready and how the team intended to evaluate it at that historical point; it is not a statement that all later tests or features were already complete.
+This section records the **September 17–18, 2026 WST 1 System Testing Approach activity**. It describes what was ready and how the team planned to test it at that time. It does not say that later tests or features were already complete.
 
-At that time, the stable core included authentication and roles, Dashboard, catalog management, Opening Inventory, Stock In, Stock Correction, POS checkout, Sales History, receipt/reprint, Sales Summary, and the responsive interface. Opening and closing the cash register were under active implementation and focused verification during the activity window. Procurement and Purchase Order functionality began later and was not ready for testing on September 17–18.
+At that time, authentication and roles, Dashboard, catalog management, Opening Inventory, Stock In, Stock Correction, POS checkout, Sales History, receipt/reprint, Sales Summary, and the responsive interface were ready. Opening and closing the cash register were still being implemented and checked. Procurement and Purchase Order features came later and were not ready for testing on September 17–18.
 
 #### 6.1.1 Features Ready for Testing
 
@@ -405,53 +405,53 @@ At that time, the stable core included authentication and roles, Dashboard, cata
 - Sales Summary filtering and calculations; and
 - responsive navigation and the main desktop/mobile layouts.
 
-The register-opening and closing workflow was treated as active implementation/focused verification, not as a fully closed feature at the beginning of the activity. Purchase Orders, procurement receiving, follow-up ordering, and damage handling were not part of the ready-for-testing list.
+Register opening and closing were still being implemented and checked at the start of the activity. They were not treated as a completed feature. Purchase Orders, procurement receiving, follow-up ordering, and damage handling were not ready for testing.
 
 #### 6.1.2 Functional Testing
 
-**Purpose/Objectives:** Confirm that implemented workflows perform their intended tasks for authorized users and produce the expected visible result.
+**Purpose:** Verify that implemented features work as expected for authorized users.
 
-**Areas Covered:** Authentication, Dashboard, catalog maintenance, Opening Inventory, Stock In, Stock Correction, POS, receipt/history, and Sales Summary.
+**Covered:** Authentication, Dashboard, catalog maintenance, Opening Inventory, Stock In, Stock Correction, POS, receipts and history, and Sales Summary.
 
-**Types of Checks:** Successful login and logout; permitted catalog creation and maintenance; first inventory entry; later restocking; authorized stock correction; a valid cash sale; correct receipt and history access; and expected Dashboard, filter, and summary behavior. Detailed case steps remain in the separate test-case document.
+**Checks:** Login and logout; permitted catalog changes; initial inventory entry; restocking; authorized stock correction; cash sale; receipt and history access; Dashboard, filter, and summary behavior. Detailed steps are in the separate test-case document.
 
 #### 6.1.3 Input and Validation Testing
 
-**Purpose/Objectives:** Confirm that invalid, incomplete, duplicate, unauthorized, or unsafe input is rejected without corrupting inventory or transaction history.
+**Purpose:** Verify that invalid or unauthorized input is rejected without changing valid inventory or transaction records.
 
-**Areas Covered:** Authentication forms, catalog forms, quantity and price fields, inventory transactions, POS cash and stock rules, search/filter fields, and role-restricted actions.
+**Covered:** Authentication and catalog forms; quantity and price fields; inventory transactions; POS cash and stock rules; search and filter fields; and role-restricted actions.
 
-**Types of Checks:** Required fields; missing, invalid, or oversized text; duplicate names; zero, negative, excessive, or over-precision quantities; whole-versus-fractional rules; insufficient stock; insufficient cash; invalid filter values; stale form values; duplicate submissions; and guest, disabled-user, Staff, and Admin access boundaries.
+**Checks:** Required fields; missing, invalid, or oversized text; duplicate names; zero, negative, excessive, or over-precision quantities; whole and fractional quantity rules; insufficient stock or cash; invalid filters; stale form values; duplicate submissions; and access for guests, disabled users, Staff, and Admin.
 
 #### 6.1.4 Interface and Responsive Testing
 
-**Purpose/Objectives:** Confirm that important tasks remain understandable and usable across the recorded desktop and mobile viewport sizes.
+**Purpose:** Verify that key pages remain readable and usable on the tested desktop and mobile sizes.
 
-**Areas Covered:** Responsive navigation, Dashboard cards, catalog and inventory forms, tables, POS item selection and cart, reports, validation/confirmation feedback, and receipt print view.
+**Covered:** Responsive navigation; Dashboard cards; catalog and inventory forms; tables; POS item selection and cart; reports; validation and confirmation feedback; and receipt print view.
 
-**Types of Checks:** Visible headings and labels; usable navigation; readable cards and tables; horizontal table containment where required; form and feedback visibility; stacked mobile layouts; desktop layout use; POS cart interaction; and receipt readability in Firefox Print Preview. Recorded viewport evidence includes **1366×768**, **414×846**, **1023×720**, and **1024×720**. These sizes do not represent every possible device.
+**Checks:** Headings and labels; navigation; readable cards and tables; horizontal table containment where required; visible forms and feedback; stacked mobile layouts; desktop layouts; POS cart interaction; and receipt readability in Firefox Print Preview. Recorded viewport sizes are **1366×768**, **414×846**, **1023×720**, and **1024×720**. They do not cover every device.
 
 #### 6.1.5 Data and Database Testing
 
-**Purpose/Objectives:** Confirm that stored relationships, inventory balances, transaction history, and failure behavior remain consistent.
+**Purpose:** Verify that stored relationships, stock balances, transaction history, and failure handling stay consistent.
 
-**Areas Covered:** Catalog relationships, Product Variant stock, Stock Movements, Stock In, corrections, sales and items, saved historical details, uniqueness rules, and transaction safety.
+**Covered:** Catalog relationships; Product Variant stock; Stock Movements; Stock In; corrections; sales and items; saved historical details; uniqueness rules; and transaction safety.
 
-**Types of Checks:** Valid relationships between stored records; nonnegative stock; correct before/change/after movement values; exactly one appropriate movement per successful stock change; canceling the whole operation when one part fails; saved receipt/history details that do not change; uniqueness rules; safe duplicate-submission handling; and simultaneous-operation checks where applicable.
+**Checks:** Valid record relationships; nonnegative stock; correct before, change, and after movement values; one appropriate movement for each successful stock change; canceling the full operation if any part fails; unchanged saved receipt and history details; uniqueness; safe duplicate-submission handling; and simultaneous operations where applicable.
 
 #### 6.1.6 Testers, Environment, and Input Categories
 
-**Testers:** Testing was performed by all members of The Visionaries: Wariza, Layupan, Casipong, Largo, and Amores. Casipong was the tracker-assigned member for the major testing tasks, while the team participated in functional, validation, interface/responsive, and data/database checking as the system was developed.
+**Testers:** All members of The Visionaries took part: Wariza, Layupan, Casipong, Largo, and Amores. Casipong was assigned the major testing tasks in the tracker. The team also checked functionality, validation, interface and responsiveness, and data and database behavior during development.
 
 **Test environments:**
 
-- normal automated application testing with Laravel/PHPUnit and isolated SQLite `:memory:`;
-- isolated MySQL 8.0.46/InnoDB testing for database-specific behavior;
-- manual functional review of the local Laravel application in an authenticated browser using controlled synthetic data;
-- responsive review using the recorded desktop and mobile viewport sizes; and
-- receipt-print review using Firefox Print Preview where supported.
+- Automated application checks with Laravel/PHPUnit and isolated SQLite `:memory:`;
+- isolated MySQL 8.0.46/InnoDB checks for database-specific behavior;
+- manual functional review of the local Laravel application in an authenticated browser with controlled synthetic data;
+- responsive review at the recorded desktop and mobile viewport sizes; and
+- receipt-print review in Firefox Print Preview where supported.
 
-**Test input categories:** Valid normal inputs; missing, invalid, or oversized text; duplicate values; zero, negative, excessive, whole, and fractional quantities; stale and current values; sufficient and insufficient cash; available and insufficient stock; guest, Admin, Staff, and disabled-user access; valid and invalid filters; repeated submissions; and active and archived records.
+**Test input categories:** Valid inputs; missing, invalid, or oversized text; duplicate values; zero, negative, excessive, whole, and fractional quantities; stale and current values; sufficient and insufficient cash; available and insufficient stock; guest, Admin, Staff, and disabled-user access; valid and invalid filters; repeated submissions; and active and archived records.
 
 ### 6.2 Test Coverage and Detailed Test Cases
 
