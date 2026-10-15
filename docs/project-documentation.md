@@ -99,8 +99,8 @@ security/data-integrity defect remains. Integration & Bug Fixing is complete:
 the final audit found no current implementation defect, and the same-revision
 PO edit verification closed the last identified integration gap. The
 feature-frozen application is a stable release candidate. Project
-Documentation is complete. Remaining tracker work is Demo Preparation, Final
-Testing & Rehearsal, and Final Presentation. Future changes are limited to
+Documentation and Demo Preparation are complete. Final Testing & Rehearsal
+and Final Presentation remain Not Started. Future changes are limited to
 confirmed defect correction, documentation maintenance, demo preparation,
 rehearsal, presentation preparation, and explicitly approved final polish.
 The System User Guide and its 18 privacy-reviewed screenshots are complete.
@@ -453,7 +453,26 @@ Register opening and closing were still being implemented and checked at the sta
 
 **Test input categories:** Valid inputs; missing, invalid, or oversized text; duplicate values; zero, negative, excessive, whole, and fractional quantities; stale and current values; sufficient and insufficient cash; available and insufficient stock; guest, Admin, Staff, and disabled-user access; valid and invalid filters; repeated submissions; and active and archived records.
 
-### 6.2 Test Coverage and Detailed Test Cases
+#### 6.1.7 Current Testing 3 Methodology
+
+For the October 15 documentation check, current manual evidence comes from
+[FT18](./FT18-20260927-A.md) (September 28–29) and WST2 (October 3 and 6).
+Both runs recorded browser-observed behavior against stated preconditions,
+inputs, steps, and expected results. Checks covered valid workflows, rejected
+inputs and unauthorized access, visible stock and transaction evidence,
+reports, and responsive use. FT18 also checked receipt print preview. WST2
+used the documented local test environment and synthetic records; Casipong
+is its responsible tester/reviewer, with supporting members retained per row.
+
+FT18 initially used Codex Desktop in-app Chromium; three cases requiring
+separate sessions, DevTools, or native print preview were completed in Firefox.
+Seven cases initially blocked by pending migrations passed after the recorded
+backup, forward migration, and browser retest. Automated pre-verification and
+existing guarded MySQL results support FT18 but do not substitute for manual
+observations; neither suite was rerun during that manual execution. Each run
+retains its own results and does not revise the September WST1 approach or FT17.
+
+### 6.2 Test Cases and Results
 
 The separate [Detailed Test Cases](./test-cases.md) document preserves a
 **79-case historical, pre-expansion baseline**:
@@ -487,8 +506,8 @@ executed.
 
 All 19 planned cases were executed and passed. No WST2 defect was confirmed.
 Casipong is the responsible tester/reviewer. The first 15 cases retain their
-historical execution evidence; TC-ST2-016 through TC-ST2-019 record the four
-October 6 executions.
+historical execution evidence; the final four cases record the October 6
+executions.
 
 | Test Case ID | Feature / Module | Test Case Scenario | Preconditions | Input / Data | Test Steps | Expected Result | Actual Result | Status | Tester | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -518,7 +537,25 @@ and `TC-AUTH-006` remains historical FAIL. FT18 remains a separate
 current-scope manual validation run at 19/19. WST2 does not complete Final
 Testing & Rehearsal or Final Presentation.
 
-### 6.3 Test Execution and Results
+### 6.3 Identified Issues/Defects
+
+#### 6.3.1 Recorded Findings and Classifications
+
+The table distinguishes environment blockers, testing limitations, historical
+test-procedure findings, and confirmed application defects. Recorded handling
+and outcomes come from [FT18](./FT18-20260927-A.md), the retained execution
+history below, and WST2 in Section 6.2. No formal priority is recorded for these
+entries.
+
+| Finding | Classification | Recorded handling and outcome | Priority |
+| --- | --- | --- | --- |
+| FT18: 9 pending migrations; 7 cases initially blocked | Environment blocker — local schema drift | Audit found pending migrations only, with no corruption. A private backup was created and verified; safe forward migration applied the pending migrations without reset or data loss. All 7 blocked cases were retested and passed. | Not formally recorded |
+| FT18: browser tool could not complete separate-session, DevTools, and native print-preview checks | Testing limitation — browser capabilities | The 3 affected cases (`FT18-AUTH-003`, `FT18-AUTH-005`, `FT18-UI-001`) were completed through direct Firefox observations and passed. Earlier incomplete attempts were not accepted as final evidence. | Not formally recorded |
+| Historical FT17: `TC-AUTH-006` FAIL | Historical test-procedure finding — provisional `TEST_SPEC_PROCEDURE_DEFECT` | Controlled FT17 retest was deferred. The recorded FAIL and paused run totals remain unchanged; the provisional classification does not establish a confirmed application defect. | Not formally recorded |
+| FT18: independent CSRF check (`FT18-AUTH-005`) PASS | Independent current-scope security validation | The corrected Create User form check deliberately removed or invalidated CSRF evidence. The request was rejected; no account or matching `USER_CREATED` AuditLog was created. This passing check does not close or rewrite historical FT17. | Not formally recorded |
+| WST2: no confirmed defect | Confirmed application defects — 0 in WST2 | All 19 planned cases passed, with 0 FAIL and 0 Not Executed. | Not formally recorded |
+
+#### 6.3.2 Retained Testing Execution History
 
 | Date / Run | Scope | Recorded Result | Notes |
 | --- | --- | --- | --- |
@@ -564,7 +601,54 @@ Current #26 verification includes six guarded MySQL concurrency tests (220 asser
 
 **User-run current #30 engineering verification (after #30A–#30D):** guarded MySQL identity passed **3 tests / 18 assertions**; #30D readiness passed **1 test / 7 assertions**; the accepted-versus-damage race passed **1 test / 58 assertions**; equivalent damage-only replay passed **1 test / 45 assertions**; damage-versus-follow-up passed **1 test / 42 assertions**; the complete guarded #30D suite passed **4 tests / 152 assertions**; and the ordinary SQLite regression passed **439 tests / 4,509 assertions**. No deadlock, lock wait timeout, duplicate receipt/damage evidence, damage inventory/cost/movement effect, damage demand reduction, transfer corruption, partial loser write, or cleanup failure was observed. The equivalent replay workers use the same actor/User lock, which may serialize them before unique-token-index contention; this verifies safe equivalent replay but does not prove unique-index collision recovery. These are current engineering verification results, separate from historical teacher/manual testing and FT15/FT17; the historical rows above remain unchanged.
 
-### 6.4 Current System Evaluation and Remaining Issues
+### 6.4 Testing Summary
+
+#### 6.4.1 Results by Run
+
+These are separate recorded runs, with different dates and scopes; their counts
+are not combined into a new testing total.
+
+| Run | PASS | FAIL | Other recorded counts | Status |
+| --- | ---: | ---: | --- | --- |
+| FT15 — `FT15-20260909-A` | 30 | 0 | 0 Blocked / 0 Remaining | Completed historical functional run |
+| Historical FT17 — `FT17-20260912-A` | 8 | 1 | 0 Blocked / 28 Remaining | Paused and incomplete; `TC-AUTH-006` remains FAIL; controlled retest deferred |
+| FT18 — `FT18-20260927-A` | 19 | 0 | 0 Blocked / 0 Not Run / 19 Total | Completed current-scope manual validation; independent of FT17 |
+| WST2 — October 3 and 6, 2026 | 19 | 0 | 19 Planned / 19 Executed / 0 Not Executed / 0 Confirmed defects | Completed; original results and testers retained in Section 6.2 |
+
+#### 6.4.2 Feature Freeze, Limits, and Remaining Rehearsal
+
+Core application features are at **FEATURE FREEZE**. Integration & Bug Fixing
+is complete, with no known core implementation blocker or unresolved
+security/data-integrity defect recorded. The application is a stable release
+candidate; remaining changes are limited to confirmed defect correction,
+documentation maintenance, demo and presentation preparation, rehearsal, and
+explicitly approved final polish.
+
+The scope exclusions in Section 2.3 remain: supplier master-data, accounting,
+invoice and payment management; credit sales, discounts, returns/refunds and
+tax processing; automatic unit conversion/reordering and advanced costing or
+valuation; procurement approval; multiwarehouse and multiregister operation;
+extended cash reconciliation, shifts, shortages/overages and expenses; and
+advanced procurement export and damaged-item media. These are approved scope
+exclusions rather than identified defects.
+
+Recorded technical and evidence limitations remain: contrast measurement and
+stronger programmatic association of validation messages await later evaluation;
+the same-actor damage replay test may serialize on its User lock and therefore
+does not prove unique-index collision recovery; and no consolidated
+register-specific test count is documented. The detailed evidence and its
+per-check limits are retained below. Passing representative manual cases does
+not establish coverage of every device or prove that future defects are
+impossible.
+
+[Demo Preparation](./demo-preparation.md) is complete, including internal review
+of the deck and demo plan. The [current tracker](./project-tracker.md) still
+records Final Testing & Rehearsal and Final Presentation as Not Started. Human
+dry runs, group rehearsal, and final presentation-machine checks remain pending
+in the [rehearsal record](./final-testing-rehearsal.md); development-machine
+preflight and the passing FT18/WST2 runs do not complete those activities.
+
+#### 6.4.3 Retained Detailed System Evaluation
 
 **Implemented core with existing test evidence:** Authentication and authorization, catalog management, Opening Inventory, Stock In, Stock Correction, cash POS, register open/close behavior, Sales History, receipt/reprint, Dashboard, Sales Summary, and responsive navigation have implementation and test evidence. Saved transaction details, system-calculated values, and inventory movement recording are built into these workflows.
 
@@ -673,13 +757,14 @@ are complete. Integration & Bug Fixing is complete: the final integration audit
 found no current implementation defect, the same-revision PO edit race passed
 the guarded MySQL verification, and no production-code fix was required. The
 feature-frozen application is a stable release candidate for the remaining
-Demo Preparation, Final Testing & Rehearsal, and Final Presentation phases.
+Final Testing & Rehearsal and Final Presentation phases.
 Project Documentation is complete. Work after the freeze remains limited to
 confirmed defect correction, documentation maintenance, demo preparation,
 rehearsal, presentation preparation, and explicitly approved final polish.
 
-**Remaining closeout and limitations:** Demo Preparation, Final Testing &
-Rehearsal, and Final Presentation remain. Some accessibility
+**Remaining closeout and limitations:** Demo Preparation is complete. Final
+Testing & Rehearsal and Final Presentation remain Not Started; human rehearsal
+is pending. Some accessibility
 checks, including contrast measurement and stronger programmatic association of
 validation messages, remain for later evaluation. The project is not yet
 finished or claimed production-ready;
@@ -706,8 +791,8 @@ Approved core management workflows are implemented. Edge Cases & Permissions
 validation is complete, and FT18 current-scope validation passed 19/19 (0 Fail,
 0 Blocked, 0 Not Run). Final User Guide screenshots have been captured and
 privacy-reviewed, and the core feature freeze is declared. Project
-Documentation is complete. Remaining tracker work concerns Demo Preparation,
-Final Testing & Rehearsal, and Final Presentation. Final integration found no
+Documentation and Demo Preparation are complete. Final Testing & Rehearsal
+and Final Presentation remain Not Started. Final integration found no
 current implementation defect; the guarded MySQL same-revision PO edit
 verification passed, and no production-code fix was required. The
 feature-frozen application is a stable release candidate for those remaining
