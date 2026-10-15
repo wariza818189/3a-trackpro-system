@@ -340,9 +340,9 @@ FREEZE** for core application features. There are no known core implementation
 gaps, unresolved security/data-integrity defects, current-scope manual
 blockers, or outstanding schema/migration mismatches. Integration & Bug Fixing
 and Project Documentation are complete. The reconciled documents passed the
-internal group review; no further corrections were requested. Remaining
-tracker work is Demo Preparation, Final Testing & Rehearsal, and Final
-Presentation. The System User Guide and its final screenshots are complete; the
+internal group review; no further corrections were requested. Demo Preparation
+is complete. Final Testing & Rehearsal and Final Presentation remain Not
+Started. The System User Guide and its final screenshots are complete; the
 presentation is not complete.
 
 ## 5. Technical Decisions & Issues
