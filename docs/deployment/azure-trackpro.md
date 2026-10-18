@@ -1,8 +1,245 @@
 # Azure TrackPro demo — Phase 1 preparation
 
-Prepared 2026-10-18 on `deploy/azure-trackpro-demo`, baseline `fb40de4`.
+Prepared 2026-10-18 on `deploy/azure-trackpro-demo`. Current hardening baseline:
+`b7af0cd4f64a9440fd7d81218df8c5e263c0df89`; original preparation baseline `fb40de4`.
 This is a deployment design and local preparation, not deployment authorization.
-No Azure resource or database was accessed. CES Portal must remain untouched.
+No Azure resource or persistent project database was accessed by this hardening task. CES Portal must remain untouched.
+The current record below supersedes older candidate/unselected runtime statements.
+Phase 1 / 1B validation records at the end are historical.
+
+
+## Fail-closed startup correction — 2026-10-18
+
+**PASS locally; BLOCKED for Azure acceptance.** Existing uncommitted Checkpoint 21
+changes were preserved on `deploy/azure-trackpro-demo`, committed HEAD
+`b7af0cd4f64a9440fd7d81218df8c5e263c0df89`. This task changes only startup.sh,
+the deployment regression tests and this runbook. Checkpoint 21 nginx.conf,
+preflight.sh and build.sh were hash-verified unchanged; all worker, storage,
+database and Nginx provisioning below the wrapper check was compared byte-for-byte
+and preserved. No reset, stage, commit, push, Azure mutation or deployment occurred.
+
+The semicolon contract from Checkpoint 21 is rejected. The exact approved command
+is `bash /home/site/wwwroot/deploy/azure/startup.sh && exec php-fpm`. Cleanup is
+installed before identity validation and stops Nginx where possible only on the
+exact actual TrackPro site. CES/other/unknown identities fail without hook service
+actions. The hook never launches FPM. A separate TrackPro-only Azure ingress
+restriction is mandatory before any application-file deployment because default
+Nginx starts before the hook; reload timing cannot fix that exposure.
+
+| Verification | Observed result |
+| --- | --- |
+| Shell syntax, all three deployment shell scripts | PASS, exit 0 |
+| Python startup regressions | PASS, 20 tests including the original 14; final preflight rerun 6.329 seconds |
+| Wrapper lifecycle regressions | PASS: one stub FPM launch on success; zero on settings, identity, worker, syntax/reload failure; incorrect and duplicate FPM commands rejected |
+| Isolated Laravel preflight | PASS, exit 0: Composer strict validation/platform requirements, Vite build, 558 tests / 6112 assertions / 67.74 seconds, no reported warnings |
+| Git whitespace, including untracked test | PASS |
+| Real production services / Azure / persistent databases | NOT ACCESSED; wrapper tests use stub Nginx/FPM/identity commands, PHP file probes use temporary local paths, Laravel tests use in-memory SQLite |
+| Git after correction | HEAD unchanged; index empty; four tracked modifications and one untracked test file including preserved Checkpoint 21 work |
+
+Preflight log: `/tmp/trackpro-failclosed-preflight.log`; disposable tree:
+`/tmp/trackpro-preflight.sLZ5xv`. No builder rerun or migration command was issued.
+Remaining Azure checks: generate/inspect the corrected wrapper and actual image
+init path, prove no unconditional/additional FPM command is appended, verify
+single foreground FPM startup and failure propagation, and separately authorize
+and verify the TrackPro-only ingress gate before any artifact upload. Real Nginx
+stop/reload, failed-start probes and Checkpoint 21 CIFS/HTTP/TLS acceptance remain
+outstanding. An approved command in documentation is not evidence of a changed
+Azure setting. Stop for review; deployment and commit remain unauthorized.
+
+## Startup compatibility hardening — 2026-10-18
+
+**Verdict: BLOCKED for cloud acceptance.** Local changes are reviewable preparation,
+not deployment permission. Branch and clean index/worktree were verified at exact
+`b7af0cd4f64a9440fd7d81218df8c5e263c0df89` before edits. No Azure calls, database
+connections, migrations, credentials, commits, pushes or merges are authorized.
+
+### Owner-supplied verified Azure observations
+
+These observations were supplied with this task on 2026-10-18; they were not
+independently rechecked from this workspace. No Laravel code is deployed.
+
+| Item | Observation |
+| --- | --- |
+| Approved / protected apps | `3a-trackpro-demo-2026` / `ces-portal-demo-2026` |
+| Plan / runtime | Existing Linux Free F1; PHP 8.4.26 |
+| Nginx | Port 8080; `/etc/nginx/sites-available/default`; active include `/etc/nginx/sites-enabled/*` |
+| PHP-FPM | `127.0.0.1:9000`; worker `www-data:www-data`, UID/GID 33 |
+| Startup shell | root |
+| Persistent `/home` | CIFS: `uid=0,forceuid,gid=0,forcegid,file_mode=0777,dir_mode=0777,mfsymlinks` |
+| Quota | 1 GiB; includes release, dependencies, runtime files and platform usage |
+| Health | TrackPro HTTPS 200; unauthenticated SCM 401; FPM ready; warm-up succeeded; CES separately 200 |
+
+The supplied default generated script changes into `/home/site/wwwroot`, exports
+`NGINX_PORT=8080`, starts Nginx for `PHP_ORIGIN=php-fpm`, then runs `php-fpm;`.
+This proves the default sequence only; HTTP 200 does not prove Laravel readiness.
+
+### Startup semantics and evidence boundary
+
+Inspected 2026-10-18: Microsoft's [Oryx PHP generator source](https://github.com/microsoft/Oryx/blob/main/src/startupscriptgenerator/src/php/scriptgenerator.go),
+`GenerateEntrypointScript` / `getStartupCommand`. It emits Nginx start before the
+supplied command. Its default FPM command is used only when that command is empty.
+The [official PHP guide](https://learn.microsoft.com/en-us/azure/app-service/configure-language-php?pivots=platform-linux)
+describes a custom startup script and site replacement/reload. Neither establishes
+the current PHP 8.4 image's command concatenation. The public generator's `main`
+branch is not a pinned identification of the live image.
+
+Owner-supplied follow-up observation on 2026-10-18: on PHP 8.4.26, an
+`oryx create-script` probe with the semicolon command generated a wrapper that
+starts Nginx first, then runs `bash .../startup.sh; php-fpm;`. The previous
+string check accepted it. This confirms the dangerous generator output for that
+probe: `;` runs FPM even when the hook fails. It does not establish that the
+corrected command has been configured or generated by the live app.
+
+The **only approved App Service Startup Command** is now:
+
+```sh
+bash /home/site/wwwroot/deploy/azure/startup.sh && exec php-fpm
+```
+
+The hook validates `/opt/startup/startup.sh` for this exact terminal command,
+rejecting semicolons, missing exec, and additional bare FPM commands. On success,
+it returns zero and the wrapper replaces its shell with one foreground FPM
+process. On failure, `&&` skips exec and the wrapper returns failure. The hook
+never starts, backgrounds or retries FPM. Do not add another FPM invocation.
+These are shell semantics tested locally with stubs; actual corrected Azure
+wrapper/init behavior remains **BLOCKED** pending separately authorized review.
+If the image appends another FPM command or changes the wrapper, reject that
+candidate and review the platform contract rather than weakening validation.
+An unapproved semicolon wrapper is unsafe even if our hook rejects it.
+
+**Mandatory deployment prerequisite:** Oryx starts default Nginx before our hook.
+Application files must **NOT** be deployed while public ingress is unrestricted.
+A separately authorized, verified **TrackPro-only Azure ingress restriction** must
+be in place before uploading any application artifact. Nginx reload timing,
+`&&`, hook error handling and best-effort stop cannot eliminate pre-hook exposure.
+Keep the restriction throughout startup/security/failure rehearsals, and lift it
+only after a separately approved release passes acceptance. Never apply the gate
+to CES or alter the shared plan as a substitute. This task makes no Azure changes.
+
+### Storage and CIFS security contract
+
+Runtime storage stays at `/home/trackpro-storage`, outside the served public root
+and ZIP replacement. `wwwroot/storage` must be absent or already the exact
+approved symlink; an existing directory/wrong link is preserved and startup fails.
+No `public/storage` directory/link is allowed, even a broken link. Runtime-path
+symlinks and symlinked ancestors are rejected before creating subdirectories.
+
+The hook creates/checks the root, framework, cache/data, sessions, views, logs,
+app/private, app/public and bootstrap/cache directories. It applies best-effort
+owner/mode hints (www-data, 0770, nonrecursive), then runs a clean-environment PHP
+probe via `runuser --user www-data --group www-data`. The account must be UID/GID
+33. The probe creates an exclusive unpredictable temporary file in every path,
+locks, writes, renames, reads and removes it without booting Laravel or opening a
+DB. An unwritable path fails startup. Existing user files are never recursively
+chowned, chmodded, deleted, moved or flushed. Repeated successful starts preserve
+sessions, cache and private data. Abrupt termination can leave a tiny probe file;
+review it rather than applying a broad cleanup.
+
+CIFS forceuid/forcegid and mode 0777 can ignore or simulate chown/chmod. Successful
+mode calls do not establish privacy. This mount cannot guarantee isolation
+between Unix users/processes inside the app container; App Service isolation,
+restricted operator/SCM access, application authorization, and public-only Nginx
+serving provide the boundaries. No chmod 777 command or permission claim is used.
+Do not put production secrets, CA private keys, datasets or backups in artifacts.
+A CA bundle is public trust material and stays outside public/; App Settings hold
+runtime secrets separately. If per-user filesystem confidentiality is required,
+this CIFS design is **BLOCKED** pending an independently approved storage design.
+
+Only `SESSION_DRIVER=file`, `CACHE_STORE=file`, `FILESYSTEM_DISK=local`,
+`QUEUE_CONNECTION=sync`, `LOG_CHANNEL=stderr` are accepted. Alternate Laravel
+base/cache/storage/view/session paths are rejected. Both configured local disk roots
+are probed; the public disk is not web-linked. Framework-signed file delivery
+is also blocked at `/storage`; no upload/disk feature is introduced. Session,
+view/cache persistence and lock semantics under real CIFS/FPM remain **BLOCKED**
+until tested through requests, restart and redeployment. Stderr logging avoids
+unbounded file logs in normal operation; fallback logs, file sessions/cache,
+release payloads and retained builds still need quota/retention monitoring.
+Do not store build directories on the 1 GiB share. Persistence is not backup.
+
+### Nginx validation, failure recovery and rollback
+
+The site is an http-context include containing maps and one IPv4 port-8080 server.
+IPv6 is not assumed. Only public/ is served, with query-preserving Laravel
+front-controller routing and explicit FastCGI parameters to `127.0.0.1:9000`.
+Only exact `/index.php` executes; other PHP paths, dotfiles, runtime/implementation
+paths and sensitive file extensions are denied. Symlink serving is disabled.
+Exact frontend HTTPS normalization is retained; no broad proxy trust is added.
+Verify frontend header replacement, Host, secure cookies and proxy-IP throttling.
+TLS CA enforcement and PDO's default verification remain unchanged; no
+verification-disable option is introduced. Actual MySQL CA/hostname validation
+and negative TLS tests are still required under separate DB authorization.
+
+The failure handler is installed before site/root validation. If the actual
+`WEBSITE_SITE_NAME` is exactly `3a-trackpro-demo-2026`, any failure (including an
+incorrect expected-name setting) attempts to stop Nginx. For CES, another app or
+an unknown actual identity, the hook exits nonzero without service/config/storage
+actions. That protects CES and prevents FPM under the approved `&&` wrapper;
+it cannot safely stop an unapproved app's existing server. The external ingress
+prerequisite remains mandatory. The active `sites-enabled/default` must resolve to the verified site
+path. Before replacement, a successful backup copy is retained in `/tmp`. The
+new site is installed, `nginx -t` runs, and only then reload runs. On syntax or
+reload failure, restore the previous file on disk and stop Nginx; do not reload
+an old configuration that might serve the repository root. If stop fails, the
+script reports BLOCKED; outer restricted ingress is the necessary backstop.
+A reload exit code does not prove workers adopted the config: inspect effective
+config and HTTP behavior. Nginx is already started by the wrapper before the
+hook; this script cannot eliminate that initial exposure window. Never deploy
+Laravel while public ingress is unrestricted. A separate TrackPro-only Azure
+ingress restriction must precede any artifact upload; reload timing is insufficient.
+
+For an authorized recovery: keep TrackPro ingress restricted, inspect restored
+config and startup logs privately, select a prior validated artifact/checksum
+with compatible settings and repeat smoke/security/persistence checks before
+reopening ingress. A cold restart recreates ephemeral /etc; repair the reviewed
+startup candidate rather than relying on manual /etc edits. Preserve the runtime
+directory and APP_KEY. Never restore a repository-root default and reopen
+traffic. Do not use CES restart, shared-plan changes, database rollback or DNS
+changes as recovery. No rollback operation is performed by this task.
+
+### Local validation and remaining acceptance
+
+Run `python3 -B tests/deployment/test_azure_startup.py`, shell syntax checks,
+`git diff --check`, then isolated preflight/builder when available. The focused
+suite rewrites a temporary hook copy and mocks identities/services; it executes
+the actual PHP file-operation probe as the local user. It tests mode-call failure,
+idempotence/data preservation, identity/settings guards, symlinks, worker failure,
+wrong include target, syntax/reload recovery and static Nginx contracts. Mocked
+`nginx -t` is a recovery test, not Nginx syntax validation or UID/CIFS proof.
+
+Cloud acceptance remains **BLOCKED** pending the corrected actual custom-wrapper/init inspection,
+FPM settings propagation/extensions, http-level include/effective configuration,
+real `nginx -t`/reload/stop tests, failed-start/initial-exposure probes, UID-33 CIFS
+and bootstrap writes, locks/persistence/redeploy, HTTPS/Host/sensitive-path tests,
+quota/retention, and separately approved MySQL 8.4/TLS/grants/backup rehearsal.
+Local results are recorded below after execution; no deployment is authorized.
+
+### Checkpoint 21 hardening execution record — historical
+
+| Check | Observed result on 2026-10-18 |
+| --- | --- |
+| Initial Git | Clean required branch, exact `b7af0cd4f64a9440fd7d81218df8c5e263c0df89` |
+| `bash -n deploy/azure/startup.sh deploy/azure/preflight.sh deploy/azure/build.sh` | PASS, exit 0 |
+| Focused startup regressions | PASS, 14 tests; final candidate rerun by preflight, 3.363 seconds |
+| Initial preflight | Exit 1 at Vite: EROFS writing `.vite-temp` through source `node_modules` symlink; no application tests reached |
+| Preflight isolation correction | Copy `node_modules` into /tmp rather than symlink it; source dependencies remain untouched |
+| Corrected isolated preflight | PASS, exit 0; Composer strict validation/platform requirements, Vite 8.2.2 build in 891 ms, 558 tests / 6112 assertions / 56.94 seconds, no reported warnings |
+| Release builder | BLOCKED, exit 100: Composer curl error 6 resolving `api.github.com` and `repo.packagist.org`; outer 150-second bound was not reached |
+| Archive/checksum acceptance | NOT RUN; production installation failed before ZIP/checksum creation; no validated release |
+| Nginx syntax/runtime | NOT RUN: nginx unavailable locally; test service commands are mocked |
+| Git whitespace / reviewed-file whitespace | PASS, including the untracked Python test; no local Markdown link destinations in this runbook to validate; external links not exhaustively checked |
+| Final Git scope | Four existing files modified, one new deployment-test file; index empty, HEAD unchanged; `build.sh` reviewed and unchanged |
+
+Logs: `/tmp/trackpro-hardening-preflight.log` (initial failure),
+`/tmp/trackpro-hardening-preflight-final.log` (pass),
+`/tmp/trackpro-hardening-build.log` (dependency failure).
+Retained trees: `/tmp/trackpro-preflight.toLNau` (initial),
+`/tmp/trackpro-preflight.PvKbhb` (pass), `/tmp/trackpro-build.rgMGeD` (failed).
+The failed build tree is not a release or rollback candidate. No alternate
+registry, source/developer-vendor substitution, network bypass or retry was used.
+Tests used an isolated in-memory SQLite database, never persistent project or
+Azure databases. No application feature/business logic, schema, lockfile or
+`main` edit; no deployment, Azure mutation, production credential creation,
+commit, push or merge. Stop for owner review before any commit.
 
 ## Target and architecture
 
@@ -10,8 +247,8 @@ No Azure resource or database was accessed. CES Portal must remain untouched.
 | --- | --- |
 | Resource group | Existing `ces-portal-demo-2026_group` |
 | Protected app | Existing `ces-portal-demo-2026`: no changes or restarts |
-| Plan | Existing `ASP-cesportaldemo2026group-8251`, reported F1 / East Asia; Linux compatibility and capacity unverified |
-| TrackPro app | A new, separately named Linux PHP 8.4 web app, pending explicit approval and name selection |
+| Plan | Existing `ASP-cesportaldemo2026group-8251`; owner verifies Linux F1; shared capacity remains to review |
+| TrackPro app | Existing `3a-trackpro-demo-2026`; owner-observed PHP 8.4.26; no Laravel deployed |
 | MySQL server | Existing `ces-mysql-demo-2026`, reported MySQL 8.4 |
 | Protected schema | `ces_portal_demo`: no access, grants, migrations, or restoration changes |
 | TrackPro schema | Proposed `trackpro_demo`, pending separate approval |
@@ -58,9 +295,9 @@ owner capacity review to protect CES even though the apps and schemas differ.
 `storage/framework/{sessions,views,cache/data}`, `storage/logs`, private/public
 disk roots, and `bootstrap/cache` need writable paths. Runtime storage lives at
 `/home/trackpro-storage`, outside ZIP replacement, with a `wwwroot/storage`
-symlink. Do not package runtime files. Before first start, provision ownership
-and minimal directory permissions for the verified FPM identity and startup
-identity; never use mode 777. `bootstrap/cache` must also be FPM-writable.
+symlink. Do not package runtime files. Startup now probes every required directory as UID/GID 33. CIFS cannot enforce
+Unix owner/mode isolation; see the current security contract above.
+`bootstrap/cache` must also pass the FPM-identity write probe.
 Confirm file sessions and cache survive an app-only restart and redeployment.
 Monitor storage usage and restrict/archive logs; persistence is not backup.
 
@@ -74,9 +311,9 @@ bash deploy/azure/build.sh
 ```
 
 `preflight.sh` requires existing locked development `vendor/` and `node_modules/`.
-It copies source and PHP dependencies into a new `/tmp/trackpro-preflight.*`
-directory, excludes environment files and existing caches, links only Node
-dependencies, and runs Composer checks, Vite build, and `php artisan test`.
+It first runs the focused synthetic startup regression suite. It copies source and PHP dependencies into a new `/tmp/trackpro-preflight.*`
+directory, excludes environment files and existing caches, copies Node
+dependencies so Vite temporary files never write back through a source link, and runs Composer checks, Vite build, and `php artisan test`.
 Its process environment is cleared; a new empty `.env` placeholder avoids
 phpdotenv missing-file warnings without importing any local settings. Tests
 receive an ephemeral key and forced
@@ -178,9 +415,9 @@ This table is a specification, not an executable settings import.
 | `MYSQL_ATTR_SSL_CA` | Verified readable CA bundle outside public/, e.g. `/home/trackpro-certs/mysql-ca.pem` |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` for the prebuilt ZIP strategy |
 | `WEBSITE_RUN_FROM_PACKAGE` | Unset: this design needs a writable extracted wwwroot for the storage link and bootstrap cache |
-| `DB_URL`, `DB_SOCKET`, `LARAVEL_STORAGE_PATH`, `APP_CONFIG_CACHE` | Unset; avoid alternate database/storage/cache overrides |
-| Startup command | `bash /home/site/wwwroot/deploy/azure/startup.sh` |
-| `TRACKPRO_EXPECTED_SITE_NAME` | Exact independently approved TrackPro App Service name; must match `WEBSITE_SITE_NAME`. Both names must differ from CES Portal, including case variants. Required by the Phase 1B guard. |
+| `DB_URL`, `DB_SOCKET`, `APP_BASE_PATH`, `LARAVEL_STORAGE_PATH`, `APP_CONFIG_CACHE`, `APP_SERVICES_CACHE`, `APP_PACKAGES_CACHE`, `APP_ROUTES_CACHE`, `APP_EVENTS_CACHE`, `VIEW_COMPILED_PATH`, `SESSION_FILES` | Unset; avoid alternate database/storage/cache overrides |
+| Startup command | `bash /home/site/wwwroot/deploy/azure/startup.sh && exec php-fpm` |
+| `TRACKPRO_EXPECTED_SITE_NAME` | Exactly `3a-trackpro-demo-2026`; must match `WEBSITE_SITE_NAME`. Both names must differ from CES Portal, including case variants. Required by the Phase 1B guard. |
 
 Generate the production key through a trusted secret-management process that
 writes directly to private storage; never use a command that prints the key in
@@ -210,14 +447,16 @@ and redirect behavior have been verified.
 
 Startup checks non-secret prerequisites, creates missing storage subdirectories,
 preserves the storage link, installs the site config, validates it, and reloads
-Nginx. It does not start a second FPM process; Azure owns Nginx/FPM lifecycle.
+Nginx. It never invokes FPM; the reviewed wrapper contract must supply its single FPM
+invocation, with live custom-command verification still BLOCKED.
 Every container restart must reapply ephemeral `/etc` configuration. No Composer,
 npm, key generation, migration, seeding, or application cache flush runs on boot.
 Config/route/view caching is deferred; do not ship a developer config cache.
 
-Before exposing the new app, verify port 8080, IPv6 availability, FPM listener
+Before exposing Laravel, verify port 8080, FPM listener
 `127.0.0.1:9000`, nginx http-level site inclusion, default-site replacement,
-startup ordering, reload permissions, and propagation of app settings into FPM.
+startup ordering, exact fail-closed wrapper with one FPM exec, reload permissions,
+and propagation of app settings into FPM.
 Do not assume a failing custom startup command prevents Azure from continuing
 with its default server. Keep public ingress blocked until a failed-start test
 and sensitive-path probes prove the repository root cannot be served. If the
@@ -244,12 +483,12 @@ authorized isolated app/environment instead.
 
 | Reviewed item | Result / live acceptance gate |
 | --- | --- |
-| Expected site identity | Phase 1B replaces the earlier non-CES-only guard with an exact match against required `TRACKPRO_EXPECTED_SITE_NAME`. The actual name remains unselected; no broad non-CES default is accepted. Verify it independently before setting it. This application guard is not Azure authorization. |
-| PHP-FPM upstream | `127.0.0.1:9000` remains a candidate, not a proven listener for the updated PHP 8.4 image. Inspect the actual FPM configuration before using it. |
+| Expected site identity | Phase 1B replaces the earlier non-CES-only guard with an exact match against required `TRACKPRO_EXPECTED_SITE_NAME`. The exact approved name is now hardcoded as `3a-trackpro-demo-2026` as well as requiring both settings to match; no broad non-CES default is accepted. This application guard is not Azure authorization. |
+| PHP-FPM upstream | Owner supplied `127.0.0.1:9000` and worker UID/GID 33; actual application FPM behavior still requires runtime acceptance. |
 | `map` inclusion context | Nginx permits `map` in `http`, not `server` or `location`. Verify the actual include chain; see [Nginx map documentation](https://nginx.org/en/docs/http/ngx_http_map_module.html). Do not paste this file into a server block. |
 | Replacement and reload | Microsoft's PHP guide documents replacing `/etc/nginx/sites-available/default` and `service nginx reload`. Confirm that this path is still active and the service command works in the deployed image; validate the effective config and syntax before admitting traffic. No alternate-path fallback is implemented. |
-| Startup failure | `set -e` stops our script, but does not prove Azure stops its default server. Settings/storage checks occur before replacement, and a failed config test/reload may leave the prior server active. Restricted ingress and a failed-start probe remain mandatory. |
-| Writable storage/session persistence | Verify startup/FPM ownership and write access to persistent storage and bootstrap/cache. Confirm the storage symlink survives both app-only restart and ZIP redeployment, with existing sessions and file-cache behavior checked. No chmod/ownership workaround was added. |
+| Startup failure | The guarded error handler attempts to stop Nginx and restores a backed-up site on disk after config failure; the approved `&& exec` wrapper skips FPM on hook failure, but an initial default-server window remains. Restricted ingress and a failed-start probe remain mandatory. |
+| Writable storage/session persistence | Verify startup/FPM ownership and write access to persistent storage and bootstrap/cache. Confirm the storage symlink survives both app-only restart and ZIP redeployment, with existing sessions and file-cache behavior checked. Best-effort 0770/www-data hints and actual worker file-operation probes are now added; modes are not an isolation guarantee on CIFS. |
 | Sensitive paths | Static review finds public-only root, dotfile denial, and exact front-controller PHP execution. Actual default-site precedence, traversal/encoded requests, extra PHP paths, and sensitive-file probes still need HTTP verification. |
 | Trusted HTTPS forwarding | Only exact `X-Forwarded-Proto: https` is normalized to HTTPS/443. Require frontend HTTPS-only and prove protocol-header replacement/spoof resistance; verify cookies, redirects, host handling, and proxy-IP login throttling. No wildcard Laravel proxy trust was introduced. |
 
@@ -317,7 +556,8 @@ addresses. Never enable blanket Azure-wide access as a fallback.
    tests, backup/restore, and runtime DML grants in that isolated environment.
 4. Build/review the release ZIP and hash, record source revision, settings
    names, runtime version, storage permissions, and backup checkpoint. Store
-   secrets separately. Establish restricted ingress on the new app first.
+   secrets separately. Before any artifact upload, establish and verify the separately
+   authorized TrackPro-only Azure ingress restriction; unrestricted ingress blocks deployment.
 5. Configure only TrackPro's settings/startup/storage, deploy the artifact,
    and verify Nginx before public traffic. Verify CLI/FPM platform requirements.
    Take a TrackPro-only database backup before any subsequent schema upgrade.
@@ -378,7 +618,7 @@ not authorize any database connection, migration, seeding or restore.
 - [ ] APP_ENV production, debug and PHP error display off; dependencies/extensions checked in FPM.
 - [ ] Independent secret key/passwords protected; no environment/config cache/credentials in artifact or logs.
 - [ ] CA/name verification and TLS negative tests pass; effective grants exclude CES/global privileges.
-- [ ] Persistent files and bootstrap cache writable by intended users only; restart/redeploy persistence checked.
+- [ ] UID-33 writes and restart/redeploy persistence checked; CIFS lacks per-user permission isolation, and application/web/operator isolation is accepted.
 - [ ] MySQL 8.4 rehearsal, controlled migration, least-privilege runtime smoke test, backup/restore rehearsal complete.
 - [ ] F1 capacity/cold-start/storage limits accepted; rollback artifact and maintenance procedure ready.
 

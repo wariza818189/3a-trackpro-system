@@ -6,10 +6,11 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 [[ $(git -C "$root" branch --show-current) == deploy/azure-trackpro-demo ]] || {
     echo 'Refusing preflight outside deploy/azure-trackpro-demo.' >&2; exit 1;
 }
-for tool in php composer node npm tar; do command -v "$tool" >/dev/null; done
+for tool in php composer node npm tar python3; do command -v "$tool" >/dev/null; done
 [[ -d "$root/vendor" && -d "$root/node_modules" ]] || {
     echo 'Install locked development dependencies locally before preflight.' >&2; exit 1;
 }
+python3 -B "$root/tests/deployment/test_azure_startup.py"
 work=$(mktemp -d /tmp/trackpro-preflight.XXXXXX)
 mkdir -p "$work/app" "$work/home"
 tar -C "$root" --exclude='.env*' --exclude='bootstrap/cache' \
@@ -19,7 +20,8 @@ tar -C "$root" --exclude='.env*' --exclude='bootstrap/cache' \
     package.json package-lock.json phpunit.xml vite.config.js .gitignore
 tar -C "$work/app" -xf "$work/source.tar"
 cp -a "$root/vendor" "$work/app/vendor"
-ln -s "$root/node_modules" "$work/app/node_modules"
+# Vite writes .vite-temp here; never write through a link into the source tree.
+cp -a "$root/node_modules" "$work/app/node_modules"
 mkdir -p "$work/app/bootstrap/cache" "$work/app/storage/framework/"{cache/data,sessions,views} \
     "$work/app/storage/logs" "$work/app/storage/app/"{private,public}
 cd "$work/app"
