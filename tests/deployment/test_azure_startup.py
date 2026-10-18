@@ -67,6 +67,10 @@ class StartupTest(unittest.TestCase):
                         WEBSITE_SITE_NAME='3a-trackpro-demo-2026', PHP_ORIGIN='php-fpm',
                         APP_ENV='production', APP_DEBUG='false', APP_KEY='synthetic-placeholder',
                         DB_CONNECTION='mysql', DB_DATABASE='trackpro_demo',
+                        DB_HOST='ces-mysql-demo-2026.mysql.database.azure.com',
+                        DB_PORT='3306', DB_USERNAME='trackpro_runtime',
+                        SESSION_SECURE_COOKIE='true', SESSION_HTTP_ONLY='true',
+                        SESSION_SAME_SITE='lax',
                         MYSQL_ATTR_SSL_CA=str(self.ca), SESSION_DRIVER='file', CACHE_STORE='file',
                         FILESYSTEM_DISK='local', QUEUE_CONNECTION='sync', LOG_CHANNEL='stderr')
 
@@ -172,6 +176,10 @@ class StartupTest(unittest.TestCase):
     def test_settings_fail_closed(self):
         for key, value in [('APP_ENV', 'local'), ('APP_DEBUG', 'true'), ('APP_KEY', ''),
                            ('DB_CONNECTION', 'sqlite'), ('DB_DATABASE', 'ces_portal_demo'),
+                           ('DB_HOST', 'other.mysql.database.azure.com'),
+                           ('DB_PORT', '3307'), ('DB_USERNAME', 'trackpro_migrator'),
+                           ('SESSION_SECURE_COOKIE', 'false'), ('SESSION_HTTP_ONLY', 'false'),
+                           ('SESSION_SAME_SITE', 'none'), ('SESSION_DOMAIN', '.example.com'),
                            ('DB_URL', 'forbidden'), ('MYSQL_ATTR_SSL_CA', ''),
                            ('LARAVEL_STORAGE_PATH', '/tmp/alternate'),
                            ('APP_CONFIG_CACHE', '/tmp/cache'), ('VIEW_COMPILED_PATH', '/tmp/views'),

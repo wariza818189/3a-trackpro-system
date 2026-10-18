@@ -11,6 +11,7 @@ for tool in php composer node npm tar python3; do command -v "$tool" >/dev/null;
     echo 'Install locked development dependencies locally before preflight.' >&2; exit 1;
 }
 python3 -B "$root/tests/deployment/test_azure_startup.py"
+python3 -B "$root/tests/deployment/test_release_package.py"
 work=$(mktemp -d /tmp/trackpro-preflight.XXXXXX)
 mkdir -p "$work/app" "$work/home"
 tar -C "$root" --exclude='.env*' --exclude='bootstrap/cache' \

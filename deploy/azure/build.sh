@@ -6,7 +6,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 [[ $(git -C "$root" branch --show-current) == deploy/azure-trackpro-demo ]] || {
     echo 'Refusing build outside deploy/azure-trackpro-demo.' >&2; exit 1;
 }
-for tool in php composer node npm tar zip unzip cmp sha256sum; do command -v "$tool" >/dev/null; done
+for tool in php composer node npm tar python3 unzip cmp sha256sum; do command -v "$tool" >/dev/null; done
 work=$(mktemp -d /tmp/trackpro-build.XXXXXX)
 trap 'result=$?; if (( result != 0 )); then echo "Build failed (exit $result); diagnostics retained at $work. No validated release." >&2; fi' EXIT
 echo "Isolated build directory: $work"
@@ -15,7 +15,7 @@ tar -C "$root" --exclude='.env*' --exclude='bootstrap/cache' \
     --exclude='public/build' --exclude='public/hot' --exclude='public/storage' \
     --exclude='.npmrc' --exclude='auth.json' --exclude='*.key' --exclude='*.pem' \
     --exclude='*.p12' --exclude='*.pfx' --exclude='*.sql' --exclude='*.sql.gz' \
-    --exclude='*.dump' --exclude='*.bak' --exclude='*.backup' --exclude='*.log' \
+    --exclude='*.tsv' --exclude='*.gpg' --exclude='*.dump' --exclude='*.bak' --exclude='*.backup' --exclude='*.log' \
     --exclude='.git' --exclude='.aws' --exclude='.azure' --exclude='.ssh' \
     --exclude='credentials' --exclude='credentials.json' --exclude='id_rsa*' --exclude='id_ed25519*' \
     --exclude='*.sqlite*' --exclude='*.db' \
@@ -42,7 +42,7 @@ run_clean php -r '
         if (is_link($path)
             || preg_match("~[\x00-\x1f\x7f\\\\]~", $path)
             || preg_match("~(^|/)(?:\\.env[^/]*|\\.git|\\.aws|\\.azure|\\.ssh|\\.npmrc|\\.pypirc|auth\\.json|credentials(?:\\.json)?|id_(?:rsa|ed25519)[^/]*|node_modules)(/|$)~i", $path)
-            || preg_match("~\\.(?:key|pem|p12|pfx|sql(?:\\.gz)?|dump|bak|backup|log|sqlite(?:3)?|db)$~i", $path)) {
+            || preg_match("~\\.(?:key|pem|p12|pfx|tsv|gpg|sql(?:\\.gz)?|dump|bak|backup|log|sqlite(?:3)?|db)$~i", $path)) {
             fwrite(STDERR, "Prohibited path or symlink in release payload.\n"); exit(1);
         }
     }
@@ -55,7 +55,30 @@ run_clean php -r '
         }
     }
 ' -- "${payload[@]}"
-zip -qr "$work/trackpro.zip" "${payload[@]}"
+# Fixed timestamps, permissions and sorted paths make identical payloads byte-identical.
+# Only regular files/directories have survived the path policy above.
+run_clean python3 - "$work/trackpro.zip" "${payload[@]}" <<'PYZIP'
+import pathlib
+import stat
+import sys
+import zipfile
+
+paths = set()
+for root in sys.argv[2:]:
+    path = pathlib.Path(root)
+    paths.add(path)
+    if path.is_dir():
+        paths.update(path.rglob('*'))
+with zipfile.ZipFile(sys.argv[1], 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for path in sorted(paths, key=lambda entry: entry.as_posix()):
+        directory = path.is_dir()
+        info = zipfile.ZipInfo(path.as_posix() + ('/' if directory else ''), (1980, 1, 1, 0, 0, 0))
+        info.create_system = 3
+        mode = (stat.S_IFDIR | 0o755) if directory else (stat.S_IFREG | (0o755 if path.stat().st_mode & 0o111 else 0o644))
+        info.external_attr = (mode << 16) | (0x10 if directory else 0)
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, b'' if directory else path.read_bytes(), compresslevel=9)
+PYZIP
 # Validate the actual archive, not just the staging directory or zip exit code.
 unzip -t "$work/trackpro.zip" > "$work/archive-integrity.log"
 unzip -Z1 "$work/trackpro.zip" > "$work/archive-paths.txt"
@@ -93,7 +116,7 @@ foreach ($entries as $path) {
     foreach ($parts as $part) {
         if (preg_match('/^(?:\.env.*|\.git|\.aws|\.azure|\.ssh|\.npmrc|\.pypirc|auth\.json|credentials(?:\.json)?|id_(?:rsa|ed25519).*)$/i', $part)
             || strcasecmp($part, 'node_modules') === 0
-            || preg_match('/\.(?:key|pem|p12|pfx|sql(?:\.gz)?|dump|bak|backup|log|sqlite(?:3)?|db)$/i', $part)) {
+            || preg_match('/\.(?:key|pem|p12|pfx|tsv|gpg|sql(?:\.gz)?|dump|bak|backup|log|sqlite(?:3)?|db)$/i', $part)) {
             reject('prohibited environment, credential, dependency, backup, or runtime path');
         }
     }

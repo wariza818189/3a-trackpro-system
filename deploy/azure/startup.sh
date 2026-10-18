@@ -63,6 +63,14 @@ require test "$(id -g www-data)" = 33
 [[ ${DB_CONNECTION:-} == mysql && ${DB_DATABASE:-} == trackpro_demo ]] || {
     echo 'Refusing startup without the separate TrackPro MySQL database setting.' >&2; fail_closed;
 }
+[[ ${DB_HOST:-} == ces-mysql-demo-2026.mysql.database.azure.com \
+    && ${DB_PORT:-} == 3306 && ${DB_USERNAME:-} == trackpro_runtime ]] || {
+    echo 'The exact TrackPro production host, port and runtime account are required.' >&2; fail_closed;
+}
+[[ ${SESSION_SECURE_COOKIE:-} == true && ${SESSION_HTTP_ONLY:-} == true \
+    && ${SESSION_SAME_SITE:-} == lax && -z ${SESSION_DOMAIN:-} ]] || {
+    echo 'Secure, HTTP-only, host-only Lax session cookies are required.' >&2; fail_closed;
+}
 [[ -n ${MYSQL_ATTR_SSL_CA:-} && -r ${MYSQL_ATTR_SSL_CA:-} ]] || {
     echo 'A readable MySQL CA bundle is required.' >&2; fail_closed;
 }
@@ -85,7 +93,7 @@ require test "${LOG_CHANNEL:-}" = stderr
 require test ! -e "$root/public/storage"
 require test ! -L "$root/public/storage"
 # No SSL verification-disable option is supplied; config/database.php retains
-# PDO MySQL's verification default and requires the independently verified CA.
+# explicit PDO MySQL certificate verification and requires the independently verified CA.
 # Provision only known paths. On CIFS chown/chmod may fail or be ineffective;
 # the worker's actual file operations below, not stat modes, decide write access.
 # Keep it outside the ZIP deployment directory so deployments cannot delete it.

@@ -1,5 +1,9 @@
 # Azure TrackPro demo — Phase 1 preparation
 
+Current release ordering: [controlled initial demo release](trackpro-release.md).
+That checkpoint accepts the completed database rehearsals and explicitly defers
+live backup/restore; older pending-check lists below are historical.
+
 Prepared 2026-10-18 on `deploy/azure-trackpro-demo`. Current hardening baseline:
 `b7af0cd4f64a9440fd7d81218df8c5e263c0df89`; original preparation baseline `fb40de4`.
 This is a deployment design and local preparation, not deployment authorization.
