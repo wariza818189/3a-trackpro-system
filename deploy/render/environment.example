@@ -1,0 +1,26 @@
+# Reference only. Enter values in Render Environment; never upload as .env.
+APP_NAME="3A TrackPro"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://YOUR-WEB-SERVICE.onrender.com
+# APP_KEY: generate privately once; retain across all redeploys.
+LOG_CHANNEL=stderr
+LOG_LEVEL=warning
+DB_CONNECTION=mysql
+DB_HOST=YOUR-EXACT-MYSQL-INTERNAL-HOSTNAME
+DB_PORT=3306
+DB_DATABASE=trackpro_render_demo
+DB_USERNAME=trackpro_render
+# DB_PASSWORD: same private value as MYSQL_PASSWORD on the MySQL service.
+MYSQL_ATTR_SSL_CA=/etc/secrets/mysql-ca.pem
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+FILESYSTEM_DISK=local
+MAIL_MAILER=log
+PORT=10000
+# Leave SESSION_DOMAIN, DB_URL, DB_SOCKET and Laravel path overrides unset.

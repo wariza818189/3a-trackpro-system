@@ -1,0 +1,29 @@
+# Render terminates public HTTPS. Only consume the exact scheme marker.
+map $http_x_forwarded_proto $trackpro_https { default off; https on; }
+map $trackpro_https $trackpro_scheme { default http; on https; }
+map $trackpro_https $trackpro_port { default 80; on 443; }
+server {
+    listen 0.0.0.0:${PORT};
+    server_name _;
+    root /app/public;
+    index index.php;
+    server_tokens off;
+    client_max_body_size 10m;
+    disable_symlinks on;
+    location ~* ^/(?:storage|bootstrap|vendor|config|database|deploy|resources|routes|tests)(?:/|$) { return 404; }
+    location ~* ^/(?:artisan|composer\.(?:json|lock)|package(?:-lock)?\.json)$ { return 404; }
+    location ~* \.(?:env|log|sql|bak|backup|ini|conf|ya?ml)(?:$|/) { return 404; }
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME /app/public/index.php;
+        fastcgi_param HTTPS $trackpro_https;
+        fastcgi_param REQUEST_SCHEME $trackpro_scheme;
+        fastcgi_param SERVER_PORT $trackpro_port;
+        fastcgi_param HTTP_PROXY "";
+        fastcgi_hide_header X-Powered-By;
+    }
+    location ~* \.php(?:/|$) { return 404; }
+    location ~ /\. { deny all; }
+}
