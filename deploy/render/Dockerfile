@@ -37,6 +37,9 @@ COPY --from=assets /app/public/build public/build
 CMD ["sh", "-c", "export APP_KEY=\"$(php -r 'echo \"base64:\".base64_encode(random_bytes(32));')\"; exec php vendor/bin/phpunit tests/Unit/DatabaseConfigurationTest.php tests/Feature/Auth"]
 
 FROM php-base AS runtime
+RUN set -eux; \
+    if ! getent group 1000 >/dev/null; then groupadd --gid 1000 render-secrets; fi; \
+    usermod --append --groups "$(getent group 1000 | cut -d: -f1)" www-data
 RUN apt-get update && apt-get install -y --no-install-recommends nginx curl gettext-base tini     && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
 COPY --from=dependencies /app /app
 COPY resources resources
