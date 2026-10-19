@@ -3,7 +3,7 @@ name: Publish MySQL TLS image
 on:
   push:
     tags:
-      - 'trackpro-mysql-tls-20261019'
+      - 'trackpro-mysql-tls-20261019-r2'
 
 permissions:
   contents: read
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   publish:
-    if: github.repository == 'wariza818189/3a-trackpro-system' && github.ref == 'refs/tags/trackpro-mysql-tls-20261019'
+    if: github.repository == 'wariza818189/3a-trackpro-system' && github.ref == 'refs/tags/trackpro-mysql-tls-20261019-r2'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -33,6 +33,9 @@ jobs:
             --label org.opencontainers.image.revision="$GITHUB_SHA" \
             --tag "$IMAGE:sha-$GITHUB_SHA" \
             --file deploy/render/mysql/Dockerfile deploy/render/mysql
+
+      - name: Pull pinned MySQL base for verification
+        run: docker pull --platform linux/amd64 "$BASE"
 
       - name: Verify image and context security
         shell: bash
