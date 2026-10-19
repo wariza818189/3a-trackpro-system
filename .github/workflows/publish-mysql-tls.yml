@@ -1,7 +1,9 @@
 name: Publish MySQL TLS image
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'trackpro-mysql-tls-20261019'
 
 permissions:
   contents: read
@@ -13,7 +15,7 @@ concurrency:
 
 jobs:
   publish:
-    if: github.repository == 'wariza818189/3a-trackpro-system' && github.ref == 'refs/heads/deploy/render-trackpro-demo'
+    if: github.repository == 'wariza818189/3a-trackpro-system' && github.ref == 'refs/tags/trackpro-mysql-tls-20261019'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
