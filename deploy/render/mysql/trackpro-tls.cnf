@@ -1,0 +1,5 @@
+[mysqld]
+require_secure_transport=ON
+ssl_ca=/var/lib/mysql/trackpro-tls/mysql-ca.pem
+ssl_cert=/var/lib/mysql/trackpro-tls/mysql-server.pem
+ssl_key=/var/lib/mysql/trackpro-tls/mysql-server.key

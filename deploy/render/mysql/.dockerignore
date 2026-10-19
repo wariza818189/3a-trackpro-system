@@ -1,0 +1,5 @@
+# This directory is the entire build context. Allow only the image inputs.
+**
+!Dockerfile
+!.dockerignore
+!trackpro-tls.cnf
