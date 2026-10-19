@@ -1,0 +1,99 @@
+name: Publish MySQL TLS image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-mysql-tls
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'wariza818189/3a-trackpro-system' && github.ref == 'refs/heads/deploy/render-trackpro-demo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE: ghcr.io/wariza818189/trackpro-mysql-tls
+      BASE: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Build linux/amd64 image
+        run: |
+          docker build --platform linux/amd64 \
+            --label org.opencontainers.image.source=https://github.com/wariza818189/3a-trackpro-system \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --tag "$IMAGE:sha-$GITHUB_SHA" \
+            --file deploy/render/mysql/Dockerfile deploy/render/mysql
+
+      - name: Verify image and context security
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, shutil, subprocess, tempfile
+          def docker(*args, **kwargs):
+              return subprocess.check_output(['docker', *args], text=True, **kwargs)
+          base = json.loads(docker('image', 'inspect', os.environ['BASE']))[0]
+          tag = os.environ['IMAGE'] + ':sha-' + os.environ['GITHUB_SHA']
+          image = json.loads(docker('image', 'inspect', tag))[0]
+          assert image['Os'] == 'linux' and image['Architecture'] == 'amd64'
+          for field, expected in [('Entrypoint', ['docker-entrypoint.sh']), ('Cmd', ['mysqld'])]:
+              assert image['Config'][field] == base['Config'][field] == expected
+          for config in (base['Config'], image['Config']):
+              assert (config.get('User') or '') in ('', 'root', '0')
+          assert image['RootFS']['Layers'][:-1] == base['RootFS']['Layers']
+          args = ('--rm', '--network', 'none', '--entrypoint')
+          checksum = docker('run', *args, 'sha256sum', os.environ['BASE'], '/usr/local/bin/docker-entrypoint.sh')
+          assert docker('run', *args, 'sha256sum', tag, '/usr/local/bin/docker-entrypoint.sh') == checksum
+          defaults = docker('run', *args, 'mysqld', tag, '--print-defaults')
+          for option in ('--require_secure_transport=ON',
+                         '--ssl_ca=/var/lib/mysql/trackpro-tls/mysql-ca.pem',
+                         '--ssl_cert=/var/lib/mysql/trackpro-tls/mysql-server.pem',
+                         '--ssl_key=/var/lib/mysql/trackpro-tls/mysql-server.key'):
+              assert option in defaults
+          source = pathlib.Path('deploy/render/mysql')
+          with tempfile.TemporaryDirectory() as tmp:
+              context = pathlib.Path(tmp) / 'context'
+              shutil.copytree(source, context)
+              for name in ('mysql-ca.pem', 'server.key', '.env', 'password.txt', 'nested/secret.pem', 'nested/.env'):
+                  path = context / name
+                  path.parent.mkdir(parents=True, exist_ok=True)
+                  path.write_text('SYNTHETIC EXCLUSION CANARY\n')
+              out = pathlib.Path(tmp) / 'export'
+              docker('build', '-f', '-', '--output', 'type=local,dest=' + str(out), str(context),
+                     input='FROM scratch\nCOPY . /\n')
+              assert {str(p.relative_to(out)) for p in out.rglob('*') if p.is_file()} == {
+                  'Dockerfile', '.dockerignore', 'trackpro-tls.cnf'}
+              for name in ('Dockerfile', '.dockerignore', 'trackpro-tls.cnf'):
+                  assert (out / name).read_bytes() == (source / name).read_bytes()
+          print('PASS platform, inherited entrypoint/CMD/root default, TLS configuration and context exclusions')
+          PY
+
+      - name: Publish privately and report immutable digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          package_api=https://api.github.com/users/wariza818189/packages/container/trackpro-mysql-tls
+          status=$(curl --silent --show-error --output "$RUNNER_TEMP/package.json" --write-out '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$package_api")
+          case "$status" in
+            200) test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["visibility"])' "$RUNNER_TEMP/package.json")" = private ;;
+            404) ;; # New GHCR packages are private by default; never change visibility.
+            *) echo "Package preflight failed: HTTP $status"; exit 1 ;;
+          esac
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          immutable=$(docker image inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{index .RepoDigests 0}}')
+          [[ "$immutable" =~ ^ghcr\.io/wariza818189/trackpro-mysql-tls@sha256:[a-f0-9]{64}$ ]]
+          test "$(gh api users/wariza818189/packages/container/trackpro-mysql-tls --jq .visibility)" = private
+          printf 'Image: `%s`\n\nVisibility: private\n\nSource: `%s`\n' \
+            "$immutable" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$immutable"
